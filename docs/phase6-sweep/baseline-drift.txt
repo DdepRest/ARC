@@ -1,0 +1,17 @@
+A.R.C. Baseline Drift Record (intelligence-panel-refactor)
+Date: 2026-10-17
+
+1. fontSizesUnder12:
+   - Baseline (scripts/visual-constitution-baseline.json): 136
+   - Live audit scan after run: 134 (Improvement -2)
+   - Status: Pending sync in dedicated sweep phase
+
+2. coloredStatusFills:
+   - Baseline (scripts/visual-constitution-baseline.json): 106
+   - Root (visual-constitution-baseline.json): 107 (deprecated/diverged)
+   - Live audit scan after run: 85 (Improvement -21)
+   - Status: Pending sync in dedicated sweep phase
+
+3. literalAccentClasses:
+   - Baseline: 117
+   - Live audit scan: 117 (0 debt growth)

@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A.R.C. // Тест-план физической верификации системы</title>
+  <style>
+    :root {
+      --arc-frame: #070707;
+      --arc-plane: #0A0A0A;
+      --arc-block: #101010;
+      --arc-rail: #080808;
+      --arc-hover: #161616;
+      --arc-selected: #1C1C1C;
+      --arc-hairline: rgba(255, 255, 255, 0.08);
+      --arc-hairline-bright: rgba(255, 255, 255, 0.16);
+      --arc-divider: #1E1E1E;
+      --accent: #EF4444;
+      --accent-rgb: 239, 68, 68;
+      --status-ok: #10B981;
+      --status-warn: #F59E0B;
+      --status-err: #EF4444;
+      --arc-text-primary: #F3F4F6;
+      --arc-text-secondary: #D1D5DB;
+      --arc-text-muted: #9CA3AF;
+      --arc-text-hint: #6B7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--arc-frame);
+      color: var(--arc-text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      background: var(--arc-plane);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .badge-hud {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--arc-text-secondary);
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+
+    /* Stats bar */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .stat-card {
+      background: var(--arc-block);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--arc-text-muted);
+      letter-spacing: 0.06em;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .stat-value.ok { color: var(--status-ok); }
+    .stat-value.err { color: var(--status-err); }
+    .stat-value.skip { color: var(--arc-text-muted); }
+    .stat-value.total { color: var(--arc-text-primary); }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: var(--arc-block);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 16px;
+      border: 1px solid var(--arc-hairline);
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--status-ok), var(--accent));
+      transition: width 0.3s ease;
+    }
+
+    /* Action Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--arc-plane);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 14px;
+      padding: 14px 18px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--arc-block);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--arc-hairline);
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: none;
+      color: var(--arc-text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+      color: var(--arc-text-primary);
+      background: var(--arc-hover);
+    }
+
+    .filter-btn.active {
+      background: var(--arc-selected);
+      color: var(--arc-text-primary);
+      font-weight: 600;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      border-radius: 8px;
+      border: 1px solid var(--arc-hairline);
+      background: var(--arc-block);
+      color: var(--arc-text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--arc-hover);
+      border-color: var(--arc-hairline-bright);
+    }
+
+    .btn-primary {
+      background: rgba(var(--accent-rgb), 0.16);
+      color: #fff;
+      border-color: rgba(var(--accent-rgb), 0.4);
+    }
+
+    .btn-primary:hover {
+      background: rgba(var(--accent-rgb), 0.28);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.35);
+    }
+
+    /* Category section */
+    .category-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--arc-text-secondary);
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--arc-divider);
+    }
+
+    .category-header .cat-icon {
+      color: var(--accent);
+    }
+
+    /* Test card */
+    .test-card {
+      background: var(--arc-plane);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .test-card:hover {
+      border-color: var(--arc-hairline-bright);
+    }
+
+    .test-card.passed {
+      border-left: 3px solid var(--status-ok);
+    }
+
+    .test-card.failed {
+      border-left: 3px solid var(--status-err);
+      background: rgba(239, 68, 68, 0.02);
+    }
+
+    .test-card.skipped {
+      border-left: 3px solid var(--arc-text-muted);
+      opacity: 0.75;
+    }
+
+    .test-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .test-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .test-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--arc-text-primary);
+      margin-top: 2px;
+    }
+
+    .test-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: var(--arc-block);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    @media (max-width: 768px) {
+      .test-details {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .step-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .step-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--arc-text-muted);
+    }
+
+    .step-text {
+      font-size: 13px;
+      color: var(--arc-text-secondary);
+      line-height: 1.45;
+    }
+
+    .step-text code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--arc-frame);
+      border: 1px solid var(--arc-hairline);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    /* Decision buttons */
+    .status-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .status-btn {
+      flex: 1;
+      min-width: 110px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border: 1px solid var(--arc-hairline);
+      background: var(--arc-block);
+      color: var(--arc-text-muted);
+      transition: all 0.15s;
+    }
+
+    .status-btn:hover {
+      background: var(--arc-hover);
+      color: var(--arc-text-primary);
+    }
+
+    .status-btn.pass.active {
+      background: rgba(16, 185, 129, 0.16);
+      color: var(--status-ok);
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    .status-btn.fail.active {
+      background: rgba(239, 68, 68, 0.18);
+      color: var(--status-err);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+    }
+
+    .status-btn.skip.active {
+      background: var(--arc-selected);
+      color: var(--arc-text-secondary);
+      border-color: var(--arc-hairline-bright);
+    }
+
+    /* Comment row */
+    .comment-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .comment-input {
+      width: 100%;
+      background: var(--arc-block);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--arc-text-primary);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .comment-input:focus {
+      border-color: var(--accent);
+    }
+
+    .comment-input::placeholder {
+      color: var(--arc-text-hint);
+    }
+
+    /* Logs section */
+    .logs-panel {
+      background: var(--arc-plane);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .logs-panel h2 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logs-textarea {
+      width: 100%;
+      height: 180px;
+      background: var(--arc-block);
+      border: 1px solid var(--arc-hairline);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--arc-text-secondary);
+      resize: vertical;
+      outline: none;
+    }
+
+    .logs-textarea:focus {
+      border-color: var(--accent);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0E0E0E;
+      border: 1px solid var(--status-ok);
+      color: var(--status-ok);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      z-index: 1000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="badge-hud">
+      <span class="badge-dot"></span>
+      <span>A.R.C. // PHYSICAL QA SUITE v1.0.12</span>
+    </div>
+    <h1>Тест-план физической верификации системы</h1>
+    <p class="subtitle">
+      Интерактивный чеклист для сквозного тестирования функциональности A.R.C. на локальной машине Windows.
+      Отмечайте статус каждого теста, добавляйте комментарии по поведению, вставьте логи из консоли и скопируйте готовый отчёт одной кнопкой.
+    </p>
+
+    <!-- METRICS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Всего тестов</span>
+        <span class="stat-value total" id="stat-total">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Пройдено</span>
+        <span class="stat-value ok" id="stat-passed">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Ошибки</span>
+        <span class="stat-value err" id="stat-failed">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Пропущено</span>
+        <span class="stat-value skip" id="stat-skipped">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Успешность</span>
+        <span class="stat-value ok" id="stat-percent">0%</span>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+  </header>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="filter-tabs">
+      <button class="filter-btn active" onclick="setFilter('all')">Все тесты</button>
+      <button class="filter-btn" onclick="setFilter('failed')">Только ошибки</button>
+      <button class="filter-btn" onclick="setFilter('pending')">Не завершено</button>
+      <button class="filter-btn" onclick="setFilter('passed')">Пройденные</button>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="copyReportToClipboard()">
+        📋 Скопировать отчёт для разработчика
+      </button>
+      <button class="btn" onclick="exportDataJson()">
+        💾 Экспорт JSON
+      </button>
+      <button class="btn" onclick="resetAllTests()">
+        🔄 Сброс
+      </button>
+    </div>
+  </div>
+
+  <!-- TESTS CONTAINER -->
+  <div id="tests-root"></div>
+
+  <!-- SYSTEM LOGS SECTION -->
+  <div class="logs-panel">
+    <h2>
+      <span style="color: var(--accent);">//</span>
+      <span>Системные логи консоли A.R.C.</span>
+    </h2>
+    <p style="font-size: 12px; color: var(--arc-text-muted);">
+      Вставьте сюда логи из вкладки Console в DevTools A.R.C. (Ctrl+Shift+I) или из виджета СОБЫТИЯ.
+      Логи будут автоматически включены в итоговый отчёт для инженера.
+    </p>
+    <textarea
+      id="system-logs-input"
+      class="logs-textarea"
+      placeholder="Вставьте сюда логи консоли (например: [STT Worker], [TTS], [Router] ...)"
+      oninput="saveState()"
+    ></textarea>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast">Отчёт скопирован в буфер обмена!</div>
+
+<script>
+// Test definitions covering the whole A.R.C. system
+const TEST_SUITE = [
+  {
+    category: "Голосовой контур (Вейкворд, STT, VAD и Окно диалога)",
+    icon: "🎙️",
+    tests: [
+      {
+        id: "VOICE-01",
+        title: "Активация по кодовому слову «АРК»",
+        action: "Произнести вслух: «Арк, как дела?» при неактивном окне ввода.",
+        expected: "Реактор загорается, статус переходит в 'Слушает' -> 'Обработка', распознаётся команда 'Как дела?', бот выдаёт ответ."
+      },
+      {
+        id: "VOICE-02",
+        title: "Мульти-диалог без повторения «АРК» (15 секунд после ответа)",
+        action: "Сразу после того как бот договорит фразу, без слова 'Арк' спросить: «А что ты умеешь?».",
+        expected: "Бот моментально слышит и принимает реплику без повторения 'Арк'. В доке виден обратный отсчёт диалогового окна."
+      },
+      {
+        id: "VOICE-03",
+        title: "Удержание диалога на длинных ответах",
+        action: "Задать вопрос требующий длинного ответа: «Расскажи подробно про устройство Солнечной системы».",
+        expected: "Пока бот генерирует и озвучивает ответ, 15-секундный таймер НЕ сгорает. Сразу после окончания озвучки даётся 15с на ответ."
+      },
+      {
+        id: "VOICE-04",
+        title: "Закрытие диалога фразой благодарности («Спасибо / Отбой»)",
+        action: "В активном 15-секундном окне диалога сказать: «Спасибо» или «Всё, спасибо».",
+        expected: "Диалог мгновенно закрывается, таймер сбрасывается, бот коротко подтверждает ('На связи' / 'Всегда рад')."
+      },
+      {
+        id: "VOICE-05",
+        title: "Прерывание речи ассистента (Smart Barge-in)",
+        action: "Когда ассистент произносит длинный ответ, громко сказать: «Стоп» или «Пауза».",
+        expected: "Синтез речи немедленно прерывается, реактор возвращается в режим покоя."
+      },
+      {
+        id: "VOICE-06",
+        title: "Чувствительность VAD и сброс бейджа «Голос зафиксирован»",
+        action: "Помолчать 5-7 секунд при включенном микрофоне.",
+        expected: "Бейдж 'ГОЛОС ЗАФИКСИРОВАН' гаснет через 500 мс после паузы. Нет ложных самопроизвольных срабатываний на шум кулеров."
+      }
+    ]
+  },
+  {
+    category: "Нейросетевой контур (LLM, Роутер и Системное время)",
+    icon: "🧠",
+    tests: [
+      {
+        id: "LLM-01",
+        title: "Точное локальное время компьютера оператора",
+        action: "Спросить голосом или текстом: «Какое сейчас время?».",
+        expected: "Ассистент называет точное текущее время с системных часов Windows (без галлюцинаций вида '14:30' или чужих поясов)."
+      },
+      {
+        id: "LLM-02",
+        title: "Текущая системная дата и день недели",
+        action: "Спросить: «Какое сегодня число и день недели?».",
+        expected: "Ассистент правильно называет сегодняшнее число, месяц, год и день недели."
+      },
+      {
+        id: "LLM-03",
+        title: "Длинный потоковый ответ без зависаний",
+        action: "Запросить: «Расскажи про YouTube вкратце по пунктам».",
+        expected: "Текст печатается плавно, стриминг не обрывается на середине, окно приложения не выдаёт 'Не отвечает' в заголовке Windows."
+      },
+      {
+        id: "LLM-04",
+        title: "Краткость и стиль в быстрых репликах",
+        action: "Сказать: «Привет» или «Как дела?».",
+        expected: "Ассистент отвечает лаконично (1-2 предложения), без канцелярита, без навязчивых вопросов 'Чем займёмся сегодня?'."
+      },
+      {
+        id: "LLM-05",
+        title: "Маршрутизация и переключение моделей в Настройках",
+        action: "Перейти в 'Настройки -> Интеллект' и проверить карточки моделей / провайдеров.",
+        expected: "Статусы провайдеров отображаются корректно, настройки сохраняются без ошибок."
+      }
+    ]
+  },
+  {
+    category: "Синтез речи (Silero TTS v5.5 и DSP)",
+    icon: "🔊",
+    tests: [
+      {
+        id: "TTS-01",
+        title: "Чистота и естественность голоса Silero",
+        action: "Послушать озвучку ответа (диктор 'eugene').",
+        expected: "Звук чистый, 48 кГц, нет металлических артефактов, заиканий и щелчков на старте/финише."
+      },
+      {
+        id: "TTS-02",
+        title: "Расстановка ударений и произношение ИТ-терминов",
+        action: "Спросить: «Что такое сервер Jenkins, webpack и PayPal?».",
+        expected: "Ударения в словах расставлены корректно, англоязычные ИТ-термины транслитерируются правильно по словарю."
+      },
+      {
+        id: "TTS-03",
+        title: "Серийное воспроизведение без AbortError",
+        action: "Задать 3-4 коротких вопроса подряд с минимальными паузами.",
+        expected: "Каждая фраза озвучивается стабильно, в консоли нет ошибок 'AbortError: play() interrupted by pause()'."
+      }
+    ]
+  },
+  {
+    category: "3D-Ядро и Телеметрия (Reactor & Widgets)",
+    icon: "⚛️",
+    tests: [
+      {
+        id: "CORE-01",
+        title: "Плавность 3D-Реактора (60+ FPS)",
+        action: "Подвигать курсором над реактором, покрутить сцену.",
+        expected: "Фреймрейт в виджете 'ЯДРО' стабильно держит 60+ FPS (на GPU RTX — 100-160 FPS), нет микрофризов и просадок."
+      },
+      {
+        id: "CORE-02",
+        title: "Реакция Ядра на режимы работы",
+        action: "Сравнить реактор в покое, при приёме голоса (красный импульс) и при озвучке ответа.",
+        expected: "Геометрия и шейдерное кольцо синхронно откликаются на смену аудио-источника (idle -> mic -> tts)."
+      },
+      {
+        id: "CORE-03",
+        title: "Приборы дока (Честная телеметрия)",
+        action: "Осмотреть виджеты: ЯДРО (CPU, RAM, GPU), МАРШРУТ (модель, пинг ms), СОБЫТИЯ.",
+        expected: "Все показатели выводят реальные данные системы, шкала 22px Hero-метрик читается четко."
+      },
+      {
+        id: "CORE-04",
+        title: "Эко-режим при сворачивании окна",
+        action: "Свернуть окно A.R.C. и открыть Диспетчер задач Windows.",
+        expected: "Потребление GPU процессом Electron снижается, анимация уходит в фоновый энергосберегающий режим."
+      }
+    ]
+  },
+  {
+    category: "Интерфейс, Навигация и Разделы",
+    icon: "🗂️",
+    tests: [
+      {
+        id: "UI-01",
+        title: "Панель дока и кнопка «РАЗДЕЛЫ»",
+        action: "Нажать кнопку 'РАЗДЕЛЫ' в нижнем доке управления.",
+        expected: "Панель пространств раскрывается над строкой ввода, вкладки ЗАДАЧИ, ФАЙЛЫ, ПАМЯТЬ, КОМАНДЫ, ОБНОВЛЕНИЯ активны."
+      },
+      {
+        id: "UI-02",
+        title: "Быстрый поиск (Spotlight ⌘K / Ctrl+K)",
+        action: "Нажать сочетание Ctrl+K на клавиатуре или кнопку 'ПОИСК'.",
+        expected: "Мгновенно открывается окно прожектора поиска по разделам и командам, Escape закрывает окно."
+      },
+      {
+        id: "UI-03",
+        title: "Раздел «История обновлений»",
+        action: "Открыть меню 'Разделы -> ОБНОВЛЕНИЯ' или 'Настройки -> Обновления'.",
+        expected: "Отображается таймлайн версий v1.0.12, v1.0.11, фильтры 'Все / Новое / Улучшения / Исправления' и кнопка 'Копировать лог'."
+      },
+      {
+        id: "UI-04",
+        title: "Управление задачами (TASKS)",
+        action: "Перейти в TASKS, создать новую задачу, сменить статус, удалить.",
+        expected: "Задачи сохраняются в локальную SQLite БД, интерфейс списка обновляется без задержек."
+      },
+      {
+        id: "UI-05",
+        title: "Долговременная память (MEMORY)",
+        action: "Перейти во вкладку MEMORY и проверить список сохранённых фактов о пользователе.",
+        expected: "Факты отображаются структурированным списком, доступен экспорт/импорт без вызова блокирующих alert()."
+      }
+    ]
+  },
+  {
+    category: "Системные команды и Интеграции",
+    icon: "⚡",
+    tests: [
+      {
+        id: "INT-01",
+        title: "Запуск приложений Windows через ассистента",
+        action: "Сказать: «Арк, открой калькулятор» или «Арк, открой блокнот».",
+        expected: "Системное приложение Windows открывается сразу, процесс запуска не блокирует интерфейс A.R.C."
+      },
+      {
+        id: "INT-02",
+        title: "Виджет МЕДИА и интеграция с VK Музыкой",
+        action: "Проверить карточку МЕДИА в правой панели, нажать Play/Pause.",
+        expected: "Плеер откликается, отображается обложка и название трека, управление работает без лагов."
+      }
+    ]
+  }
+];
+
+const STORAGE_KEY = "arc_physical_qa_state_v1";
+
+// Safe storage wrapper (handles file:// protocol sandbox restrictions)
+const safeStorage = {
+  get(key) {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch (e) {
+      console.warn("safeStorage.get error:", e);
+    }
+    return null;
+  },
+  set(key, val) {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(key, val);
+      }
+    } catch (e) {
+      console.warn("safeStorage.set error:", e);
+    }
+  },
+  remove(key) {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.warn("safeStorage.remove error:", e);
+    }
+  }
+};
+
+// State: { [testId]: { status: 'pass'|'fail'|'skip'|null, comment: string } }
+let state = {
+  results: {},
+  logs: ""
+};
+
+let currentFilter = "all";
+
+function loadState() {
+  try {
+    const raw = safeStorage.get(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = Object.assign({ results: {}, logs: "" }, parsed);
+    }
+  } catch (e) {
+    console.warn("Failed to load QA state:", e);
+  }
+}
+
+function saveState() {
+  try {
+    const logsEl = document.getElementById("system-logs-input");
+    if (logsEl) {
+      state.logs = logsEl.value;
+    }
+    safeStorage.set(STORAGE_KEY, JSON.stringify(state));
+    updateStats();
+  } catch (e) {
+    console.warn("Failed to save QA state:", e);
+  }
+}
+
+function setStatus(testId, status) {
+  if (!state.results[testId]) {
+    state.results[testId] = { status: null, comment: "" };
+  }
+  // Toggle off if clicked again
+  if (state.results[testId].status === status) {
+    state.results[testId].status = null;
+  } else {
+    state.results[testId].status = status;
+  }
+  saveState();
+  render();
+}
+
+function setComment(testId, comment) {
+  if (!state.results[testId]) {
+    state.results[testId] = { status: null, comment: "" };
+  }
+  state.results[testId].comment = comment;
+  saveState();
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("onclick").includes(filter));
+  });
+  render();
+}
+
+function getAllTests() {
+  const list = [];
+  for (const cat of TEST_SUITE) {
+    for (const t of cat.tests) {
+      list.push(Object.assign({ categoryName: cat.category }, t));
+    }
+  }
+  return list;
+}
+
+function updateStats() {
+  const all = getAllTests();
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const t of all) {
+    const r = state.results[t.id];
+    if (r) {
+      if (r.status === "pass") passed++;
+      else if (r.status === "fail") failed++;
+      else if (r.status === "skip") skipped++;
+    }
+  }
+
+  const answered = passed + failed;
+  const pct = answered > 0 ? Math.round((passed / answered) * 100) : 0;
+
+  document.getElementById("stat-total").innerText = all.length;
+  document.getElementById("stat-passed").innerText = passed;
+  document.getElementById("stat-failed").innerText = failed;
+  document.getElementById("stat-skipped").innerText = skipped;
+  document.getElementById("stat-percent").innerText = pct + "%";
+
+  const totalEvaluated = passed + failed + skipped;
+  const progressPct = Math.round((totalEvaluated / all.length) * 100);
+  document.getElementById("progress-bar").style.width = progressPct + "%";
+}
+
+function render() {
+  const root = document.getElementById("tests-root");
+  root.innerHTML = "";
+
+  for (const cat of TEST_SUITE) {
+    const catGroup = document.createElement("div");
+    catGroup.className = "category-group";
+
+    let visibleInCat = 0;
+
+    const cardsWrap = document.createElement("div");
+    cardsWrap.style.display = "flex";
+    cardsWrap.style.flexDirection = "column";
+    cardsWrap.style.gap = "10px";
+
+    for (const test of cat.tests) {
+      const res = state.results[test.id] || { status: null, comment: "" };
+
+      // Apply filter
+      if (currentFilter === "passed" && res.status !== "pass") continue;
+      if (currentFilter === "failed" && res.status !== "fail") continue;
+      if (currentFilter === "pending" && res.status !== null) continue;
+
+      visibleInCat++;
+
+      const card = document.createElement("div");
+      let cardClass = "test-card";
+      if (res.status === "pass") cardClass += " passed";
+      else if (res.status === "fail") cardClass += " failed";
+      else if (res.status === "skip") cardClass += " skipped";
+      card.className = cardClass;
+
+      card.innerHTML = `
+        <div class="test-top">
+          <div>
+            <span class="test-id">${test.id}</span>
+            <div class="test-title">${test.title}</div>
+          </div>
+          <div class="status-buttons">
+            <button
+              class="status-btn pass ${res.status === 'pass' ? 'active' : ''}"
+              onclick="setStatus('${test.id}', 'pass')"
+            >
+              ✓ Пройдено
+            </button>
+            <button
+              class="status-btn fail ${res.status === 'fail' ? 'active' : ''}"
+              onclick="setStatus('${test.id}', 'fail')"
+            >
+              ✗ Ошибка
+            </button>
+            <button
+              class="status-btn skip ${res.status === 'skip' ? 'active' : ''}"
+              onclick="setStatus('${test.id}', 'skip')"
+            >
+              ⏭ Пропустить
+            </button>
+          </div>
+        </div>
+
+        <div class="test-details">
+          <div class="step-box">
+            <span class="step-title">Действие оператора</span>
+            <span class="step-text">${test.action}</span>
+          </div>
+          <div class="step-box">
+            <span class="step-title">Ожидаемый результат A.R.C.</span>
+            <span class="step-text">${test.expected}</span>
+          </div>
+        </div>
+
+        <div class="comment-row">
+          <input
+            type="text"
+            class="comment-input"
+            placeholder="Комментарий оператора (что пошло не так, время отклика, детали поведения)..."
+            value="${escapeHtml(res.comment || '')}"
+            oninput="setComment('${test.id}', this.value)"
+          />
+        </div>
+      `;
+
+      cardsWrap.appendChild(card);
+    }
+
+    if (visibleInCat > 0) {
+      const catHeader = document.createElement("div");
+      catHeader.className = "category-header";
+      catHeader.innerHTML = `
+        <span class="cat-icon">${cat.icon}</span>
+        <span>${cat.category}</span>
+        <span style="color: var(--arc-text-muted); font-size: 11px;">(${visibleInCat})</span>
+      `;
+      catGroup.appendChild(catHeader);
+      catGroup.appendChild(cardsWrap);
+      root.appendChild(catGroup);
+    }
+  }
+
+  updateStats();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.innerText = msg;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2400);
+}
+
+function generateReportMarkdown() {
+  const all = getAllTests();
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+  let pending = 0;
+
+  for (const t of all) {
+    const r = state.results[t.id];
+    if (r?.status === "pass") passed++;
+    else if (r?.status === "fail") failed++;
+    else if (r?.status === "skip") skipped++;
+    else pending++;
+  }
+
+  const answered = passed + failed;
+  const pct = answered > 0 ? Math.round((passed / answered) * 100) : 0;
+  const now = new Date().toLocaleString("ru-RU");
+
+  let md = `# A.R.C. — Отчёт физического тестирования системы\n`;
+  md += `**Дата проведения:** ${now}\n`;
+  md += `**Версия A.R.C.:** v1.0.12 (build 9048f71)\n`;
+  md += `**Сводка:** Всего ${all.length} | Пройдено: ${passed} | Ошибок: ${failed} | Пропущено: ${skipped} | Успешность: ${pct}%\n\n`;
+
+  md += `## 1. Сводная таблица результатов\n\n`;
+  md += `| ID | Тест | Статус | Комментарий оператора |\n`;
+  md += `|:---|:---|:---:|:---|\n`;
+
+  for (const t of all) {
+    const r = state.results[t.id] || { status: null, comment: "" };
+    let st = "⏳ Не проверено";
+    if (r.status === "pass") st = "✅ Пройдено";
+    else if (r.status === "fail") st = "❌ Ошибка";
+    else if (r.status === "skip") st = "⏭ Пропущено";
+
+    const cmt = (r.comment || "").replace(/\|/g, "/").trim() || "—";
+    md += `| \`${t.id}\` | ${t.title} | ${st} | ${cmt} |\n`;
+  }
+
+  // Detailed failed tests section
+  const failedList = all.filter(t => state.results[t.id]?.status === "fail");
+  if (failedList.length > 0) {
+    md += `\n## 2. Подробно по обнаруженным ошибкам (${failedList.length})\n\n`;
+    for (const t of failedList) {
+      const r = state.results[t.id];
+      md += `### ❌ [${t.id}] ${t.title}\n`;
+      md += `- **Категория:** ${t.categoryName}\n`;
+      md += `- **Действие:** ${t.action}\n`;
+      md += `- **Ожидалось:** ${t.expected}\n`;
+      md += `- **Замечание оператора:** ${r.comment || "Не указано"}\n\n`;
+    }
+  }
+
+  // System logs
+  const logsEl = document.getElementById("system-logs-input");
+  const logsText = (logsEl ? logsEl.value : state.logs || "").trim();
+  if (logsText) {
+    md += `\n## 3. Системные логи консоли / рантайма\n\n`;
+    md += `\`\`\`log\n${logsText}\n\`\`\`\n`;
+  }
+
+  return md;
+}
+
+async function copyReportToClipboard() {
+  saveState();
+  const report = generateReportMarkdown();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(report);
+      showToast("Отчёт скопирован! Вставьте его в чат.");
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = report;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Отчёт скопирован!");
+    }
+  } catch (e) {
+    console.error("Clipboard copy failed:", e);
+    showToast("Не удалось скопировать в буфер. Экспортируйте JSON.");
+  }
+}
+
+function exportDataJson() {
+  saveState();
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+  const dlAnchor = document.createElement("a");
+  dlAnchor.setAttribute("href", dataStr);
+  dlAnchor.setAttribute("download", `arc-qa-results-${Date.now()}.json`);
+  dlAnchor.click();
+}
+
+function resetAllTests() {
+  if (confirm("Вы уверены, что хотите сбросить все отметки и комментарии тестов?")) {
+    state = { results: {}, logs: "" };
+    safeStorage.remove(STORAGE_KEY);
+    const logsEl = document.getElementById("system-logs-input");
+    if (logsEl) logsEl.value = "";
+    render();
+    showToast("Все тесты сброшены");
+  }
+}
+
+// Initial setup with immediate and event fallback
+function init() {
+  try {
+    loadState();
+    const logsEl = document.getElementById("system-logs-input");
+    if (logsEl && state.logs) {
+      logsEl.value = state.logs;
+    }
+    render();
+  } catch (err) {
+    console.error("A.R.C. QA Suite init error:", err);
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>

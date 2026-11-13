@@ -1,0 +1,182 @@
+{
+  "name": "a.r.c.",
+  "version": "1.0.12",
+  "description": "Autonomous Reactor Core",
+  "license": "MIT",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "electron:dev": "node scripts/postinstall-check.js && electron-vite dev",
+    "electron:dev:keep-cache": "node scripts/postinstall-check.js && electron-vite dev",
+    "build": "node scripts/postinstall-check.js && electron-vite build && npm run check-sizes && npm run check-visual-constitution",
+    "check-sizes": "node scripts/check-file-sizes.js",
+    "check-visual-constitution": "node scripts/check-visual-constitution.js",
+    "exorcise": "node scripts/exorcise.js",
+    "preview": "vite preview",
+    "start": "vite",
+    "lint": "tsc --noEmit",
+    "test": "vitest run --config ./electron.vite.config.ts",
+    "test:soak": "node scripts/soak-test.js --quick",
+    "gate": "npm run lint && npm run check-visual-constitution && npm run test && npm run build && npm run check-sizes",
+    "rebuild:electron": "node scripts/postinstall-check.js --force-electron",
+    "postinstall": "node scripts/postinstall-check.js",
+    "dist:win": "npm run build && npx electron-builder --win --dir",
+    "pack:win": "npm run build && npx electron-builder --win"
+  },
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "build": {
+    "appId": "com.arc.cognitive",
+    "productName": "A.R.C.",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "silero_server.py",
+      "silero_text_prep.py",
+      "silero_number_converter.py",
+      "tts_dict_loader.py",
+      "requirements-silero.txt",
+      "scripts/stt_worker.js",
+      "Voice/models/**/*",
+      "Voice/dicts/**/*",
+      "!**/silero_env/**",
+      "!silero_env/**",
+      "!**/*vosk*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/sherpa-onnx-node/**/*",
+      "node_modules/node-llama-cpp/**/*",
+      "node_modules/@node-llama-cpp/**/*",
+      "scripts/stt_worker.js",
+      "Voice/models/**/*",
+      "Voice/dicts/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "silero_server.py",
+        "to": "silero_server.py"
+      },
+      {
+        "from": "silero_text_prep.py",
+        "to": "silero_text_prep.py"
+      },
+      {
+        "from": "silero_number_converter.py",
+        "to": "silero_number_converter.py"
+      },
+      {
+        "from": "tts_dict_loader.py",
+        "to": "tts_dict_loader.py"
+      },
+      {
+        "from": "requirements-silero.txt",
+        "to": "requirements-silero.txt"
+      },
+      {
+        "from": "scripts/stt_worker.js",
+        "to": "scripts/stt_worker.js"
+      },
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "**/*",
+          "!**/silero_env/**",
+          "!silero_env/**",
+          "!**/*vosk*",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
+        ]
+      },
+      {
+        "from": "resources/models/silero-v5",
+        "to": "resources/models/silero-v5",
+        "filter": [
+          "**/*",
+          "v5_6_ru.pt"
+        ]
+      },
+      {
+        "from": "resources/python-embed",
+        "to": "resources/python-embed",
+        "filter": [
+          "**/*",
+          "!**/silero_env/**",
+          "!**/*vosk*",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
+        ]
+      }
+    ],
+    "win": {
+      "artifactName": "ARC-Setup-${version}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "@google/genai": "^2.11.0",
+    "@xenova/transformers": "^2.17.2",
+    "axios": "^1.15.2",
+    "better-sqlite3": "^12.9.0",
+    "dompurify": "^3.4.14",
+    "form-data": "^4.0.5",
+    "jimp": "^0.22.12",
+    "jsep": "^1.4.0",
+    "litegraph.js": "^0.7.18",
+    "lucide-vue-next": "^0.546.0",
+    "marked": "^18.0.11",
+    "node-edge-tts": "^1.2.10",
+    "node-llama-cpp": "^3.19.0",
+    "pinia": "^2.3.1",
+    "sherpa-onnx-node": "1.13.7",
+    "systeminformation": "^5.31.5",
+    "three": "^0.174.0",
+    "tree-kill": "^1.2.2",
+    "vue": "^3.5.13",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^22.14.0",
+    "@types/three": "^0.174.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "electron": "^34.3.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^4.1.9"
+  },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "^0.25.0"
+  }
+}

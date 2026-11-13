@@ -1,0 +1,392 @@
+====================================================
+ A.R.C. COGNITIVE PLATFORM - SYSTEM STARTUP
+====================================================
+
+[START] System initialization sequence initiated at:  0:23:10,26
+
+[1/3] Verifying Node.js environment... [ 0:23:10,27]
+[SUCCESS] Node.js environment is present.
+
+[2/3] Verifying Node.js dependencies... [ 0:23:10,37]
+[SUCCESS] Node.js dependencies verified [node_modules found, skipping npm install].
+
+[3.5/4] Verifying model files... [ 0:23:10,37]
+[Sherpa] Fetching latest model file sizes from Hugging Face API...
+[Sherpa] Successfully resolved latest sizes from Hugging Face for all model files.
+[Sherpa] GigaAM v3 missing, will be downloaded by background pipeline.
+[Sherpa] Model metadata saved successfully.
+[Silero TTS] Found valid model file at C:\A.R.C.Gemini\v5_5_ru.pt (139 MB).
+[SUCCESS] Model files verified. [ 0:23:11,41]
+
+[3.6/4] Verifying Python TTS environment... [ 0:23:11,43]
+[SUCCESS] Python TTS virtual environment is present and verified.
+
+[3/3] Starting A.R.C. application... [ 0:23:20,01]
+====================================================
+
+Launching Electron Frontend... [ 0:23:20,02]
+
+Application is running. Close this window to exit.
+
+npm notice run a.r.c.@1.0.12 electron:dev
+npm notice run node scripts/postinstall-check.js && electron-vite dev
+[PostInstall Check] Silero v5.5 model present in resources/models/silero-v5/v5_5_ru.pt.
+[PostInstall Check] Native better-sqlite3 binary is already compiled for Electron target ABI.
+[36mvite v6.4.3 [32mbuilding SSR bundle for development...[36m[39m
+transforming...
+[32m✓[39m 117 modules transformed.
+rendering chunks...
+[2mout/main/[22m[36mindex.js  [39m[1m[33m907.78 kB[39m[22m
+[32m✓ built in 1.20s[39m
+[32m
+electron main process built successfully[39m
+[90m
+-----
+[39m
+[36mvite v6.4.3 [32mbuilding SSR bundle for development...[36m[39m
+transforming...
+[32m✓[39m 2 modules transformed.
+rendering chunks...
+[2mout/preload/[22m[36mindex.js  [39m[1m[2m26.06 kB[22m[1m[22m
+[32m✓ built in 34ms[39m
+[32m
+electron preload scripts built successfully[39m
+[90m
+-----
+[39m
+[32mdev server running for the electron renderer process at:
+[39m
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3000[22m/[39m
+[32m
+starting electron app...
+[39m
+
+[StorageManager] Portable userData configured at: C:\A.R.C.Gemini\data
+[Startup] AI & Audio caches cleared for testing/dev mode.
+ARC Main: Loading URL http://127.0.0.1:3000
+[DatabaseService] Initialized (mode=NORMAL, storage=PERSISTENT_SQLITE) at C:\A.R.C.Gemini\data\database\arc.db
+Domain-specific IPC Handlers registered
+[VK WS] Server successfully started on port 8765
+[GPU Info] Integrated GPU | Vendor: 4318 | Device: 12036
+[3632:1109/002325.853:ERROR:CONSOLE(1)] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[3632:1109/002325.853:ERROR:CONSOLE(1)] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[Renderer INFO] [vite] connecting... (client:789)
+[Renderer INFO] [vite] connected. (client:912)
+[LongTermMemory] Initializing background Worker Thread for embeddings...
+[Renderer INFO] A.R.C. build 9048f71 (main.ts:59)
+[TTS] engine provider set to: silero
+[Renderer INFO] [Reactor3D] GPU: Google Inc. (NVIDIA) | ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 (0x00002F04) Direct3D11 vs_5_0 ps_5_0, D3D11) | powerPreference: high-performance (useSysLogs.ts:80)
+[Renderer INFO] [ARC LIVE DUMP: INITIAL MOUNT] [object Object] (error-handler.ts:42)
+[STT] Base models verified, initializing STT service...
+[Python Server] start: exe=C:\A.R.C.Gemini\silero_env\Scripts\python.exe, script=C:\A.R.C.Gemini\silero_server.py
+[Renderer INFO] [INFO] App: Ollama is offline. Skipping detailed model check. (useSysLogs.ts:80)
+[Renderer INFO] [Reactor] Audio source switched to: idle (isTtsPlaying=false, state=idle) (useSysLogs.ts:80)
+[Renderer WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. (sandbox_bundle:2)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] A.R.C. Startup Sequence: [object Object] (error-handler.ts:42)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[STT Worker] [STT Worker] Silero VAD initialized successfully
+[STT Worker] [STT Worker] GigaAM CTC 220M initialized successfully (single active engine)
+[STT] Engine ready: gigaam
+[STT] Worker initialized successfully. Active: gigaam. GigaAM: true, Whisper: false, VAD: true
+[Renderer INFO] [STT] Worker ready, clearing error banner: stt-v2 (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: SpeechRecognition API is available. (useSysLogs.ts:80)
+[Renderer INFO] [Reactor] Audio source switched to: mic (isTtsPlaying=false, state=listening) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: STT AudioWorkletNode successfully registered and active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: STT Listening started. (useSysLogs.ts:80)
+[Python Server] All required Python packages are present.
+[Python Server] model resolved: C:\A.R.C.Gemini\resources\models\silero-v5\v5_5_ru.pt
+[Python Server] Process priority set to BELOW_NORMAL (PID 25680)
+[STT Worker] [STT] engine=gigaam, latency_ms=184
+[Renderer INFO] [INFO] Voice: Cleaned transcript: a.r.c. привет (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: IDLE -> TRIGGERED (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity detected: pausing background download stream.
+[Renderer INFO] [INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="арк привет" clean="a.r.c. привет" -> hit=true (word="arc", src=clean, isAlias=true) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Active dialogue window refreshed (15s active window). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: TRIGGERED -> PROCESSING (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Wake word triggered. Command: Привет. (useSysLogs.ts:80)
+[INFO] ARC TTS: Stop requested.
+[AI-Preprocess] Running correction on input: "Привет." using provider FreeAPILLM
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Python Server] [TTS Dict Loader] Reloaded dictionaries. IT: 190, Abbr: 84, Homographs: 8
+[Python Server] Loading Silero v5.5...
+[Python Server] [Silero] Found existing model at: C:\A.R.C.Gemini\resources\models\silero-v5\v5_5_ru.pt (145420684 bytes)
+[Python Server] Silero v5.5 loaded successfully from C:\A.R.C.Gemini\resources\models\silero-v5\v5_5_ru.pt.
+[Python Server] [SILERO SERVER BUILD: 2026-09-08 22:00:00]
+[Python Server] Server starting...
+[Python Server] [DictLoader] Loaded 190 entries
+[Python Server] [DictLoader-Test] OK: PayPal ->       
+[Python Server] [DictLoader-Test] OK: Tesla ->      
+[Python Server] [DictLoader-Test] OK: server ->       
+[Python Server] [DictLoader-Test] OK: Jenkins ->         
+[Python Server] [DictLoader-Test] OK: webpack ->       
+[Python Server] [DictLoader-Test] OK: example dot com ->                  
+[Python Server] [DictLoader-Test] OK: main.py ->               
+[Python Server] [DictLoader-Test] OK:        2.5 ->                      
+[Python Server] [DictLoader-Test] OK:         ->     +   
+[Python Server] [DSP v2] selftest OK
+[Python Server] * Serving Flask app 'silero_server'
+[Python Server] * Debug mode: off
+[Python Server] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:8002
+[Python Server] Press CTRL+C to quit
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:23:51] "GET /status HTTP/1.1" 200 -
+[Python Server] online on :8002
+[Python Server] Healthcheck timer restarted: 10000ms
+[Python Server] [RUAccent] Module not available (No module named 'onnx'), using built-in dictionaries
+[AI-Preprocess] Preprocessing failed (falling back to original text): timeout of 10000ms exceeded
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: PROCESSING -> IDLE (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity ended: resuming background download stream.
+[Renderer INFO] [INFO] [VoiceFSM] Auto-reset to IDLE on dialogue window timeout (useSysLogs.ts:80)
+[VK WS] Client connected on port 8765
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:07] "GET /status HTTP/1.1" 200 -
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (timeout of 12000ms exceeded), falling back to stream: false...
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=7, responseChars=7)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 12668ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 12668ms
+[INFO] ARC TTS: Preparing to speak [7 chars] using speaker [eugene], autoClearCache=[true] (id: 1212ee466fe25381)
+[INFO] AUTO-CLEAR CACHE: Purging cache before synthesis...
+[INFO] Cache MISS. Generating audio via Silero v5.5 (eugene) DSP...
+[TTS] engine active: silero (provider=silero)
+[TTS] Using provider: silero
+[Python Server] [DSP v2] Processing TTS for text length 7 (put_accent=True, put_yo=True)
+[Python Server] [INFO] Python Cache cleared
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:10] "POST /clear-cache HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:12] "POST /tts HTTP/1.1" 200 -
+[Renderer INFO] [TTS] Playing via: persistent-element (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:17] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[STT Worker] [STT] engine=gigaam, latency_ms=194
+[Renderer INFO] [INFO] Voice: Cleaned transcript: как дела (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [WakeWord] hit: false | raw: "как дела" | clean: "как дела" (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="как дела" clean="как дела" -> hit=false (word="none", src=none, isAlias=false) (useSysLogs.ts:80)
+[STT Worker] [STT] engine=gigaam, latency_ms=422
+[Renderer INFO] [INFO] Voice: Cleaned transcript: a.r.c. как дела (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: IDLE -> TRIGGERED (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity detected: pausing background download stream.
+[Renderer INFO] [INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="арк как дела" clean="a.r.c. как дела" -> hit=true (word="arc", src=clean, isAlias=true) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Active dialogue window refreshed (15s active window). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: TRIGGERED -> PROCESSING (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Wake word triggered. Command: Как дела? (useSysLogs.ts:80)
+[INFO] ARC TTS: Stop requested.
+[AI-Preprocess] Skipping LLM preprocessing for direct question/query: "Как дела?" -> "Как дела?"
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:32] "GET /status HTTP/1.1" 200 -
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (timeout of 12000ms exceeded), falling back to stream: false...
+[Renderer INFO] [INFO] [VoiceFSM] Transition: PROCESSING -> IDLE (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity ended: resuming background download stream.
+[Renderer INFO] [INFO] [VoiceFSM] Auto-reset to IDLE on dialogue window timeout (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:43] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=9, responseChars=14)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 21444ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 21444ms
+[INFO] ARC TTS: Preparing to speak [14 chars] using speaker [eugene], autoClearCache=[true] (id: c617f8b408af09e5)
+[INFO] AUTO-CLEAR CACHE: Purging cache before synthesis...
+[INFO] Cache MISS. Generating audio via Silero v5.5 (eugene) DSP...
+[TTS] engine active: silero (provider=silero)
+[TTS] Using provider: silero
+[Python Server] [DSP v2] Processing TTS for text length 14 (put_accent=True, put_yo=True)
+[Python Server] [INFO] Python Cache cleared
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:50] "POST /clear-cache HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:24:51] "POST /tts HTTP/1.1" 200 -
+[Renderer INFO] [TTS] Playing via: persistent-element (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[STT Worker] [STT] engine=gigaam, latency_ms=281
+[Renderer INFO] [INFO] Voice: Cleaned transcript: чем занимаешься (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [WakeWord] hit: false | raw: "чем занимаешься" | clean: "чем занимаешься" (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="чем занимаешься" clean="чем занимаешься" -> hit=false (word="none", src=none, isAlias=false) (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:25:02] "GET /status HTTP/1.1" 200 -
+[STT Worker] [STT] engine=gigaam, latency_ms=439
+[Renderer INFO] [INFO] Voice: Cleaned transcript: арты чем занимаешься (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [WakeWord] hit: false | raw: "арты чем занимаешься" | clean: "арты чем занимаешься" (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="арты чем занимаешься" clean="арты чем занимаешься" -> hit=false (word="none", src=none, isAlias=false) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: STT Listening stopped. (useSysLogs.ts:80)
+[Renderer INFO] [Reactor] Audio source switched to: idle (isTtsPlaying=false, state=idle) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:25:12] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:25:22] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:25:41] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:25:51] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: SpeechRecognition API is available. (useSysLogs.ts:80)
+[Renderer INFO] [Reactor] Audio source switched to: mic (isTtsPlaying=false, state=listening) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: STT AudioWorkletNode successfully registered and active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: STT Listening started. (useSysLogs.ts:80)
+[STT Worker] [STT] engine=gigaam, latency_ms=279
+[Renderer INFO] [INFO] Voice: Cleaned transcript: ар какое сейчас время (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: IDLE -> TRIGGERED (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity detected: pausing background download stream.
+[Renderer INFO] [INFO] [WakeWord] hit: true | word: "арк" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [WakeWord] hit: true | word: "арк" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="ар какое сейчас время" clean="ар какое сейчас время" -> hit=true (word="арк", src=clean, isAlias=true) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Active dialogue window refreshed (15s active window). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: TRIGGERED -> PROCESSING (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Wake word triggered. Command: Ар какое сейчас время. (useSysLogs.ts:80)
+[INFO] ARC TTS: Stop requested.
+[AI-Preprocess] Running correction on input: "Ар какое сейчас время." using provider FreeAPILLM
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:26:11] "GET /status HTTP/1.1" 200 -
+[AI-Preprocess] Preprocessing failed (falling back to original text): timeout of 10000ms exceeded
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: PROCESSING -> IDLE (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity ended: resuming background download stream.
+[Renderer INFO] [INFO] [VoiceFSM] Auto-reset to IDLE on dialogue window timeout (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:26:25] "GET /status HTTP/1.1" 200 -
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (timeout of 12000ms exceeded), falling back to stream: false...
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=22, responseChars=36)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 17829ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 17829ms
+[INFO] ARC TTS: Preparing to speak [36 chars] using speaker [eugene], autoClearCache=[true] (id: e0b1c965edcb9665)
+[INFO] AUTO-CLEAR CACHE: Purging cache before synthesis...
+[INFO] Cache MISS. Generating audio via Silero v5.5 (eugene) DSP...
+[TTS] engine active: silero (provider=silero)
+[TTS] Using provider: silero
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:26:43] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:26:51] "POST /clear-cache HTTP/1.1" 200 -
+[Python Server] [DSP v2] Processing TTS for text length 52 (put_accent=True, put_yo=True)
+[Python Server] [INFO] Python Cache cleared
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:26:52] "POST /tts HTTP/1.1" 200 -
+[Renderer INFO] [TTS] Playing via: persistent-element (useSysLogs.ts:80)
+[Renderer INFO] [Reactor] Audio source switched to: tts (isTtsPlaying=true, state=speaking) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:80)
+[Renderer INFO] [Reactor] Audio source switched to: mic (isTtsPlaying=false, state=idle) (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:26:57] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:27:09] "GET /status HTTP/1.1" 200 -
+[STT Worker] [STT] engine=gigaam, latency_ms=327
+[Renderer INFO] [INFO] Voice: Cleaned transcript: я у него спросил какое сейчас время он сказал четырнадцать тридцать хотя сейчас ноль двадцать семь (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [WakeWord] hit: false | raw: "я у него спросил какое сейчас время он сказал четырнадцать тридцать хотя сейчас ноль двадцать семь" | clean: "я у него спросил какое сейчас время он сказал четырнадцать тридцать хотя сейчас ноль двадцать семь" (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="я у него спросил какое сейчас время он сказал четырнадцать тридцать хотя сейчас ноль двадцать семь" clean="я у него спросил какое сейчас время он сказал четырнадцать тридцать хотя сейчас ноль двадцать семь" -> hit=false (word="none", src=none, isAlias=false) (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:27:19] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:27:29] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:27:39] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:27:50] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [PERF] SettingsPanel:first-rail-paint: 1087.20ms (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:28:05] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[STT Worker] [STT] engine=gigaam, latency_ms=602
+[Renderer INFO] [INFO] Voice: Cleaned transcript: a.r.c. как дела (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: IDLE -> TRIGGERED (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity detected: pausing background download stream.
+[Renderer INFO] [INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="арк как дела" clean="a.r.c. как дела" -> hit=true (word="arc", src=clean, isAlias=true) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Active dialogue window refreshed (15s active window). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: TRIGGERED -> PROCESSING (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Wake word triggered. Command: Как дела? (useSysLogs.ts:80)
+[INFO] ARC TTS: Stop requested.
+[AI-Preprocess] Skipping LLM preprocessing for direct question/query: "Как дела?" -> "Как дела?"
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:28:15] "GET /status HTTP/1.1" 200 -
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=9, responseChars=14)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 11520ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 11520ms
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[INFO] ARC TTS: Preparing to speak [14 chars] using speaker [eugene], autoClearCache=[true] (id: 5d80c4f0ea908efa)
+[INFO] AUTO-CLEAR CACHE: Purging cache before synthesis...
+[INFO] Cache MISS. Generating audio via Silero v5.5 (eugene) DSP...
+[TTS] engine active: silero (provider=silero)
+[TTS] Using provider: silero
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: PROCESSING -> IDLE (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity ended: resuming background download stream.
+[Renderer INFO] [INFO] [VoiceFSM] Auto-reset to IDLE on dialogue window timeout (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:28:32] "GET /status HTTP/1.1" 200 -
+[Python Server] [DSP v2] Processing TTS for text length 14 (put_accent=True, put_yo=True)
+[Python Server] [INFO] Python Cache cleared
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:28:32] "POST /clear-cache HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:28:33] "POST /tts HTTP/1.1" 200 -
+[Renderer INFO] [TTS] Playing via: persistent-element (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:80)
+[Router] Request to FreeAPILLM canceled (aborted by user or lifecycle).
+[STT Worker] [STT] engine=gigaam, latency_ms=1212
+[Renderer INFO] [INFO] Voice: Cleaned transcript: расскажи про youtube вкратце (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [WakeWord] hit: false | raw: "расскажи про YouTube вкратце" | clean: "расскажи про youtube вкратце" (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="расскажи про YouTube вкратце" clean="расскажи про youtube вкратце" -> hit=false (word="none", src=none, isAlias=false) (useSysLogs.ts:80)
+[STT Worker] [STT] engine=gigaam, latency_ms=900
+[Renderer INFO] [INFO] Voice: Cleaned transcript: a.r.c. расскажи про youtube вкратце (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: IDLE -> TRIGGERED (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity detected: pausing background download stream.
+[Renderer INFO] [INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [WakeWord] hit: true | word: "arc" | source: clean | isAlias: true (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [Voice:evaluateVoiceTrigger] raw="арк расскажи про YouTube вкратце" clean="a.r.c. расскажи про youtube вкратце" -> hit=true (word="arc", src=clean, isAlias=true) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Active dialogue window refreshed (15s active window). (useSysLogs.ts:80)
+[Renderer INFO] [INFO] [VoiceFSM] Transition: TRIGGERED -> PROCESSING (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Wake word triggered. Command: Расскажи про youtube вкратце. (useSysLogs.ts:80)
+[INFO] ARC TTS: Stop requested.
+[AI-Preprocess] Skipping LLM preprocessing for direct question/query: "Расскажи про youtube вкратце." -> "Расскажи про youtube вкратце."
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:28:55] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:29:05] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] [VoiceFSM] Transition: PROCESSING -> IDLE (useSysLogs.ts:80)
+[BuiltIn-LLM] Voice activity ended: resuming background download stream.
+[Renderer INFO] [INFO] [VoiceFSM] Auto-reset to IDLE on dialogue window timeout (useSysLogs.ts:80)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (aborted), falling back to stream: false...
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:29:21] "GET /status HTTP/1.1" 200 -
+[Router] Request to FreeAPILLM failed: timeout (32665ms exceeded)
+[WARN] [Router] Request to FreeAPILLM failed: timeout (32665ms exceeded)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: Timeout, Latency: 32665ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: Timeout, Latency: 32665ms
+[A.R.C. Multi-Model Router] Model auto failed. Trying next...
+[A.R.C. Multi-Model Router] Attempting model 2/4: fusion (Provider: FreeAPILLM)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:29:33] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:80)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:80)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (aborted), falling back to stream: false...
+[Python Server] 127.0.0.1 - - [09/Nov/2026 00:29:44] "GET /status HTTP/1.1" 200 -

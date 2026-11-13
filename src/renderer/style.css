@@ -1,0 +1,7 @@
+/* Calm Settings Search Highlight (tokenized A.R.C. accent pulse) */
+.search-highlight {
+  background-color: rgba(var(--accent-rgb), 0.10) !important;
+  box-shadow: inset 2px 0 0 0 var(--accent), 0 0 0 1px rgba(var(--accent-rgb), 0.32) !important;
+  border-radius: 8px;
+  transition: background-color 0.35s ease, box-shadow 0.35s ease;
+}

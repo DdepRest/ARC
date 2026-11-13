@@ -1,0 +1,24 @@
+@import './tokens.css';
+
+:root {
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --text: var(--color-text-primary);
+  --dim: var(--color-text-muted);
+  --border: var(--color-border-subtle);
+  /* The dynamic RGB value of the reactor, updated by ThreeJS frame loop */
+  --core-glow: 255, 0, 0; 
+  /* A.R.C. Tasks Accent Variables */
+  --accent-color: #ef4444;
+  --accent-text: #f87171;
+  --accent-border: rgba(239, 68, 68, 0.3);
+  --accent-bg-alpha: rgba(239, 68, 68, 0.15);
+  --accent-glow: 0 0 8px #ef4444;
+
+  /* Semantic Role Red Aliases (Preserving 100% existing values) */
+  --arc-accent-identity: var(--accent);
+  --arc-accent-active: var(--accent-text);
+  --arc-accent-focus: var(--accent-color);
+  --arc-accent-border: var(--accent-border);
+}
+

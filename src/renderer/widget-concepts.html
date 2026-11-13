@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A.R.C. — Дизайн-лаборатория виджетов и нижней панели</title>
+  <style>
+    :root {
+      --bg: #040507;
+      --bg-surface: #0a0b10;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --arc-red: #ef4444;
+      --arc-red-glow: rgba(239, 68, 68, 0.35);
+      --arc-red-dim: rgba(239, 68, 68, 0.12);
+      --text-main: #ededed;
+      --text-muted: #888d96;
+      --text-dim: #4d5159;
+      --status-ok: #34d399;
+      --status-warn: #f59e0b;
+      --status-err: #ef4444;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.45;
+    }
+
+    /* Top Bar */
+    header {
+      background: rgba(8, 9, 14, 0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--arc-red);
+      box-shadow: 0 0 10px var(--arc-red);
+      animation: pulse 2.2s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 16px var(--arc-red); }
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+    .nav-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .nav-tab-btn.active {
+      color: #fff;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+    }
+
+    main { max-width: 1540px; margin: 0 auto; padding: 20px 24px 60px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Stage Simulator */
+    .simulator-stage {
+      background: radial-gradient(circle at 50% 48%, #140709 0%, #06070a 65%, #030406 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      min-height: 720px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.95), 0 20px 50px rgba(0,0,0,0.8);
+    }
+    .stage-top-bar {
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      z-index: 20;
+    }
+    .stage-concept-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #aaa;
+    }
+    .stage-concept-title strong { color: #fff; }
+    .concept-picker {
+      background: #0d0e14;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .stage-viewport {
+      flex: 1;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 36px 100px;
+      min-height: 580px;
+    }
+
+    .stage-column {
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .stage-column.left { width: 310px; }
+    .stage-column.right { width: 260px; }
+
+    /* 3D Reactor Simulation */
+    .reactor-canvas-mock {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 440px;
+      height: 440px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .r-ring-1 {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(239, 68, 68, 0.6);
+      box-shadow: 0 0 55px rgba(239, 68, 68, 0.35), inset 0 0 30px rgba(239, 68, 68, 0.18);
+    }
+    .r-ring-2 {
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      border: 1px dashed rgba(239, 68, 68, 0.65);
+      animation: spinR 28s linear infinite;
+    }
+    @keyframes spinR { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .r-ring-3 {
+      position: absolute;
+      inset: 48px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.26) 0%, rgba(0,0,0,0.88) 75%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .r-core-rhombus {
+      width: 72px;
+      height: 72px;
+      border: 2px solid #ef4444;
+      background: rgba(239, 68, 68, 0.2);
+      box-shadow: 0 0 28px #ef4444;
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .r-core-rhombus::after {
+      content: '';
+      width: 24px;
+      height: 24px;
+      background: #ff4444;
+      box-shadow: 0 0 16px #ff2222;
+    }
+    .r-cross-h {
+      position: absolute;
+      top: 50%; left: -40px; right: -40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.35) 20%, rgba(239, 68, 68, 0.35) 80%, transparent);
+    }
+    .r-cross-v {
+      position: absolute;
+      left: 50%; top: -40px; bottom: -40px;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(239, 68, 68, 0.35) 20%, rgba(239, 68, 68, 0.35) 80%, transparent);
+    }
+
+    /* Bottom Bar In-Stage Anchor */
+    .stage-bottom-bar-wrap {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 780px;
+      max-width: calc(100% - 48px);
+      z-index: 30;
+      transition: all 0.25s ease;
+    }
+
+    /* Common Status Dots */
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-ok { background: var(--status-ok); box-shadow: 0 0 6px var(--status-ok); }
+    .dot-warn { background: var(--status-warn); box-shadow: 0 0 6px var(--status-warn); }
+    .dot-err { background: var(--status-err); box-shadow: 0 0 6px var(--status-err); }
+    .dot-off { background: #555; }
+
+    /* Quick Sparkline Bar */
+    .spark {
+      display: inline-block;
+      width: 44px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1px;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .spark-fill { height: 100%; background: var(--arc-red); }
+
+    /* ========================================================================= */
+    /* 7 DISTINCT DESIGN CONCEPTS IMPLEMENTATION                                */
+    /* ========================================================================= */
+
+    /* CONCEPT 1: CORE PERIMETER (MASTER) */
+    .theme-cp .spine-left { border-left: 1px dashed rgba(255,255,255,0.14); padding-left: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .theme-cp .spine-right { border-right: 1px dashed rgba(255,255,255,0.14); padding-right: 14px; text-align: right; display: flex; flex-direction: column; gap: 10px; }
+    .theme-cp .node-item {
+      background: #0f1015;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-left: 2px solid rgba(255,255,255,0.22);
+      border-radius: 8px;
+      padding: 9px 12px;
+      transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+      cursor: pointer;
+      position: relative;
+    }
+    .theme-cp .spine-right .node-item { border-left: 1px solid rgba(255,255,255,0.08); border-right: 2px solid rgba(255,255,255,0.22); }
+    .theme-cp .node-item:hover {
+      background: #15161e;
+      border-color: rgba(255,255,255,0.15);
+      border-left-color: var(--arc-red);
+      transform: translateX(2px);
+    }
+    .theme-cp .spine-right .node-item:hover { border-right-color: var(--arc-red); transform: translateX(-2px); }
+    .theme-cp .bottom-dock {
+      background: #08080a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 6px 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* CONCEPT 2: MINIMAL MONOLITH */
+    .theme-monolith .col-stack { display: flex; flex-direction: column; gap: 6px; }
+    .theme-monolith .node-item {
+      background: transparent;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 0;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .theme-monolith .node-item:hover { border-bottom-color: rgba(239, 68, 68, 0.6); }
+    .theme-monolith .bottom-dock {
+      background: #060709;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-left: none; border-right: none;
+      border-radius: 0;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* CONCEPT 3: TACTICAL FLIGHT-DECK */
+    .theme-avionics .col-stack { display: flex; flex-direction: column; gap: 10px; }
+    .theme-avionics .node-item {
+      background: rgba(12, 14, 18, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      padding: 10px 12px;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .theme-avionics .node-item::before, .theme-avionics .node-item::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-color: var(--arc-red);
+      pointer-events: none;
+    }
+    .theme-avionics .node-item::before { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+    .theme-avionics .node-item::after { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+    .theme-avionics .bottom-dock {
+      background: #0a0c10;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 8px 14px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .theme-avionics .bottom-dock::before {
+      content: 'ARC // FLIGHT-DECK V6';
+      position: absolute;
+      top: -9px;
+      left: 14px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--arc-red);
+      background: #06070a;
+      padding: 0 4px;
+      letter-spacing: 0.1em;
+    }
+
+    /* CONCEPT 4: HOLOGRAPHIC PRISM (GLASS) */
+    .theme-prism .col-stack { display: flex; flex-direction: column; gap: 12px; }
+    .theme-prism .node-item {
+      background: rgba(14, 16, 24, 0.65);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .theme-prism .node-item:hover {
+      background: rgba(22, 25, 36, 0.8);
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 30px rgba(239, 68, 68, 0.12);
+    }
+    .theme-prism .bottom-dock {
+      background: rgba(14, 16, 24, 0.7);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 8px 18px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 16px 40px rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* CONCEPT 5: ORBITAL RADIAL */
+    .theme-orbital .col-stack { display: flex; flex-direction: column; gap: 10px; }
+    .theme-orbital .left .node-item {
+      background: #0d0f15;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-left: 3px solid var(--arc-red);
+      border-radius: 4px 18px 18px 4px;
+      padding: 9px 14px;
+      cursor: pointer;
+    }
+    .theme-orbital .right .node-item {
+      background: #0d0f15;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-right: 3px solid var(--arc-red);
+      border-radius: 18px 4px 4px 18px;
+      padding: 9px 14px;
+      cursor: pointer;
+      text-align: right;
+    }
+    .theme-orbital .bottom-dock {
+      background: #0a0b10;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.1);
+    }
+
+    /* CONCEPT 6: CYBER-CHASSIS (CHAMFER) */
+    .theme-chassis .col-stack { display: flex; flex-direction: column; gap: 10px; }
+    .theme-chassis .node-item {
+      background: #0d0e12;
+      padding: 10px 14px;
+      clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+      border-left: 2px solid rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .theme-chassis .node-item:hover {
+      background: #14161c;
+      border-left-color: var(--arc-red);
+    }
+    .theme-chassis .bottom-dock {
+      background: #0a0b0e;
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-left: 3px solid var(--arc-red);
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* CONCEPT 7: ULTRA-DENSE TELEMETRY */
+    .theme-density .col-stack { display: flex; flex-direction: column; gap: 4px; }
+    .theme-density .node-item {
+      background: #090a0d;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-left: 2px solid rgba(255,255,255,0.18);
+      padding: 5px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 32px;
+    }
+    .theme-density .node-item:hover {
+      background: #101217;
+      border-left-color: var(--arc-red);
+    }
+    .theme-density .bottom-dock {
+      background: #08090c;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px 12px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Universal Content Rows inside Widgets */
+    .row-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .txt-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e5e5e5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .txt-tag {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .row-data {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .txt-val-main {
+      font-size: 11px;
+      color: #9ea3ac;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .txt-val-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    /* Bottom Bar Elements */
+    .bb-voice-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .bb-voice-btn.active {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--arc-red);
+      color: var(--arc-red);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    }
+    .bb-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 12px;
+      font-family: var(--font-sans);
+      letter-spacing: 0.02em;
+    }
+    .bb-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+    .bb-send-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.18s ease;
+    }
+    .bb-send-btn:hover { background: rgba(239, 68, 68, 0.3); border-color: var(--arc-red); }
+    .bb-kbd {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      white-space: nowrap;
+    }
+
+    /* Comparison Cards Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .concept-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.2s ease;
+    }
+    .concept-card.featured {
+      border-color: rgba(239, 68, 68, 0.45);
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-surface) 100%);
+      box-shadow: 0 0 35px rgba(239, 68, 68, 0.08);
+    }
+    .concept-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+    .concept-card-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .concept-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+    .concept-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .concept-points {
+      list-style: none;
+      font-size: 11.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .concept-points li { display: flex; gap: 8px; }
+    .concept-points li::before { content: '▸'; color: var(--arc-red); font-family: var(--font-mono); }
+    .btn-apply-concept {
+      margin-top: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+    .btn-apply-concept:hover { background: rgba(239, 68, 68, 0.2); border-color: var(--arc-red); }
+
+    /* Palette Matrix */
+    .color-matrix {
+      background: #090a0e;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 20px;
+    }
+    .palette-cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .palette-box {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .color-swatch {
+      height: 40px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand-title">
+      <div class="brand-dot"></div>
+      <span>A.R.C. // WIDGETS & BOTTOM BAR ARCHITECTURE</span>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchTab('simulator')">1. Живой симулятор сцены</button>
+      <button class="nav-tab-btn" onclick="switchTab('showcase')">2. Каталог 7 концептов</button>
+      <button class="nav-tab-btn" onclick="switchTab('palette')">3. Цветовая дисциплина 60-30-10</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: LIVE SIMULATOR -->
+    <section id="tab-simulator" class="tab-content active">
+      <div class="simulator-stage">
+        <div class="stage-top-bar">
+          <div class="stage-concept-title">
+            КОНЦЕПТ: <strong id="lbl-active-concept">01. Core Perimeter (Мастер-Синтез)</strong>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="font-family: var(--font-mono); font-size: 10px; color: #888;">ВЫБОР СТИЛЯ:</label>
+            <select class="concept-picker" id="sel-concept" onchange="applyConcept(this.value)">
+              <option value="cp" selected>01. Core Perimeter (Мастер-Синтез: шина + отводы)</option>
+              <option value="monolith">02. Minimal Monolith (Швейцарский минимализм)</option>
+              <option value="avionics">03. Tactical Flight-Deck (Авионика и скобы)</option>
+              <option value="prism">04. Holographic Prism (Многослойное темное стекло)</option>
+              <option value="orbital">05. Orbital Radial (Дуговые радиальные векторы)</option>
+              <option value="chassis">06. Cyber-Chassis (Фаски 45° и промышленный модуль)</option>
+              <option value="density">07. Ultra-Dense Telemetry (Сверхплотный терминал данных)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Stage Viewport -->
+        <div class="stage-viewport" id="stage-viewport-root">
+          <!-- LEFT COLUMN: FLOW & WORKSPACE -->
+          <div class="stage-column left" id="slot-left-widgets"></div>
+
+          <!-- CENTER: 3D LIVING REACTOR SIMULATION -->
+          <div class="reactor-canvas-mock">
+            <div class="r-ring-1"></div>
+            <div class="r-ring-2"></div>
+            <div class="r-ring-3">
+              <div class="r-core-rhombus"></div>
+            </div>
+            <div class="r-cross-h"></div>
+            <div class="r-cross-v"></div>
+          </div>
+
+          <!-- RIGHT COLUMN: TELEMETRY & SYSTEM -->
+          <div class="stage-column right" id="slot-right-widgets"></div>
+
+          <!-- BOTTOM BAR ANCHOR -->
+          <div class="stage-bottom-bar-wrap" id="slot-bottom-bar"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: SHOWCASE / ALL 7 CONCEPTS -->
+    <section id="tab-showcase" class="tab-content">
+      <div style="margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-mono); font-size: 18px; color: #fff;">КАТАЛОГ ДИЗАЙН-КОНЦЕПТОВ A.R.C.</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+          Все 7 концептов объединяют виджеты периметра и нижнюю панель в цельную систему без цветового хаоса и замкнутых «кирпичей».
+        </p>
+      </div>
+
+      <div class="cards-grid">
+        <!-- 01 Core Perimeter -->
+        <div class="concept-card featured">
+          <div class="concept-card-head">
+            <span class="concept-card-title">01. Core Perimeter</span>
+            <span class="concept-badge" style="color: var(--arc-red); border: 1px solid rgba(239,68,68,0.4);">МАСТЕР-СИНТЕЗ</span>
+          </div>
+          <div class="concept-desc">
+            Шина вместо коробки. Виджеты крепятся к структурной вертикальной оси с отводами к реактору. Нижняя панель синхронизирована по графитовому тону и радиусу 14px.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Открытые слоты со штриховой шиной (spine rail).</li>
+            <li><b>Нижняя панель:</b> Матовый монолит #08080A со скрытыми направляющими.</li>
+            <li><b>Цвета:</b> Нейтральный графит + строгий рубиновый A.R.C. Red.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('cp')">Посмотреть в симуляторе</button>
+        </div>
+
+        <!-- 02 Minimal Monolith -->
+        <div class="concept-card">
+          <div class="concept-card-head">
+            <span class="concept-card-title">02. Minimal Monolith</span>
+            <span class="concept-badge">ЧИСТАЯ ТИПОГРАФИКА</span>
+          </div>
+          <div class="concept-desc">
+            Полный отказ от рамок и карточек. Данные разделены только пространственным ритмом и тонкими волосяными линиями.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Нулевой радиус, плоские текстовые блоки.</li>
+            <li><b>Нижняя панель:</b> Интегрированный горизонтальный блейд от края до края.</li>
+            <li><b>Цвета:</b> Холодный дымчатый монохром с белым текстом 90%.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('monolith')">Посмотреть в симуляторе</button>
+        </div>
+
+        <!-- 03 Tactical Flight-Deck -->
+        <div class="concept-card">
+          <div class="concept-card-head">
+            <span class="concept-card-title">03. Tactical Flight-Deck</span>
+            <span class="concept-badge">HUD & АВИОНИКА</span>
+          </div>
+          <div class="concept-desc">
+            Эстетика приборной панели истребителя 6-го поколения. Угловые скобы, перекрестия и жесткая координатная сетка.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Угловые скобы-маркеры на 4 углах каждого узла.</li>
+            <li><b>Нижняя панель:</b> Командный лоток с аппаратным шильдиком и индикатором готовности.</li>
+            <li><b>Цвета:</b> Оружейный титан #0c0e12, лазерные засечки.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('avionics')">Посмотреть в симуляторе</button>
+        </div>
+
+        <!-- 04 Holographic Prism -->
+        <div class="concept-card">
+          <div class="concept-card-head">
+            <span class="concept-card-title">04. Holographic Prism</span>
+            <span class="concept-badge">ТЕМНОЕ СТЕКЛО</span>
+          </div>
+          <div class="concept-desc">
+            Глубокое многослойное темное стекло (blur 24px) с тончайшим верхним бликом и объемной глубиной перед светящимся ядром.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Мягкий радиус 12-20px с внутренним светорассеянием.</li>
+            <li><b>Нижняя панель:</b> Парящая стеклянная капсула с акцентным лучом энергии к ядру.</li>
+            <li><b>Цвета:</b> Обсидиан 70% прозрачности, глубокие отражения.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('prism')">Посмотреть в симуляторе</button>
+        </div>
+
+        <!-- 05 Orbital Radial -->
+        <div class="concept-card">
+          <div class="concept-card-head">
+            <span class="concept-card-title">05. Orbital Radial</span>
+            <span class="concept-badge">ДУГОВАЯ СХЕМА</span>
+          </div>
+          <div class="concept-desc">
+            Геометрия элементов ориентирована на кольца Three.js реактора. Скругления направлены внутрь к центру вращения.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Асимметричные радиусы 18px/4px, повторяющие дугу ядра.</li>
+            <li><b>Нижняя панель:</b> Овально замкнутый док, замыкающий нижнюю полусферу.</li>
+            <li><b>Цвета:</b> Космический глубокий вакуум и карминовые акценты.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('orbital')">Посмотреть в симуляторе</button>
+        </div>
+
+        <!-- 06 Cyber-Chassis -->
+        <div class="concept-card">
+          <div class="concept-card-head">
+            <span class="concept-card-title">06. Cyber-Chassis</span>
+            <span class="concept-badge">ФАСКИ 45°</span>
+          </div>
+          <div class="concept-desc">
+            Инженерная эстетика аппаратных модулей реактора. Срезанные углы под 45 градусов, стыковочные замки и ощущение физической брони.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Срезы chamfer 9px-14px на углах.</li>
+            <li><b>Нижняя панель:</b> Усиленный терминал со скошенными фасками.</li>
+            <li><b>Цвета:</b> Вороненая сталь, чистый сигнал тревоги A.R.C. Red.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('chassis')">Посмотреть в симуляторе</button>
+        </div>
+
+        <!-- 07 Ultra-Dense Telemetry -->
+        <div class="concept-card">
+          <div class="concept-card-head">
+            <span class="concept-card-title">07. Ultra-Dense Telemetry</span>
+            <span class="concept-badge">ПЛОТНЫЙ ДАТАСЕТ</span>
+          </div>
+          <div class="concept-desc">
+            Для плотной работы с информацией. Однострочные спарклайны, высота всего 32px, максимальный обзор 3D-реактора.
+          </div>
+          <ul class="concept-points">
+            <li><b>Геометрия:</b> Сжатые тонкие полосы без лишних отступов.</li>
+            <li><b>Нижняя панель:</b> Ультракомпактный стрип 36px.</li>
+            <li><b>Цвета:</b> Матовый асфальт, платиновые цифры.</li>
+          </ul>
+          <button class="btn-apply-concept" onclick="applyConceptFromCard('density')">Посмотреть в симуляторе</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PALETTE MATRIX -->
+    <section id="tab-palette" class="tab-content">
+      <div class="color-matrix">
+        <h2 style="font-family: var(--font-mono); font-size: 16px; color: #fff;">ДИСЦИПЛИНА ЦВЕТА 60-30-10 (РЕШЕНИЕ «ЦВЕТОВОГО КОШМАРА»)</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">
+          Главная причина, почему интерфейс разваливался — разнобой случайных оттенков (кислотно-зеленый, яркий янтарь, синий неон, разный красный на каждой карточке). В единой системе A.R.C. действует строгая пропорция:
+        </p>
+
+        <div class="palette-cols">
+          <!-- 60% Dominant -->
+          <div class="palette-box">
+            <div class="color-swatch" style="background: #040507; border: 1px solid rgba(255,255,255,0.1);">60% CANVAS</div>
+            <div style="font-size: 12px; font-weight: bold; color: #fff;">Глубокий обсидиан</div>
+            <div style="font-size: 11px; color: #888; margin-top: 4px;">Фон сцены, космос (#040507, #06070a). Не дает фоновому шуму спорить с реактором.</div>
+          </div>
+
+          <!-- 30% Structural -->
+          <div class="palette-box">
+            <div class="color-swatch" style="background: #0f1015; border: 1px solid rgba(255,255,255,0.15);">30% STRUCTURE</div>
+            <div style="font-size: 12px; font-weight: bold; color: #fff;">Графит и темное стекло</div>
+            <div style="font-size: 11px; color: #888; margin-top: 4px;">Поверхности виджетов и нижней панели (#0f1015, #08080a). Единый тон для всех модулей!</div>
+          </div>
+
+          <!-- 10% Accent -->
+          <div class="palette-box">
+            <div class="color-swatch" style="background: #ef4444; color: #fff;">10% A.R.C. RED</div>
+            <div style="font-size: 12px; font-weight: bold; color: #fff;">Каноничный рубин A.R.C.</div>
+            <div style="font-size: 11px; color: #888; margin-top: 4px;">Только ядро, фокус микрофона, активный ввод и критические состояния. Никаких случайных заливок.</div>
+          </div>
+
+          <!-- Functional Telemetry -->
+          <div class="palette-box">
+            <div class="color-swatch" style="background: #34d399; color: #000;">FUNCTIONAL DOTS</div>
+            <div style="font-size: 12px; font-weight: bold; color: #fff;">Точечный статус данных</div>
+            <div style="font-size: 11px; color: #888; margin-top: 4px;">Зеленый/янтарь — только как микро-точки (6px) или тонкие спарклайны реальных данных.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      const btn = Array.from(document.querySelectorAll('.nav-tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (btn) btn.classList.add('active');
+
+      const content = document.getElementById('tab-' + tabId);
+      if (content) content.classList.add('active');
+    }
+
+    function applyConceptFromCard(key) {
+      switchTab('simulator');
+      document.getElementById('sel-concept').value = key;
+      applyConcept(key);
+    }
+
+    // Concept definitions & builders
+    const conceptData = {
+      cp: {
+        title: "01. Core Perimeter (Мастер-Синтез: шина + отводы)",
+        wrapperClass: "theme-cp",
+        renderLeft: () => `
+          <div class="spine-left">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">♫ МЕДИА</span><span class="txt-tag">IDLE</span></div>
+              <div class="row-data"><span class="txt-val-main">Quantum Soundscape</span><span class="txt-val-num" style="color:#777; font-size:10px;">STANDBY</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-ok"></span>АКТИВНОСТЬ</span><span class="txt-tag">1813 ms</span></div>
+              <div class="row-data"><span class="txt-val-main">ГОТОВ К ПРИЕМУ</span><span class="txt-val-num" style="color:var(--status-ok);">READY</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-err"></span>РОУТЕР</span><span class="txt-tag">12 ms</span></div>
+              <div class="row-data"><span class="txt-val-main">ЛОКАЛЬНЫЙ ДВИЖОК · Qwen 2.5 7B</span><span class="txt-val-num" style="color:#ff8888;">LOCAL</span></div>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="spine-right">
+            <div class="node-item">
+              <div class="row-meta" style="flex-direction:row-reverse;"><span class="txt-label">ЯДРО ◈</span><span class="txt-tag">QWEN 7B</span></div>
+              <div class="row-data" style="flex-direction:row-reverse;"><span class="txt-val-main"><span class="dot dot-ok"></span>ГОТОВ</span><span class="txt-val-num" style="color:var(--status-ok);">100%</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta" style="flex-direction:row-reverse;"><span class="txt-label">ПРОИЗВОДИТЕЛЬНОСТЬ ◇</span><span class="txt-tag">23.8 ms</span></div>
+              <div class="row-data" style="flex-direction:row-reverse;"><span class="txt-val-main"><span class="spark"><span class="spark-fill" style="width:70%;"></span></span>GPU NOMINAL</span><span class="txt-val-num"><span class="dot dot-warn" style="margin-left:4px;"></span>42 FPS</span></div>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <span class="bb-kbd">SPACE</span>
+            <button class="bb-voice-btn active" title="Голос"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="ГОВОРИТЕ С A.R.C. ИЛИ ВВЕДИТЕ КОМАНДУ..." />
+            <button class="bb-send-btn">ENTER</button>
+            <span class="bb-kbd">⌘K ПОИСК</span>
+          </div>
+        `
+      },
+
+      monolith: {
+        title: "02. Minimal Monolith (Швейцарский минимализм)",
+        wrapperClass: "theme-monolith",
+        renderLeft: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">01. МЕДИАХАБ</span><span class="txt-tag">AUDIO</span></div>
+              <div class="row-data"><span class="txt-val-main">Quantum Soundscape</span><span class="txt-val-num">OFFLINE</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-ok"></span>02. АКТИВНОСТЬ</span><span class="txt-tag">PIPELINE</span></div>
+              <div class="row-data"><span class="txt-val-main">ГОТОВ К ПРИЕМУ</span><span class="txt-val-num">1813 ms</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">03. РОУТЕР</span><span class="txt-tag">LLM</span></div>
+              <div class="row-data"><span class="txt-val-main">Qwen 2.5 7B</span><span class="txt-val-num">12 ms</span></div>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">ТЕКУЩАЯ МОДЕЛЬ</span><span class="txt-tag">MODEL</span></div>
+              <div class="row-data"><span class="txt-val-main">Qwen 2.5 7B</span><span class="txt-val-num">ONLINE</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">КАДРОВАЯ ЧАСТОТА</span><span class="txt-tag">GPU</span></div>
+              <div class="row-data"><span class="txt-val-main">Нагрузка WebGL</span><span class="txt-val-num">42 FPS · 23.8ms</span></div>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <button class="bb-voice-btn" title="Голос"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="Командная строка A.R.C...." />
+            <button class="bb-send-btn" style="border-radius:0;">ВВОД</button>
+          </div>
+        `
+      },
+
+      avionics: {
+        title: "03. Tactical Flight-Deck (Авионика и скобы)",
+        wrapperClass: "theme-avionics",
+        renderLeft: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">SYS // AUDIO</span><span class="txt-tag">STBY</span></div>
+              <div class="row-data"><span class="txt-val-main">Quantum Soundscape</span><span class="txt-val-num">--</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-ok"></span>SYS // DISPATCH</span><span class="txt-tag">ARMED</span></div>
+              <div class="row-data"><span class="txt-val-main">INTAKE READY</span><span class="txt-val-num">1813 ms</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-err"></span>BUS // ROUTE</span><span class="txt-tag">QWEN</span></div>
+              <div class="row-data"><span class="txt-val-main">LOCAL ENGINE</span><span class="txt-val-num">12 ms</span></div>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">CORE // STATUS</span><span class="txt-tag">SEC.01</span></div>
+              <div class="row-data"><span class="txt-val-main"><span class="dot dot-ok"></span>NOMINAL</span><span class="txt-val-num">100%</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">CADENCE // FPS</span><span class="txt-tag">GPU-1</span></div>
+              <div class="row-data"><span class="txt-val-main"><span class="spark"><span class="spark-fill" style="width:70%;"></span></span>STABLE</span><span class="txt-val-num">42 FPS</span></div>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <button class="bb-voice-btn" title="Голос"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="COMM CHANNEL ACTIVE // ENTER COMMAND..." />
+            <button class="bb-send-btn" style="border-radius:2px;">EXEC</button>
+          </div>
+        `
+      },
+
+      prism: {
+        title: "04. Holographic Prism (Многослойное темное стекло)",
+        wrapperClass: "theme-prism",
+        renderLeft: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">♫ ЗВУКОВОЙ ТРАКТ</span><span class="txt-tag">GLASS</span></div>
+              <div class="row-data"><span class="txt-val-main">Quantum Soundscape</span><span class="txt-val-num" style="color:#777;">IDLE</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-ok"></span>ГОЛОСОВОЙ ШЛЮЗ</span><span class="txt-tag">LIVE</span></div>
+              <div class="row-data"><span class="txt-val-main">ГОТОВ К ПРИЕМУ</span><span class="txt-val-num" style="color:var(--status-ok);">1813 ms</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-err"></span>МАРШРУТИЗАТОР</span><span class="txt-tag">LOCAL</span></div>
+              <div class="row-data"><span class="txt-val-main">Qwen 2.5 7B</span><span class="txt-val-num">12 ms</span></div>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">СОСТОЯНИЕ ЯДРА</span><span class="txt-tag">QWEN</span></div>
+              <div class="row-data"><span class="txt-val-main"><span class="dot dot-ok"></span>АКТИВНО</span><span class="txt-val-num" style="color:var(--status-ok);">100%</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">ОПТИМИЗАЦИЯ</span><span class="txt-tag">CADENCE</span></div>
+              <div class="row-data"><span class="txt-val-main"><span class="spark"><span class="spark-fill" style="width:70%;"></span></span>НАГРУЗКА</span><span class="txt-val-num">42 FPS</span></div>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <button class="bb-voice-btn" style="border-radius:12px;" title="Голос"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="Диалог с A.R.C...." />
+            <button class="bb-send-btn" style="border-radius:10px;">ОТПРАВИТЬ</button>
+          </div>
+        `
+      },
+
+      orbital: {
+        title: "05. Orbital Radial (Дуговые радиальные векторы)",
+        wrapperClass: "theme-orbital",
+        renderLeft: () => `
+          <div class="col-stack left">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">ORBIT // AUDIO</span><span class="txt-tag">ARC</span></div>
+              <div class="row-data"><span class="txt-val-main">Quantum Soundscape</span><span class="txt-val-num">IDLE</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-ok"></span>ORBIT // INTAKE</span><span class="txt-tag">ARC</span></div>
+              <div class="row-data"><span class="txt-val-main">ГОТОВ К ПРИЕМУ</span><span class="txt-val-num" style="color:var(--status-ok);">1813 ms</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-err"></span>ORBIT // MODEL</span><span class="txt-tag">ARC</span></div>
+              <div class="row-data"><span class="txt-val-main">Qwen 2.5 7B</span><span class="txt-val-num">12 ms</span></div>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="col-stack right">
+            <div class="node-item">
+              <div class="row-meta" style="flex-direction:row-reverse;"><span class="txt-label">CORE ◈</span><span class="txt-tag">RADIAL</span></div>
+              <div class="row-data" style="flex-direction:row-reverse;"><span class="txt-val-main"><span class="dot dot-ok"></span>READY</span><span class="txt-val-num">100%</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta" style="flex-direction:row-reverse;"><span class="txt-label">VECTOR ◇</span><span class="txt-tag">CADENCE</span></div>
+              <div class="row-data" style="flex-direction:row-reverse;"><span class="txt-val-main"><span class="spark"><span class="spark-fill" style="width:70%;"></span></span>STABLE</span><span class="txt-val-num">42 FPS</span></div>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <button class="bb-voice-btn" title="Голос"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="РАДИАЛЬНЫЙ КАНАЛ СВЯЗИ С ЯДРОМ..." />
+            <button class="bb-send-btn" style="border-radius:18px;">ENTER</button>
+          </div>
+        `
+      },
+
+      chassis: {
+        title: "06. Cyber-Chassis (Фаски 45° и промышленный модуль)",
+        wrapperClass: "theme-chassis",
+        renderLeft: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">MOD-01 // SOUND</span><span class="txt-tag">CHASSIS</span></div>
+              <div class="row-data"><span class="txt-val-main">Quantum Soundscape</span><span class="txt-val-num">STANDBY</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-ok"></span>MOD-02 // PIPELINE</span><span class="txt-tag">CHASSIS</span></div>
+              <div class="row-data"><span class="txt-val-main">ГОТОВ К ПРИЕМУ</span><span class="txt-val-num">1813 ms</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label"><span class="dot dot-err"></span>MOD-03 // ROUTER</span><span class="txt-tag">CHASSIS</span></div>
+              <div class="row-data"><span class="txt-val-main">Qwen 2.5 7B</span><span class="txt-val-num">12 ms</span></div>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">UNIT // QWEN-LLM</span><span class="txt-tag">CHASSIS</span></div>
+              <div class="row-data"><span class="txt-val-main"><span class="dot dot-ok"></span>READY</span><span class="txt-val-num">100%</span></div>
+            </div>
+            <div class="node-item">
+              <div class="row-meta"><span class="txt-label">UNIT // RENDERING</span><span class="txt-tag">CHASSIS</span></div>
+              <div class="row-data"><span class="txt-val-main"><span class="spark"><span class="spark-fill" style="width:70%;"></span></span>GPU</span><span class="txt-val-num">42 FPS</span></div>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <button class="bb-voice-btn" style="border-radius:2px;" title="Голос"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="CHASSIS COMMAND INTERFACE..." />
+            <button class="bb-send-btn" style="border-radius:2px;">TRANSMIT</button>
+          </div>
+        `
+      },
+
+      density: {
+        title: "07. Ultra-Dense Telemetry (Сверхплотный терминал данных)",
+        wrapperClass: "theme-density",
+        renderLeft: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <span class="txt-label" style="font-size:10px;">MEDIA · Soundscape</span>
+              <span class="txt-val-num" style="color:#777; font-size:10px;">OFF</span>
+            </div>
+            <div class="node-item">
+              <span class="txt-label" style="font-size:10px;"><span class="dot dot-ok"></span>READY · INTAKE</span>
+              <span class="txt-val-num" style="font-size:10px;">1813ms</span>
+            </div>
+            <div class="node-item">
+              <span class="txt-label" style="font-size:10px;"><span class="dot dot-err"></span>ROUTER · Qwen</span>
+              <span class="txt-val-num" style="font-size:10px; color:#ff8888;">12ms</span>
+            </div>
+          </div>
+        `,
+        renderRight: () => `
+          <div class="col-stack">
+            <div class="node-item">
+              <span class="txt-label" style="font-size:10px;"><span class="dot dot-ok"></span>QWEN 7B</span>
+              <span class="txt-val-num" style="font-size:10px; color:var(--status-ok);">100%</span>
+            </div>
+            <div class="node-item">
+              <span class="txt-label" style="font-size:10px;"><span class="dot dot-warn"></span>CADENCE</span>
+              <span class="txt-val-num" style="font-size:10px;">42 FPS</span>
+            </div>
+          </div>
+        `,
+        renderBottom: () => `
+          <div class="bottom-dock">
+            <button class="bb-voice-btn" style="width:24px; height:24px;" title="Голос"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+            <input type="text" class="bb-input" placeholder="CMD..." style="font-size:11px;" />
+            <button class="bb-send-btn" style="padding:2px 8px; font-size:8.5px;">RUN</button>
+          </div>
+        `
+      }
+    };
+
+    function applyConcept(key) {
+      const data = conceptData[key];
+      if (!data) return;
+
+      document.getElementById('lbl-active-concept').innerText = data.title;
+      const root = document.getElementById('stage-viewport-root');
+
+      // Clear previous theme classes
+      root.className = 'stage-viewport ' + data.wrapperClass;
+
+      document.getElementById('slot-left-widgets').innerHTML = data.renderLeft();
+      document.getElementById('slot-right-widgets').innerHTML = data.renderRight();
+      document.getElementById('slot-bottom-bar').innerHTML = data.renderBottom();
+    }
+
+    // Default initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      applyConcept('cp');
+    });
+  </script>
+</body>
+</html>

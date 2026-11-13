@@ -1,0 +1,5 @@
+export const HTTP_TIMEOUT_MS = 10000;
+export const STT_CHECK_TIMEOUT_MS = 2000;
+export const EXEC_TIMEOUT_MS = 10000;
+export const HEALTH_CHECK_BASE_INTERVAL_MS = 10000;
+export const HEALTH_CHECK_MAX_INTERVAL_MS = 40000;

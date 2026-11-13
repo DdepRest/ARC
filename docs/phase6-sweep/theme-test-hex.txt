@@ -1,0 +1,58 @@
+src/renderer/components/ui/TitleBar.vue:385:.win-btn.close:hover { background-color: var(--status-err, #f87171); color: white; }
+src/renderer/features/commands/composables/useMacroEditor.ts:310:    if (!node || !node.type) return '#ef4444';
+src/renderer/features/commands/composables/useMacroEditor.ts:312:      return '#a855f7';
+src/renderer/features/commands/composables/useMacroEditor.ts:315:      return '#34d399';
+src/renderer/features/commands/composables/useMacroEditor.ts:317:    return '#ef4444';
+src/renderer/features/commands/composables/useMacroEditor.ts:334:    LiteGraph.EVENT_LINK_COLOR = '#ef4444';
+src/renderer/features/commands/composables/useMacroEditor.ts:373:      let accentColor = '#ef4444';
+src/renderer/features/commands/composables/useMacroEditor.ts:377:        accentColor = '#a855f7';
+src/renderer/features/commands/composables/useMacroEditor.ts:380:        accentColor = '#34d399';
+src/renderer/features/commands/composables/useMacroEditor.ts:547:        ctx.strokeStyle = '#ef4444';
+src/renderer/features/commands/composables/useMacroEditor.ts:551:        ctx.strokeStyle = '#ef4444';
+src/renderer/features/commands/composables/useMacroEditor.ts:821:      input_on: '#ef4444',
+src/renderer/features/commands/composables/useMacroEditor.ts:823:      output_on: '#ef4444'
+src/renderer/features/commands/composables/useMacroEditor.ts:827:      "-1": "#ef4444",
+src/renderer/features/settings/components/sections/general/AppearanceSection.vue:120:  { id: 'gold', displayName: 'Янтарный', name: 'PHOTON_AMBER', color: '#f59e0b' },
+src/renderer/features/settings/components/sections/general/AppearanceSection.vue:121:  { id: 'blue', displayName: 'Плазменный бирюзовый', name: 'PLASMA_CYAN', color: '#00d4ff' },
+src/renderer/features/settings/components/sections/general/AppearanceSection.vue:123:  { id: 'purple', displayName: 'Фиолетовый', name: 'SINGULARITY_PURPLE', color: '#a855f7' },
+src/renderer/features/settings/components/sections/general/AppearanceSection.vue:124:  { id: 'green', displayName: 'Изумрудный', name: 'HYPER_EMERALD', color: '#34d399' },
+src/renderer/features/settings/components/primitives/ConflictBanner.vue:4:    class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-[14px] border border-[#F59E0B]/50 bg-transparent transition-all"
+src/renderer/features/settings/components/primitives/ConflictBanner.vue:7:      <span class="w-1.5 h-1.5 rounded-full bg-[#F59E0B] ring-1 ring-[#F59E0B]/30 shrink-0 mt-1.5"></span>
+src/renderer/features/settings/stores/settings.store.ts:417:      text: 'text-[var(--accent-color,#ef4444)]',
+src/renderer/features/settings/stores/settings.store.ts:418:      textLight: 'text-[var(--accent-text,#f87171)]',
+src/renderer/features/settings/stores/settings.store.ts:419:      bg: 'bg-[var(--accent-color,#ef4444)]',
+src/renderer/features/settings/stores/settings.store.ts:425:      gradientFrom: 'from-[var(--accent-color,#ef4444)]',
+src/renderer/features/settings/stores/settings.store.ts:426:      gradientB: 'from-[var(--accent-text,#f87171)] to-[var(--accent-color,#ef4444)]'
+src/renderer/assets/styles/variables.css:12:  --accent-color: #ef4444;
+src/renderer/assets/styles/variables.css:13:  --accent-text: #f87171;
+src/renderer/assets/styles/variables.css:16:  --accent-glow: 0 0 8px #ef4444;
+src/renderer/assets/styles/tokens.css:74:  --accent: #EF4444;
+src/renderer/assets/styles/tokens.css:78:  --arc-status-ok: #34D399;
+src/renderer/assets/styles/tokens.css:79:  --arc-status-warn: #F59E0B;
+src/renderer/assets/styles/tokens.css:80:  --arc-status-err: #EF4444;
+src/renderer/assets/styles/theme-palettes.tokens.ts:16:    color: '#EF4444',
+src/renderer/assets/styles/theme-palettes.tokens.ts:18:    text: '#f87171',
+src/renderer/assets/styles/theme-palettes.tokens.ts:28:    color: '#00d4ff',
+src/renderer/assets/styles/theme-palettes.tokens.ts:40:    color: '#a855f7',
+src/renderer/assets/styles/theme-palettes.tokens.ts:52:    color: '#34d399',
+src/renderer/assets/styles/theme-palettes.tokens.ts:54:    text: '#34d399',
+src/renderer/assets/styles/global.css:368:  color: #f87171;
+src/renderer/assets/styles/global.css:374:  color: #f87171;
+src/renderer/assets/styles/global.css:565:  background: #f59e0b; 
+src/renderer/utils/arcGhostDetector.test.ts:85:      document.documentElement.style.setProperty('--accent', '#EF4444');
+src/renderer/utils/arcGhostDetector.test.ts:174:            getPropertyValue: () => '#EF4444',
+src/renderer/utils/arcGhostDetector.test.ts:181:        stroke: 'var(--accent, #ef4444)',
+src/renderer/utils/arcGhostDetector.test.ts:189:        getPropertyValue: () => '#EF4444',
+src/renderer/utils/arcLiveDump.ts:45:    : '#EF4444';
+src/renderer/utils/arcGhostTrap.ts:179:      : '#EF4444';
+src/renderer/layouts/CommandCenter.vue:145:                 'bg-[var(--arc-status-ok,#34D399)]'
+src/renderer/widget-concepts.html:13:      --arc-red: #ef4444;
+src/renderer/widget-concepts.html:19:      --status-ok: #34d399;
+src/renderer/widget-concepts.html:20:      --status-warn: #f59e0b;
+src/renderer/widget-concepts.html:21:      --status-err: #ef4444;
+src/renderer/widget-concepts.html:203:      border: 2px solid #ef4444;
+src/renderer/widget-concepts.html:205:      box-shadow: 0 0 28px #ef4444;
+src/renderer/widget-concepts.html:904:            <div class="color-swatch" style="background: #ef4444; color: #fff;">10% A.R.C. RED</div>
+src/renderer/widget-concepts.html:911:            <div class="color-swatch" style="background: #34d399; color: #000;">FUNCTIONAL DOTS</div>
+src/renderer/index.html:15:            color: '#EF4444',
+src/renderer/index.html:17:            text: '#f87171',

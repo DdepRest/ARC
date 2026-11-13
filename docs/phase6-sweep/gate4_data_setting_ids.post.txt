@@ -1,0 +1,3 @@
+src/renderer/features/settings/components/sections/ProvidersSection.vue:238:              data-setting-id="providers.streaming"
+src/renderer/features/settings/components/sections/ProvidersSection.vue:256:              data-setting-id="providers.smartCacheEnabled"
+src/renderer/features/settings/components/sections/ProvidersSection.vue:274:              data-setting-id="router.smartRouting"

@@ -1,0 +1,8 @@
+src/main/preload.ts:21:  getSystemMetrics: () => ipcRenderer.invoke('system:metrics'),
+src/renderer/features/settings/components/sections/ModelManagerSection.vue:353:  if (typeof window !== 'undefined' && window.api?.getSystemMetrics) {
+src/renderer/features/settings/components/sections/ModelManagerSection.vue:354:    const metrics = await window.api.getSystemMetrics();
+src/renderer/components/reactor/ReactorDashboard.test.ts:30:          getSystemMetrics: vi.fn().mockResolvedValue({ cpuLoad: 20, memoryUsage: 30, temperature: 40 }),
+src/renderer/stores/system.store.ts:57:      this.metrics = await window.api.getSystemMetrics();
+src/renderer/stores/system.store.ts:92:          this.metrics = await window.api.getSystemMetrics();
+src/renderer/bootstrap/mock-database.ts:84:      getSystemMetrics: async () => ({ cpuLoad: Math.round(Math.random() * 20), memoryUsage: 45, temperature: 42, cpuTemperature: 42, gpuTemperature: 46, uptime: 3600 }),
+src/env.d.ts:14:    getSystemMetrics: () => Promise<any>;

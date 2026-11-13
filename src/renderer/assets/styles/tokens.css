@@ -1,0 +1,179 @@
+/* A.R.C. Design System - Tokens & Visual Constitution (ТЗ S1: Непрозрачная лестница v3.0) */
+
+:root {
+  color-scheme: dark;
+  /* ========================================================================= */
+  /* Widget Style Canon (ТЗ: A.R.C. — единый стиль виджетов)                  */
+  /* ========================================================================= */
+  --bg: #070707;
+  --ink: #f4e8e8;
+  --dim: #8d7377;
+  --red: #ff3347;
+  --ln: rgba(255, 51, 71, .26);
+  --off: #3d2428;
+  --r: 16px;
+  --fd: 'Tektur', system-ui, sans-serif;
+  --font-ui: 'Onest', system-ui, sans-serif;
+  --glass:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.05),
+      transparent 34%
+    ),
+    linear-gradient(
+      160deg,
+      rgba(255,51,71,.09),
+      transparent 62%
+    ),
+    rgba(12,6,8,.8);
+
+  /* ========================================================================= */
+  /* 1.1 Surfaces Ladder (ТЗ S1: Непрозрачная лестница v3.0, строгий нейтрал)   */
+  /* ========================================================================= */
+  --arc-frame: #070707;  /* оправа проекции, НЕ rgba */
+  --arc-bg: #080808;     /* главный фон программы */
+  --arc-plane: #080808;  /* плоскость чтения, сплошной hex */
+  --arc-block: #101010;  /* кликабельные блоки */
+  --arc-input: #0D0D0D;  /* поля ввода */
+  --arc-popover: #161616; /* меню, дропдауны, тосты */
+  --arc-tooltip: #1A1A1A;
+  --arc-modal: #0E0E0E;
+  --arc-widget-core: #080808;
+  --arc-dock: #070707;
+  --arc-rail: #070707;   /* навигационные рейлы */
+  --arc-code: #080808;
+  --arc-bubble-in: #101010;   /* пузыри входящих сообщений (ассистент) */
+  --arc-bubble-out: #121212;  /* пузыри исходящих сообщений (пользователь) */
+
+  /* ========================================================================= */
+  /* 1.2 Strokes and Edges                                                     */
+  /* ========================================================================= */
+  --arc-hairline: rgba(255, 255, 255, 0.06);
+  --arc-border: rgba(255, 255, 255, 0.06);
+  --arc-divider: rgba(255, 255, 255, 0.05);
+  --arc-hairline-top: rgba(255, 255, 255, 0.08);
+  --arc-hover: rgba(255, 255, 255, 0.03);
+  --arc-selected: rgba(255, 255, 255, 0.045);
+  --arc-plane-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 48px rgba(0, 0, 0, 0.80);
+  --arc-frame-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 18px 48px rgba(0, 0, 0, 0.70), 0 0 56px -12px rgba(var(--accent-rgb, 239, 68, 68), 0.20);
+  --arc-popover-border: 1px solid rgba(255, 255, 255, 0.10);
+  --arc-tooltip-border: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* ========================================================================= */
+  /* 1.3 Text Ladder (All R=G=B, Neutral Grey)                                 */
+  /* ========================================================================= */
+  --arc-text-primary: #E8E8E8;
+  --arc-text-secondary: #B4B4B4;
+  --arc-text-hint: #909090;
+  --arc-text-machine: #8C8C8C;
+  --arc-text-muted: #8A8A8A;
+  --arc-text-disabled: #666666;
+
+  /* ========================================================================= */
+  /* 1.4 Accent and Semantic Status Roles                                      */
+  /* ========================================================================= */
+  --accent: #EF4444;
+  --accent-rgb: 239, 68, 68;
+  --accent-ink: #0A0A0A;
+  --arc-status-off: #6E6E6E;
+  --arc-status-ok: #34D399;
+  --arc-status-warn: #F59E0B;
+  --arc-status-err: #EF4444;
+  --status-off: var(--arc-status-off);
+  --status-ok: var(--arc-status-ok);
+  --status-warn: var(--arc-status-warn);
+  --status-err: var(--arc-status-err);
+  --arc-hud-widget-bg: rgba(10, 10, 10, 0.88);
+
+  /* ========================================================================= */
+  /* 1.5 Frame and Projection Field (ТЗ S2: Оправа и проекция v3.0)            */
+  /* ========================================================================= */
+  --arc-veil: rgba(0, 0, 0, 0.22);
+  --arc-veil-ring: radial-gradient(circle at center, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0.45) 100%);
+  --arc-frame-glow: 0 0 56px -12px rgba(var(--accent-rgb, 239, 68, 68), 0.20);
+  --arc-bracket: rgba(var(--accent-rgb, 239, 68, 68), 0.22);
+  --arc-bracket-hover: rgba(var(--accent-rgb, 239, 68, 68), 0.34);
+  --arc-header-bar: rgba(10, 10, 10, 0.72);
+  --arc-header-line: linear-gradient(90deg, transparent, rgba(var(--accent-rgb, 239, 68, 68), 0.30) 40%, transparent);
+
+  /* ========================================================================= */
+  /* 1.6 Radii System (Exactly Five Radii §3)                                  */
+  /* ========================================================================= */
+  --arc-radius-plane: 20px;
+  --arc-radius-block: 14px;
+  --arc-radius-row: 12px;
+  --arc-radius-popover: 16px;
+  --arc-radius-btn: 12px;
+  --arc-radius-btn-primary: 9999px;
+  --arc-radius-pill: 9999px;
+
+  /* 3-Tier Shape Hierarchy (Anti-Pill-Fatigue) */
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-pill: 999px;
+
+  /* ========================================================================= */
+  /* 1.7 Motion Tokens                                                         */
+  /* ========================================================================= */
+  --arc-motion-hover: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --arc-motion-popover: 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  --arc-motion-entrance: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  --arc-motion-breathing: 2400ms cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+
+  /* ========================================================================= */
+  /* 1.8 S4: Glass over Statics & Sheen System                                 */
+  /* ========================================================================= */
+  --arc-glass-pop: rgba(22, 22, 22, 0.78);
+  --arc-glass-veil: rgba(0, 0, 0, 0.32);
+  --arc-glass-header: rgba(10, 10, 10, 0.72);
+  --arc-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 18px 48px rgba(0, 0, 0, 0.80);
+  --arc-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px);
+
+  /* Legacy Compatibility Bridge (mapped to Constitution Tokens) */
+  --color-bg: var(--arc-bg);
+  --color-surface: var(--arc-plane);
+  --color-surface-elevated: var(--arc-block);
+  --color-surface-hover: var(--arc-hover);
+  --color-border-subtle: var(--arc-hairline);
+  --color-border-medium: rgba(255, 255, 255, 0.12);
+  --color-border-active: rgba(var(--accent-rgb, 230, 57, 70), 0.5);
+  --color-border-focus: rgba(var(--accent-rgb, 230, 57, 70), 0.8);
+  
+  --color-text-primary: var(--arc-text-primary);
+  --color-text-secondary: var(--arc-text-secondary);
+  --color-text-tertiary: var(--arc-text-hint);
+  --color-text-muted: var(--arc-text-hint);
+  --color-text-disabled: var(--arc-text-disabled);
+
+  --color-accent: var(--accent);
+  --color-accent-glow: rgba(var(--accent-rgb, 230, 57, 70), 0.25);
+  --color-success: var(--arc-status-ok);
+  --color-warning: var(--arc-status-warn);
+  --color-danger: var(--arc-status-err);
+
+  --font-base: 'Inter', 'Onest', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --panel-glass: var(--arc-plane);
+  --block-bg: var(--arc-block);
+  --block-border: var(--arc-hairline);
+  --block-radius: var(--arc-radius-block);
+  --block-title: var(--arc-text-primary);
+  --block-subtitle: var(--arc-text-hint);
+  --block-eyebrow: var(--arc-text-machine);
+  --block-divider: var(--arc-divider);
+
+  --transition-fast: var(--arc-motion-hover);
+  --transition-normal: var(--arc-motion-entrance);
+  --motion-ui-fast: var(--arc-motion-hover);
+  --motion-ui-state: var(--arc-motion-entrance);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

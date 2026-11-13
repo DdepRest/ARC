@@ -1,0 +1,3 @@
+ceaf1c164aab9fc5d6b55dcb94b6c750d1afecd865b541746bac274c18d1da78  src/renderer/components/debug/FpsOverlay.vue
+ed9a729ddf863a520012234d2fe38cbd30009600af4dcb2764c464b83c9d9b69  src/renderer/components/debug/PerformanceProfiler.vue
+f4866c370c5d7555bf337acc87e14b503c416aa6fdf817cf25071cfc4569fc6a  src/renderer/utils/arcGhostTrapScope.test.ts

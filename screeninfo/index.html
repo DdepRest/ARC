@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>A.R.C. — screeninfo: снимки экранов</title>
+<style>
+  :root { --bg:#070707; --plane:#0a0a0a; --block:#101010; --line:rgba(255,255,255,.09); --text:#e8e8e8; --dim:#8f8f8f; --accent:#ef4444; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI",sans-serif; }
+  header { padding:28px 32px 20px; border-bottom:1px solid var(--line); }
+  h1 { margin:0 0 6px; font-size:20px; letter-spacing:.02em; }
+  .meta { font-family:ui-monospace,Consolas,monospace; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
+  main { padding:24px 32px 60px; display:grid; gap:26px; grid-template-columns:repeat(auto-fill,minmax(460px,1fr)); }
+  figure { margin:0; background:var(--plane); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  figure img { display:block; width:100%; height:auto; background:#000; }
+  figcaption { padding:10px 14px 12px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  figcaption b { font-size:13px; font-weight:600; }
+  figcaption span { font-family:ui-monospace,Consolas,monospace; font-size:10.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.12em; }
+  figcaption em { font-style:normal; font-size:10.5px; color:#6f6f6f; }
+  code { color:var(--accent); font-family:ui-monospace,Consolas,monospace; font-size:10.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>A.R.C. — снимки рабочих пространств</h1>
+  <div class="meta">Electron dev-run · окно 1280×800 · CDP-захват · папка <code>screeninfo/</code></div>
+</header>
+<main>
+  <figure><img src="01-core.png" alt="CORE"><figcaption><b>ЯДРО / CORE</b><span>01-core.png</span></figcaption></figure>
+  <figure><img src="02-chat.png" alt="CHAT"><figcaption><b>CHAT</b><span>02-chat.png</span></figcaption></figure>
+  <figure><img src="03-objectives.png" alt="OBJECTIVES"><figcaption><b>OBJECTIVES</b><span>03-objectives.png</span></figcaption></figure>
+  <figure><img src="04-tasks.png" alt="TASKS"><figcaption><b>TASKS</b><span>04-tasks.png</span></figcaption></figure>
+  <figure><img src="05-files.png" alt="FILES"><figcaption><b>FILES</b> <span>05-files.png</span> <em>(рабочая область не задана — пустое состояние)</em></figcaption></figure>
+  <figure><img src="06-memory.png" alt="MEMORY"><figcaption><b>MEMORY</b> <span>06-memory.png</span> <em>(память пуста)</em></figcaption></figure>
+  <figure><img src="07-commands.png" alt="COMMANDS"><figcaption><b>КОМАНДЫ</b><span>07-commands.png</span></figcaption></figure>
+  <figure><img src="08-audio-transcription.png" alt="АУДИО"><figcaption><b>АУДИО (transcription)</b><span>08-audio-transcription.png</span></figcaption></figure>
+  <figure><img src="09-vision.png" alt="VISION"><figcaption><b>VISION</b> <span>09-vision.png</span> <em>(оптика выключена)</em></figcaption></figure>
+  <figure><img src="10-settings.png" alt="SETTINGS"><figcaption><b>SETTINGS</b><span>10-settings.png</span></figcaption></figure>
+  <figure><img src="11-modules.png" alt="MODULES"><figcaption><b>MODULES (справочник доступа)</b><span>11-modules.png</span></figcaption></figure>
+  <figure><img src="12-fallback-agents.png" alt="AGENTS"><figcaption><b>Заглушка запланированного модуля (AGENTS)</b><span>12-fallback-agents.png</span></figcaption></figure>
+  <figure><img src="13-modules-menu-topbar.png" alt="Меню подсистем"><figcaption><b>Меню подсистем</b> <span>13-modules-menu-topbar.png</span> <em>(снято с верхним таб-баром — в нижнем доке дропдаун обрезается)</em></figcaption></figure>
+  <figure><img src="14-spotlight.png" alt="Spotlight"><figcaption><b>Прожектор поиска разделов</b> <span>14-spotlight.png</span></figcaption></figure>
+</main>
+</body>
+</html>

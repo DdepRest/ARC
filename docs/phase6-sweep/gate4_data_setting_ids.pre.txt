@@ -1,0 +1,6 @@
+src/renderer/features/settings/components/sections/RoutingSection.vue:47:              data-setting-id="router.smartRouting"
+src/renderer/features/settings/components/sections/ProvidersSection.vue:311:              data-setting-id="providers.streaming"
+src/renderer/features/settings/components/sections/LocalAISection.vue:34:            data-setting-id="localai.master"
+src/renderer/features/settings/components/sections/LocalAISection.vue:80:            data-setting-id="localai.cloudLlmInGameMode"
+src/renderer/features/settings/components/sections/LocalAISection.vue:94:            data-setting-id="localai.forcedOfflineMode"
+src/renderer/features/settings/components/sections/LocalAISection.vue:107:            data-setting-id="localai.autoDownloadLargeModels"

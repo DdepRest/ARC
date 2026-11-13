@@ -1,0 +1,389 @@
+====================================================
+ A.R.C. COGNITIVE PLATFORM - SYSTEM STARTUP
+====================================================
+
+[START] System initialization sequence initiated at: 21:03:31,71
+
+[1/3] Verifying Node.js environment... [21:03:31,72]
+[SUCCESS] Node.js environment is present.
+
+[2/3] Verifying Node.js dependencies... [21:03:31,89]
+[SUCCESS] Node.js dependencies verified [node_modules found, skipping npm install].
+
+[3.5/4] Verifying model files... [21:03:31,90]
+[Sherpa] Fetching latest model file sizes from Hugging Face API...
+[Sherpa] Successfully resolved latest sizes from Hugging Face for all model files.
+[Sherpa] GigaAM v3 missing, will be downloaded by background pipeline.
+[Sherpa] Model metadata saved successfully.
+[Silero TTS] Found valid model file at C:\A.R.C.Gemini\v5_5_ru.pt (139 MB).
+[SUCCESS] Model files verified. [21:03:33,09]
+
+[3.6/4] Verifying Python TTS environment... [21:03:33,10]
+[SUCCESS] Python TTS virtual environment is present [skipping deep dependency import check].
+
+[3/3] Starting A.R.C. application... [21:03:33,10]
+====================================================
+
+Launching Electron Frontend... [21:03:33,10]
+
+Application is running. Close this window to exit.
+
+npm notice run a.r.c.@1.0.12 electron:dev
+npm notice run node scripts/postinstall-check.js && electron-vite dev
+[PostInstall Check] Native better-sqlite3 binary is already compiled for Electron target ABI.
+[36mvite v6.4.3 [32mbuilding SSR bundle for development...[36m[39m
+transforming...
+[32m✓[39m 112 modules transformed.
+rendering chunks...
+[2mout/main/[22m[36mindex.js  [39m[1m[33m860.08 kB[39m[22m
+[32m✓ built in 1.33s[39m
+[32m
+electron main process built successfully[39m
+[90m
+-----
+[39m
+[36mvite v6.4.3 [32mbuilding SSR bundle for development...[36m[39m
+transforming...
+[32m✓[39m 2 modules transformed.
+rendering chunks...
+[2mout/preload/[22m[36mindex.js  [39m[1m[2m25.51 kB[22m[1m[22m
+[32m✓ built in 32ms[39m
+[32m
+electron preload scripts built successfully[39m
+[90m
+-----
+[39m
+[32mdev server running for the electron renderer process at:
+[39m
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3000[22m/[39m
+[32m
+starting electron app...
+[39m
+
+[StorageManager] Portable userData configured at: C:\A.R.C.Gemini\data
+[Startup] AI & Audio caches cleared for testing/dev mode.
+ARC Main: Loading URL http://127.0.0.1:3000
+[DatabaseService] Initialized (mode=NORMAL, storage=PERSISTENT_SQLITE) at C:\A.R.C.Gemini\data\database\arc.db
+Domain-specific IPC Handlers registered
+[VK WS] Server successfully started on port 8765
+[GPU Info] Integrated GPU | Vendor: 4318 | Device: 12036
+[LongTermMemory] Initializing background Worker Thread for embeddings...
+[22876:1104/210339.647:ERROR:CONSOLE(1)] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[22876:1104/210339.647:ERROR:CONSOLE(1)] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[Renderer INFO] [vite] connecting... (client:789)
+[Renderer INFO] [vite] connected. (client:912)
+[Renderer INFO] A.R.C. build 9048f71 (main.ts:59)
+[TTS] engine provider set to: silero
+[Renderer INFO] [Reactor3D] GPU: Google Inc. (NVIDIA) | ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 (0x00002F04) Direct3D11 vs_5_0 ps_5_0, D3D11) | powerPreference: high-performance (useSysLogs.ts:78)
+[BuiltIn-Whisper-Parent] Initializing background Worker Thread for Whisper inference...
+[Renderer INFO] [ARC LIVE DUMP: INITIAL MOUNT] [object Object] (error-handler.ts:24)
+[STT] Base models verified, initializing STT service...
+[Python Server] start: exe=C:\A.R.C.Gemini\silero_env\Scripts\python.exe, script=C:\A.R.C.Gemini\silero_server.py
+[EcoService] Eco state changed: active -> hidden (reason: initial)
+[Renderer INFO] [INFO] App: Ollama is offline. Skipping detailed model check. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. (sandbox_bundle:2)
+[Renderer INFO] [EcoReactor] State changed: hidden → active (source: focus) with 500ms debounce (useSysLogs.ts:78)
+[STT Worker] [STT Worker] Silero VAD initialized successfully
+[Renderer INFO] [Reactor] Audio source switched to: mic (isTtsPlaying=false, state=idle) (useSysLogs.ts:78)
+[Renderer INFO] A.R.C. Startup Sequence: [object Object] (error-handler.ts:24)
+[EcoService] Eco state changed: hidden -> active (reason: focus)
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 3) (useSysLogs.ts:78)
+[STT Worker] [STT Worker] GigaAM CTC 220M initialized successfully (single active engine)
+[STT] Engine ready: gigaam
+[STT] Worker initialized successfully. Active: gigaam. GigaAM: true, Whisper: false, VAD: true
+[Renderer INFO] [STT] Worker ready, clearing error banner: stt-v2 (useSysLogs.ts:78)
+[Python Server] All required Python packages are present.
+[Python Server] model resolved: C:\A.R.C.Gemini\v5_5_ru.pt
+[Python Server] Process priority set to BELOW_NORMAL (PID 16116)
+[Python Server] [TTS Dict Loader] Reloaded dictionaries. IT: 190, Abbr: 76, Homographs: 1
+[Python Server] Loading Silero v5.5...
+[Python Server] [Silero] Found existing model at: C:\A.R.C.Gemini\v5_5_ru.pt (145420684 bytes)
+[Python Server] Silero v5.5 loaded successfully from C:\A.R.C.Gemini\v5_5_ru.pt.
+[Python Server] [SILERO SERVER BUILD: 2026-09-08 22:00:00]
+[Python Server] Server starting...
+[Python Server] [DictLoader] Loaded 190 entries
+[Python Server] [DictLoader-Test] OK: PayPal ->       
+[Python Server] [DictLoader-Test] OK: Tesla ->      
+[Python Server] [DictLoader-Test] OK: server ->       
+[Python Server] [DictLoader-Test] OK: Jenkins ->         
+[Python Server] [DictLoader-Test] OK: webpack ->       
+[Python Server] [DictLoader-Test] OK: example dot com ->                  
+[Python Server] [DictLoader-Test] OK: main.py ->               
+[Python Server] [DictLoader-Test] OK:        2.5 ->                      
+[Python Server] [DictLoader-Test] FAILED:         -> '       ' (expected '    +   ')
+[Python Server] [DSP v2] selftest OK
+[Python Server] * Serving Flask app 'silero_server'
+[Python Server] * Debug mode: off
+[Python Server] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:8002
+Press CTRL+C to quit
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:04:01] "GET /status HTTP/1.1" 200 -
+[Python Server] online on :8002
+[Python Server] Healthcheck timer restarted: 10000ms
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:04:12] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [EcoReactor] State changed: active → hidden (source: blur) (useSysLogs.ts:78)
+[Python Server] Healthcheck timer restarted: 10000ms
+[EcoService] Eco state changed: active -> hidden (reason: blur)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [EcoReactor] State changed: hidden → active (source: focus) with 500ms debounce (useSysLogs.ts:78)
+[Python Server] Healthcheck timer restarted: 60000ms
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 2) (useSysLogs.ts:78)
+[EcoService] Eco state changed: hidden -> active (reason: focus)
+[INFO] ARC TTS: Stop requested.
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/2: auto (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (connect ECONNREFUSED 127.0.0.1:31415), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: ECONNREFUSED
+[WARN] [Router] Request to FreeAPILLM failed: ECONNREFUSED
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: Network, Latency: 1866ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: Network, Latency: 1866ms
+[A.R.C. Multi-Model Router] Network error on auto. Marking provider FreeAPILLM offline.
+[A.R.C. Multi-Model Router] Model auto failed. Trying next...
+[Router] Provider FreeAPILLM failed, switching to next provider
+[A.R.C. Multi-Model Router] Provider FreeAPILLM failed (HTTP Network: Сетевой сбой). Falling back to Local Ollama.
+[A.R.C. Multi-Model Router] Attempting model 1/1: llama3.2 (Provider: Local Ollama)
+[Ollama Provider] Streaming failed (connect ECONNREFUSED 127.0.0.1:11434), falling back to stream: false...
+[Router] Request to Local Ollama failed: ECONNREFUSED
+[WARN] [Router] Request to Local Ollama failed: ECONNREFUSED
+[A.R.C. Multi-Model Router] Provider: Local Ollama, HTTP: Network, Latency: 4ms
+[INFO] [A.R.C. Multi-Model Router] Provider: Local Ollama, HTTP: Network, Latency: 4ms
+[A.R.C. Multi-Model Router] Network error on llama3.2. Marking provider Local Ollama offline.
+[A.R.C. Multi-Model Router] Model llama3.2 failed. Trying next...
+[Router] Provider Local Ollama failed, switching to next provider
+[A.R.C. Multi-Model Router] Provider Local Ollama failed (HTTP Network: Сетевой сбой). Falling back to Local Built-in.
+[AI-Routing] Executing Built-in Local LLM: qwen2.5-1.5b-instruct-q4_k_m.gguf (Аварийный fallback: провайдеры недоступны)
+[BuiltIn-LLM] Model qwen2.5-1.5b-instruct-q4_k_m.gguf is missing and autoDownloadLargeModels is disabled. Download blocked.
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=6, responseChars=144)
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:04:27] "GET /status HTTP/1.1" 200 -
+[INFO] ARC TTS: Preparing to speak [142 chars] using speaker [eugene], autoClearCache=[true] (id: b2aaf3317f9bcecb)
+[INFO] AUTO-CLEAR CACHE: Purging cache before synthesis...
+[Python Server] [INFO] Python Cache cleared
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:04:27] "POST /clear-cache HTTP/1.1" 200 -
+[INFO] AUTO-CLEAR CACHE: Python Silero cache purged.
+[INFO] Cache MISS. Generating audio via Silero v5.5 (eugene) DSP...
+[TTS] engine active: silero (provider=silero)
+[TTS] Using provider: silero
+[Python Server] [DSP v2] Processing TTS for text length 157
+[Python Server] Traceback (most recent call last):
+[Python Server] File "C:\A.R.C.Gemini\silero_server.py", line 313, in tts_endpoint
+    chunk_tensor = model.apply_tts(
+        text=chunk_text,
+    ...<3 lines>...
+        put_yo=req_put_yo
+    )
+  File "<torch_package_0>.multi_acc_v3_package.py", line 139, in apply_tts
+    return self.packages[p_id].apply_tts(text=text,
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+                                         ssml_text=ssml_text,
+                                         ^^^^^^^^^^^^^^^^^^^^
+    ...<11 lines>...
+                                         type_str=type_str,
+                                         ^^^^^^^^^^^^^^^^^^
+                                         intensity=intensity)
+                                         ^^^^^^^^^^^^^^^^^^^^
+[Python Server] File "<torch_package_0>.multi_acc_v3_package.py", line 628, in apply_tts
+    sentences, clean_sentences, break_lens, prosody_rates, prosody_pitches, sp_ids = self.prepare_tts_model_input(input_text,
+                                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+                                                                                                                  ssml=ssml,
+                                                                                                                  ^^^^^^^^^^
+                                                                                                                  speaker_ids=speaker_ids,
+                                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+                                                                                                                  lang=lang)
+                                                                                                                  ^^^^^^^^^^
+  File "<torch_package_0>.multi_acc_v3_package.py", line 306, in prepare_tts_model_input
+    clean_text_list = self.process_simple_text(text, lang)
+  File "<torch_package_0>.multi_acc_v3_package.py", line 343, in process_simple_text
+    raise ValueError
+ValueError
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:04:29] "POST /tts HTTP/1.1" 500 -
+[TTS] Silero TTS failed, falling back to Edge TTS... [ERR_BAD_RESPONSE Request failed with status code 500]
+[TTS] DSP skipped: Silero execution error (Request failed with status code 500), falling back to Edge TTS
+[WARN] [TTS] DSP skipped: Silero execution error (Request failed with status code 500), falling back to Edge TTS
+[TTS] engine active: edge (provider=silero)
+[TTS] Using provider: edge
+[TTS] DSP skipped: Edge TTS provider active (bypasses Silero DSP v2)
+[WARN] [TTS] DSP skipped: Edge TTS provider active (bypasses Silero DSP v2)
+[TTS] Edge TTS failed, falling back to System SAPI... [ERR Unexpected server response: 403]
+[TTS] DSP skipped: Edge TTS failure, falling back to System SAPI
+[WARN] [TTS] DSP skipped: Edge TTS failure, falling back to System SAPI
+[TTS] engine active: system (provider=silero)
+[TTS] Using provider: sapi
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 2) (useSysLogs.ts:78)
+[INFO] ARC TTS: Stop requested.
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/2: auto (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[OpenAI Provider] Key 1/2 failed (401). Trying backup key 2...
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[WARN] [Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 26ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 26ms
+[Router] FreeAPILLM → 401, switching to next key/model
+[A.R.C. Multi-Model Router] Model auto failed. Trying next...
+[A.R.C. Multi-Model Router] Attempting model 2/2: fusion (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[OpenAI Provider] Key 1/2 failed (401). Trying backup key 2...
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[WARN] [Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 13ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 13ms
+[Router] FreeAPILLM → 401, switching to next key/model
+[A.R.C. Multi-Model Router] Model fusion failed. Trying next...
+[Router] Provider FreeAPILLM failed, switching to next provider
+[A.R.C. Multi-Model Router] Provider FreeAPILLM failed (HTTP 401: Неверный API ключ). Falling back to Local Ollama.
+[A.R.C. Multi-Model Router] Attempting model 1/1: llama3.2 (Provider: Local Ollama)
+[Ollama Provider] Streaming failed (connect ECONNREFUSED 127.0.0.1:11434), falling back to stream: false...
+[Router] Request to Local Ollama failed: ECONNREFUSED
+[WARN] [Router] Request to Local Ollama failed: ECONNREFUSED
+[A.R.C. Multi-Model Router] Provider: Local Ollama, HTTP: Network, Latency: 3ms
+[INFO] [A.R.C. Multi-Model Router] Provider: Local Ollama, HTTP: Network, Latency: 3ms
+[A.R.C. Multi-Model Router] Network error on llama3.2. Marking provider Local Ollama offline.
+[A.R.C. Multi-Model Router] Model llama3.2 failed. Trying next...
+[Router] Provider Local Ollama failed, switching to next provider
+[A.R.C. Multi-Model Router] Provider Local Ollama failed (HTTP Network: Сетевой сбой). Falling back to Local Built-in.
+[AI-Routing] Executing Built-in Local LLM: qwen2.5-1.5b-instruct-q4_k_m.gguf (Аварийный fallback: провайдеры недоступны)
+[BuiltIn-LLM] Model qwen2.5-1.5b-instruct-q4_k_m.gguf is missing and autoDownloadLargeModels is disabled. Download blocked.
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=6, responseChars=144)
+[Renderer WARN] [TTS] Duplicate speak request suppressed in UI (id: Облачный сервис недоступен, а ...) (useSysLogs.ts:78)
+[A.R.C. Multi-Model Router] Attempting model 1/2: auto (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[OpenAI Provider] Key 1/2 failed (401). Trying backup key 2...
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[WARN] [Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 13ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 13ms
+[Router] FreeAPILLM → 401, switching to next key/model
+[A.R.C. Multi-Model Router] Model auto failed. Trying next...
+[A.R.C. Multi-Model Router] Attempting model 2/2: fusion (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[OpenAI Provider] Key 1/2 failed (401). Trying backup key 2...
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[WARN] [Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 16ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 16ms
+[Router] FreeAPILLM → 401, switching to next key/model
+[A.R.C. Multi-Model Router] Model fusion failed. Trying next...
+[VK WS] Client connected on port 8765
+[INFO] ARC TTS: Stop requested.
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/2: auto (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[OpenAI Provider] Key 1/2 failed (401). Trying backup key 2...
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[WARN] [Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 14ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 14ms
+[Router] FreeAPILLM → 401, switching to next key/model
+[A.R.C. Multi-Model Router] Model auto failed. Trying next...
+[A.R.C. Multi-Model Router] Attempting model 2/2: fusion (Provider: FreeAPILLM)
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[OpenAI Provider] Key 1/2 failed (401). Trying backup key 2...
+[OpenAI Provider] Streaming failed on local/FreeLLM gateway (Request failed with status code 401), falling back to stream: false...
+[Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[WARN] [Router] Request to FreeAPILLM failed: HTTP 401 Unauthorized (Invalid API key)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 13ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 401, Latency: 13ms
+[Router] FreeAPILLM → 401, switching to next key/model
+[A.R.C. Multi-Model Router] Model fusion failed. Trying next...
+[Router] Provider FreeAPILLM failed, switching to next provider
+[A.R.C. Multi-Model Router] Provider FreeAPILLM failed (HTTP 401: Неверный API ключ). Falling back to Local Ollama.
+[AI-Routing] Executing Built-in Local LLM: qwen2.5-1.5b-instruct-q4_k_m.gguf (Аварийный fallback: провайдеры недоступны)
+[BuiltIn-LLM] Model qwen2.5-1.5b-instruct-q4_k_m.gguf is missing and autoDownloadLargeModels is disabled. Download blocked.
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=6, responseChars=144)
+[Renderer INFO] [PERF] SettingsPanel:first-rail-paint: 1123.00ms (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[TTS] Waiting for Python TTS server to initialize... (6s / 5s)
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 2) (useSysLogs.ts:78)
+[TTS] Python server not ready after 5s, falling back to Edge
+[TTS] DSP skipped: Python server offline/not ready
+[WARN] [TTS] DSP skipped: Python server offline/not ready
+[TTS] engine active: edge (provider=silero)
+[TTS] Using provider: edge
+[TTS] DSP skipped: Edge TTS provider active (bypasses Silero DSP v2)
+[WARN] [TTS] DSP skipped: Edge TTS provider active (bypasses Silero DSP v2)
+[TTS] Edge TTS failed while Python offline, falling back to System SAPI... [ERR Unexpected server response: 403]
+[TTS] engine active: system (provider=silero)
+[TTS] Using provider: sapi
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:05:26] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:05:26] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:05:26] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:05:26] "GET /presets HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:05:40] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 2) (useSysLogs.ts:78)
+[Router] Provider new_1789678261296 health manually reset
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:05:52] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:02] "GET /status HTTP/1.1" 200 -
+[INFO] ARC TTS: Stop requested.
+[Router] Active providers: FreeAPILLM, Local Ollama
+[Router] Fallback chain: FreeAPILLM → Local Ollama
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[A.R.C. Multi-Model Router] Attempting model 1/4: auto (Provider: FreeAPILLM)
+[INFO] [DialogLogger] Logged interaction (mode=meta, userChars=6, responseChars=161)
+[A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 6840ms
+[INFO] [A.R.C. Multi-Model Router] Provider: FreeAPILLM, HTTP: 200, Latency: 6840ms
+[Router] Request to FreeAPILLM canceled (aborted by user or lifecycle).
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:16] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:16] "GET /status HTTP/1.1" 200 -
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:16] "GET /status HTTP/1.1" 200 -
+[INFO] ARC TTS: Preparing to speak [161 chars] using speaker [eugene], autoClearCache=[true] (id: f2aeb26f85307b8b)
+[INFO] AUTO-CLEAR CACHE: Purging cache before synthesis...
+[Python Server] [INFO] Python Cache cleared
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:16] "POST /clear-cache HTTP/1.1" 200 -
+[INFO] AUTO-CLEAR CACHE: Python Silero cache purged.
+[INFO] Cache MISS. Generating audio via Silero v5.5 (eugene) DSP...
+[TTS] engine active: silero (provider=silero)
+[TTS] Using provider: silero
+[Python Server] [DSP v2] Processing TTS for text length 161
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:20] "POST /tts HTTP/1.1" 200 -
+[Renderer INFO] [TTS] Playing via: persistent-element (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window focus restored. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Suppressed dialogue window refresh on tts-finish (canOpenDialogueWindow is false). (useSysLogs.ts:78)
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:29] "GET /status HTTP/1.1" 200 -
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (useSysLogs.ts:78)
+[Renderer INFO] [INFO] Voice: Window blur detected. Keeping background voice listening active. (x 2) (useSysLogs.ts:78)
+[Renderer INFO] [EcoReactor] State changed: active → hidden (source: blur) (useSysLogs.ts:78)
+[Python Server] Healthcheck timer restarted: 10000ms
+[EcoService] Eco state changed: active -> hidden (reason: blur)
+[Python Server] 127.0.0.1 - - [04/Nov/2026 21:06:46] "GET /status HTTP/1.1" 200 -

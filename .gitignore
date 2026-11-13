@@ -1,0 +1,99 @@
+# Dependencies
+node_modules/
+bun.lock
+
+# Build & Dist
+build/
+dist/
+out/
+coverage/
+*.tsbuildinfo
+.test-cache/
+test-results/
+
+# System & OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Temporary files
+*.log
+logs/
+*.tmp
+*.bak
+*.swp
+temp*
+nul
+
+# Environment & Secrets
+.env*
+!.env.example
+secure-keys.json
+
+# Python Virtual Environments & Bytecode
+f5tts_env/
+test_env/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Database & Runtime Caches
+arc.db
+arc.db.corrupt_*
+*.db-wal
+*.db-shm
+arc_fallback.json
+test_arc_fallback.json
+audio-cache/
+userData/
+.tempmediaStorage/
+
+# Large Model Weights (downloaded at runtime)
+*.gguf
+*.bin
+*.safetensors
+/v5_5_ru.pt
+/v5_6_ru.pt
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# AI Studio & Environment
+.aistudio/
+.commit_hash
+/app/
+
+
+data/
+.letta/
+chat_response.txt
+*.onnx
+*.pt
+*.wav
+*.log
+.a.r.c-archive*
+qsa-artifacts/
+qa-artifacts/
+tts_test/*.wav
+
+
+# Temporary patch and test scripts
+patch_*.js
+replace_*.js
+replace.js
+rewrite_*.js
+soak-results.csv
+audition_voices.py
+update_textures.py
+find_empty_catches.js
+arc_qa_server.js
+serve_qa.js
+search-node-llama.mjs
+tts_test/
+qa-artifacts/
+

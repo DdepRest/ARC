@@ -1,0 +1,42 @@
+{
+  "modelUrl": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-small-ru-vosk-2025-08-16",
+  "downloadedAt": "2026-11-12T20:40:50.646Z",
+  "source": "huggingface_api",
+  "files": {
+    "encoder.onnx": {
+      "size": 90994145,
+      "expectedSize": 90994145,
+      "oid": "e9c27453e618bc97cf8a10169f34c104bd478166522907fcd122a46a88c78c69"
+    },
+    "decoder.onnx": {
+      "size": 2093080,
+      "expectedSize": 2093080,
+      "oid": "89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0"
+    },
+    "joiner.onnx": {
+      "size": 1026462,
+      "expectedSize": 1026462,
+      "oid": "dde0c7f3be0a16113a3e042c79a492c48667c07a8c1e9422ffe81c768aad4838"
+    },
+    "tokens.txt": {
+      "size": 6388,
+      "expectedSize": 6388,
+      "oid": "eb7996c3921124c9c05a109fbf83ab1fac440dca"
+    },
+    "small-encoder.int8.onnx": {
+      "size": 112442483,
+      "expectedSize": 112442483,
+      "oid": "4cbe7b22fa9026b843b60a68640c747de05bafb1a11b57edc0e66c232d9f33a9"
+    },
+    "small-decoder.int8.onnx": {
+      "size": 262226114,
+      "expectedSize": 262226114,
+      "oid": "acad50b5c782696e91b55914cc5ab4f756f1532f76e22aa6fc615f39fb69a8ee"
+    },
+    "small-tokens.txt": {
+      "size": 816730,
+      "expectedSize": 816730,
+      "oid": "a4edf0b719c10d28cd83f8c294449f99ff5d5dc0"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Документация A.R.C.
+    url: https://github.com/
+    about: Изучите архитектурные руководства и текущее состояние проекта в папке docs/
+  - name: Политика безопасности
+    url: https://github.com/
+    about: Сообщите об уязвимости безопасности конфиденциально согласно SECURITY.md

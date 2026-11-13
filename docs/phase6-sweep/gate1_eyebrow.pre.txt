@@ -1,0 +1,2 @@
+src/renderer/features/settings/components/sections/RoutingSection.vue:16:      eyebrow="Интеллект · Роутер"
+src/renderer/features/settings/components/sections/LocalAISection.vue:5:      eyebrow="Интеллект · Офлайн"

@@ -1,0 +1,74 @@
+name: Отчёт об ошибке (Bug Report)
+description: Создать отчёт о сбое, некорректном поведении или регрессии в A.R.C.
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за помощь в улучшении A.R.C.! Пожалуйста, заполните форму максимально подробно.
+  - type: input
+    id: version
+    attributes:
+      label: Версия A.R.C.
+      description: Какая версия приложения используется (см. в Settings или package.json).
+      placeholder: "1.0.12"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Операционная система
+      options:
+        - Windows 11 (64-bit)
+        - Windows 10 (64-bit)
+        - Linux / Wine (экспериментально)
+        - Другая
+    validations:
+      required: true
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Затронутая подсистема
+      options:
+        - Core / 3D Reactor
+        - Chat / LLM Routing
+        - Voice / TTS (Silero)
+        - Voice / STT (Sherpa-ONNX)
+        - Tasks & Objectives
+        - Commands & Macros
+        - Settings & System HUD
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание проблемы
+      description: Что именно пошло не так?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Шаги для воспроизведения
+      description: 1. Открыть вкладку... 2. Нажать...
+      placeholder: |
+        1. Запустить приложение через arc.bat
+        2. Перейти в раздел...
+        3. Нажать на...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      description: Что должно было произойти?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи или снимки экрана
+      description: Прикрепите фрагмент лога из logs/arc.log или консоли DevTools.
+      render: shell

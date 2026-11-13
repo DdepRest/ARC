@@ -1,0 +1,42 @@
+name: Предложение функции (Feature Request)
+description: Предложить новую функциональность или архитектурное улучшение для A.R.C.
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Предложите идею для расширения возможностей A.R.C. Пожалуйста, убедитесь, что предложение соответствует визуальной и архитектурной конституции проекта.
+  - type: dropdown
+    id: category
+    attributes:
+      label: Категория улучшения
+      options:
+        - Новое пространство / виджет
+        - LLM Провайдеры / Роутинг
+        - Голосовой тракт (TTS / STT / DSP)
+        - Автономные задачи и макросы
+        - Производительность и оптимизация GPU
+        - Интеграции (VK, OS, IPC)
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему или потребность это решает?
+      description: Опишите контекст и мотивацию.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      description: Как именно должна работать эта функция с точки зрения пользователя?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Рассматривавшиеся альтернативы
+      description: Были ли рассмотрены другие пути реализации?

@@ -1,0 +1,102 @@
+name: CI Gate
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    name: Lint, Architecture, Test & Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type Check (TypeScript)
+        run: npm run lint
+
+      - name: File Size Guard (AGENTS.md limits)
+        run: npm run check-sizes
+
+      - name: Visual Constitution Latch (A.R.C. design tokens)
+        run: npm run check-visual-constitution
+
+      - name: Run Vitest Unit Tests
+        run: npm test
+
+      - name: Build Electron & Renderer bundles
+        run: npm run build
+
+  package-win:
+    name: Package Windows x64 (NSIS & Portable)
+    needs: validate
+    runs-on: windows-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type Check (TypeScript)
+        run: npm run lint
+
+      - name: Run Vitest Unit Tests on Windows
+        run: npm test
+
+      - name: Build & Package Windows x64 Installer
+        run: npm run pack:win
+
+      - name: Verify Artifacts & Generate SHA-256 Checksums
+        shell: pwsh
+        run: |
+          $exeFiles = Get-ChildItem -Path dist -Filter "*.exe" -File
+          if (-not $exeFiles -or $exeFiles.Count -eq 0) {
+            Write-Error "No Windows .exe artifacts found in dist/"
+            exit 1
+          }
+          $hashes = @()
+          foreach ($file in $exeFiles) {
+            if ($file.Length -le 0) {
+              Write-Error "Artifact $($file.Name) has zero size!"
+              exit 1
+            }
+            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash.ToLower()
+            $line = "$hash  $($file.Name) ($ ([math]::Round($file.Length / 1MB, 2)) MB)"
+            Write-Host $line
+            $hashes += "$hash  $($file.Name)"
+          }
+          $hashes | Set-Content -Path "dist/SHA256SUMS.txt" -Encoding UTF8
+
+      - name: Upload Windows Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arc-windows-x64-${{ github.sha }}
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+

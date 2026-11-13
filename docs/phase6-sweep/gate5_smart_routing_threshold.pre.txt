@@ -1,0 +1,10 @@
+src/renderer/features/settings/components/sections/providers/FallbackRulesSection.vue:165:          {{ settingsStore.smartRoutingThreshold }} симв.
+src/renderer/features/settings/components/sections/providers/FallbackRulesSection.vue:170:        v-model="settingsStore.smartRoutingThreshold"
+src/renderer/features/settings/components/sections/RoutingSection.vue:65:              Запросы короче <strong class="text-[var(--arc-text-primary)]">{{ settingsStore.smartRoutingThreshold }} симв.</strong>
+src/renderer/features/settings/components/sections/RoutingSection.vue:89:              Запросы длиннее <strong class="text-[var(--arc-text-primary)]">{{ settingsStore.smartRoutingThreshold }} симв.</strong>
+src/renderer/features/settings/components/sections/RoutingSection.vue:111:              v-model="settingsStore.smartRoutingThreshold" 
+src/renderer/features/settings/stores/settings.store.ts:54:  const smartRoutingThreshold = ref(30); // complexity threshold (e.g. prompt length or character count)
+src/renderer/features/settings/stores/settings.store.ts:458:      smartRoutingThreshold: smartRoutingThreshold.value,
+src/renderer/features/settings/stores/settings.store.ts:545:    smartRoutingThreshold.value = 30;
+src/renderer/features/settings/stores/settings.store.ts:656:        smartRoutingThreshold.value = previous.smartRoutingThreshold;
+src/renderer/features/settings/stores/settings.store.ts:747:    smartRoutingThreshold,

@@ -1,0 +1,2125 @@
+Error with Permissions-Policy header: Unrecognized feature: 'run-ad-auction'.
+Error with Permissions-Policy header: Unrecognized feature: 'join-ad-interest-group'.
+Error with Permissions-Policy header: Unrecognized feature: 'private-aggregation'.
+Error with Permissions-Policy header: Unrecognized feature: 'attribution-reporting'.
+audios553297430:143 The page did not request an origin-keyed agent cluster, but was put in one anyway because the origin 'https://vk.ru' had previously been placed in an origin-keyed agent cluster. Update your headers to uniformly request origin-keying for all pages on the origin.
+audios553297430:143  GET https://top-fwz1.mail.ru/js/code.js net::ERR_BLOCKED_BY_CLIENT
+c @ audios553297430:143
+(анонимный) @ audios553297430:143
+e @ audios553297430:143
+t @ audios553297430:143
+(анонимный) @ audios553297430:143
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:41 [A.R.C. VK] Script v1.1.6 initialized
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:41 [A.R.C. VK] Attempting connection on port 8765...
+userscript.html?name=%255BVOT%255D-Voice-Over-Translation.user.js&id=73de4b27-bf5e-4c7b-a5df-a745b612c25e:7130 [VOT DEBUG] [VOT][bootstrap][top] Loading extension {host: 'vk.ru', path: '/audios553297430', mode: 'lazy'}
+userscript.html?name=%255BVOT%255D-Voice-Over-Translation.user.js&id=73de4b27-bf5e-4c7b-a5df-a745b612c25e:7130 [VOT DEBUG] [VOT][bootstrap][top] Lazy bootstrap enabled; waiting for video detection {host: 'vk.ru', path: '/audios553297430'}
+76019.1899a732.js:13 .reset in derived store is deprecated, use .reset in store created via createStore instead
+(анонимный) @ 76019.1899a732.js:13
+ef @ 84419.9eb2a3c8.js:46
+m @ 84419.9eb2a3c8.js:46
+(анонимный) @ 84419.9eb2a3c8.js:46
+a @ 84419.9eb2a3c8.js:46
+reset @ 84419.9eb2a3c8.js:46
+(анонимный) @ core_spa.67a5e35b.js:203
+(анонимный) @ core_spa.67a5e35b.js:203
+M @ core_spa.67a5e35b.js:281
+eL @ core_spa.67a5e35b.js:203
+340734 @ core_spa.67a5e35b.js:203
+__webpack_require__ @ core_spa.67a5e35b.js:289
+781536 @ core_spa.67a5e35b.js:280
+__webpack_require__ @ core_spa.67a5e35b.js:289
+924662 @ core_spa.67a5e35b.js:281
+__webpack_require__ @ core_spa.67a5e35b.js:289
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+document.domain mutation is ignored because the surrounding agent cluster is origin-keyed.
+document.domain mutation is ignored because the surrounding agent cluster is origin-keyed.
+document.domain mutation is ignored because the surrounding agent cluster is origin-keyed.
+document.domain mutation is ignored because the surrounding agent cluster is origin-keyed.
+document.domain mutation is ignored because the surrounding agent cluster is origin-keyed.
+document.domain mutation is ignored because the surrounding agent cluster is origin-keyed.
+76019.1899a732.js:14 [Violation]
+    Permissions policy violation: unload is not allowed in this document.
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ 76019.1899a732.js:13
+(анонимный) @ core_spa.67a5e35b.js:18
+z @ core_spa.67a5e35b.js:9
+L @ core_spa.67a5e35b.js:18
+ru @ core_spa.67a5e35b.js:247
+await in ru
+rO @ core_spa.67a5e35b.js:247
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13 [VK Next] Injected start
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/css/left_menu_invite_promo_menu_item_onboarding.751074f5.css net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+A @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:41 [A.R.C. VK] Connected on port 8765
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=null testactive=- teststate=- ariaLabel=- fill=- result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=null audDur=null track5=null final=0/0
+76019.1899a732.js:2  POST https://sdk-api.apptracer.ru/api/crash/trackSession?crashToken=B5d6H7nKgmqPMHnLp5DE9pSWT6tlYEDmDtAU2Uo9ipa&sdkVersion=2.6.9 net::ERR_BLOCKED_BY_CLIENT
+c @ 76019.1899a732.js:2
+(анонимный) @ 76019.1899a732.js:2
+eh @ 76019.1899a732.js:2
+uploadSessionInfo @ 76019.1899a732.js:13
+upload @ 76019.1899a732.js:13
+setRunning @ 76019.1899a732.js:13
+eB @ 76019.1899a732.js:13
+(анонимный) @ 76019.1899a732.js:13
+h @ 76019.1899a732.js:1
+e$ @ 76019.1899a732.js:13
+(анонимный) @ error_monitoring.b507108e.js:1
+(анонимный) @ error_monitoring.b507108e.js:1
+24518 @ error_monitoring.b507108e.js:1
+o @ error_monitoring.b507108e.js:1
+(анонимный) @ error_monitoring.b507108e.js:1
+(анонимный) @ error_monitoring.b507108e.js:1
+(анонимный) @ error_monitoring.b507108e.js:1
+(анонимный) @ error_monitoring.b507108e.js:1
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/js/left_menu_invite_promo_menu_item_onboarding.7e3d097b.js net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+core_spa.67a5e35b.js:289  GET https://vk.ru/js/langs/vk-web/left_menu_invite_promo_menu_item_onboarding.0fe1171cb7c09cfa.js?v=1&l=0 net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+C @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13 Uncaught LangLoadError: Loading lang langs/vk-web/left_menu_invite_promo_menu_item_onboarding failed.
+(error: https://vk.ru/js/langs/vk-web/left_menu_invite_promo_menu_item_onboarding.0fe1171cb7c09cfa.js?v=1&l=0)
+C @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+content.js-D2rFVir-.js:1975 [TSAI] Text Selection AI Assistant 1.7 loaded as Chrome Extension
+76019.1899a732.js:14 [Violation]
+    Permissions policy violation: unload is not allowed in this document.
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ 76019.1899a732.js:13
+en @ core_spa.67a5e35b.js:111
+createActivityCounter @ core_spa.67a5e35b.js:111
+ensureActivityCounter @ core_spa.67a5e35b.js:281
+B @ core_spa.67a5e35b.js:111
+nE @ core_spa.67a5e35b.js:18
+P @ core_spa.67a5e35b.js:18
+init @ audio_config_legacy.9585dc4d.js:1
+G @ audio_config_legacy.9585dc4d.js:1
+G.ensure.version @ audio_config_legacy.9585dc4d.js:1
+M @ core_spa.67a5e35b.js:281
+664058 @ audio_config_legacy.9585dc4d.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+Promise.then
+eq @ core_spa.67a5e35b.js:148
+(анонимный) @ core_spa.67a5e35b.js:148
+q @ core_spa.67a5e35b.js:281
+Y @ core_spa.67a5e35b.js:281
+eY @ core_spa.67a5e35b.js:148
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ 85987.01ba1bf6.js:14
+M @ core_spa.67a5e35b.js:281
+854274 @ 85987.01ba1bf6.js:14
+__webpack_require__ @ core_spa.67a5e35b.js:289
+231296 @ 85987.01ba1bf6.js:8
+__webpack_require__ @ core_spa.67a5e35b.js:289
+849697 @ audioplayer-async-chunk.4bfb0a85.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+Promise.then
+sd @ core_spa.67a5e35b.js:220
+ru @ core_spa.67a5e35b.js:247
+await in ru
+rO @ core_spa.67a5e35b.js:247
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13  GET https://static.vknext.net/vknext/hotfix/14.14.2.css?t=1792788319 404 (Not Found)
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+(анонимный) @ b2364022c.vknext.js:1
+await in (анонимный)
+24856 @ b2364022c.vknext.js:1
+s @ e62143d02.vknext.js:1
+(анонимный) @ b2364022c.vknext.js:1
+s.a @ e62143d02.vknext.js:1
+96939 @ b2364022c.vknext.js:1
+s @ e62143d02.vknext.js:1
+(анонимный) @ b2364022c.vknext.js:1
+s.O @ e62143d02.vknext.js:1
+(анонимный) @ b2364022c.vknext.js:1
+d @ e62143d02.vknext.js:1
+(анонимный) @ b2364022c.vknext.js:1
+PendingScript
+(анонимный) @ c5b2a05af.vknext.js:1
+(анонимный) @ c5b2a05af.vknext.js:1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=null testactive=- teststate=- ariaLabel=- fill=- result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=null audDur=null track5=null final=0/0
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/css/left_menu_invite_promo_menu_item_onboarding.751074f5.css net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+A @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13  HEAD https://tns-counter.ru/ net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+(анонимный) @ 91724.45ae674d.js:1
+h @ 91724.45ae674d.js:1
+f @ 91724.45ae674d.js:1
+detect @ 91724.45ae674d.js:1
+l.version @ 91724.45ae674d.js:1
+M @ core_spa.67a5e35b.js:281
+760337 @ 91724.45ae674d.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+415311 @ 49640.25d0d1eb.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+74605 @ 49640.25d0d1eb.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+733137 @ 49640.25d0d1eb.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+74939 @ 49640.25d0d1eb.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+475116 @ 87344.8924b486.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+784811 @ 87344.8924b486.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+905093 @ 87344.8924b486.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+786808 @ 87344.8924b486.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+579955 @ 87344.8924b486.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+399996 @ 58934.2f3ac083.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+691413 @ 58934.2f3ac083.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+368157 @ 61553.2b05070d.js:1
+__webpack_require__ @ core_spa.67a5e35b.js:289
+651897 @ audio_pages.9d6168de.js:6
+__webpack_require__ @ core_spa.67a5e35b.js:289
+Promise.then
+X @ core_spa.67a5e35b.js:247
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/js/left_menu_invite_promo_menu_item_onboarding.7e3d097b.js?&r=1 net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13  GET https://stats.vk-portal.net/ net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+checkAdblock @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStat @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+sendWebStats @ 50914.e974cc8d.js:9
+sendWebStats @ 50914.e974cc8d.js:9
+processEvent @ error_monitoring.b507108e.js:1
+Object.assign.id @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+S @ 76019.1899a732.js:16
+_prepareEvent @ 76019.1899a732.js:13
+_prepareEvent @ 76019.1899a732.js:14
+_processEvent @ 76019.1899a732.js:13
+_captureEvent @ 76019.1899a732.js:13
+(анонимный) @ 76019.1899a732.js:13
+(анонимный) @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_executeHandlers @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+then @ 76019.1899a732.js:16
+captureException @ 76019.1899a732.js:13
+captureException @ 76019.1899a732.js:16
+a @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:13
+withScope @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+v @ 76019.1899a732.js:16
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+D @ core_spa.67a5e35b.js:289
+script
+(анонимный) @ core_spa.67a5e35b.js:289
+C @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13  GET https://stats.vk-portal.net/ net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+checkAdblock @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStatsWithBatching @ 50914.e974cc8d.js:9
+push.542194.saveAndSendStatsNew.idlizeCall @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+s @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+requestIdleCallback
+idlizeCall @ 50914.e974cc8d.js:9
+saveAndSendStatsNew @ 50914.e974cc8d.js:9
+saveAndSendStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+writeLocked @ 50914.e974cc8d.js:9
+writeAndSendWebStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+saveProductionStats @ 50914.e974cc8d.js:9
+logEvent @ core_spa.67a5e35b.js:148
+logEvent @ core_spa.67a5e35b.js:148
+_logEvent @ core_spa.67a5e35b.js:148
+sendTabOpen @ core_spa.67a5e35b.js:148
+C @ core_spa.67a5e35b.js:148
+y @ core_spa.67a5e35b.js:148
+ru @ core_spa.67a5e35b.js:247
+await in ru
+rO @ core_spa.67a5e35b.js:247
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13 [0.039]  common module enabled
+76019.1899a732.js:14  POST https://stats.vk-portal.net/web-stats/p?device_id=145507dff0bff198452e9a6c47d5caaf net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:14
+apply @ 76019.1899a732.js:13
+u @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStat @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+sendWebStats @ 50914.e974cc8d.js:9
+sendWebStats @ 50914.e974cc8d.js:9
+processEvent @ error_monitoring.b507108e.js:1
+Object.assign.id @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+e @ 76019.1899a732.js:16
+S @ 76019.1899a732.js:16
+_prepareEvent @ 76019.1899a732.js:13
+_prepareEvent @ 76019.1899a732.js:14
+_processEvent @ 76019.1899a732.js:13
+_captureEvent @ 76019.1899a732.js:13
+(анонимный) @ 76019.1899a732.js:13
+(анонимный) @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_executeHandlers @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:16
+_runExecutor @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+then @ 76019.1899a732.js:16
+captureException @ 76019.1899a732.js:13
+captureException @ 76019.1899a732.js:16
+a @ 76019.1899a732.js:16
+(анонимный) @ 76019.1899a732.js:13
+withScope @ 76019.1899a732.js:16
+u @ 76019.1899a732.js:16
+v @ 76019.1899a732.js:16
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+D @ core_spa.67a5e35b.js:289
+script
+(анонимный) @ core_spa.67a5e35b.js:289
+C @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=null testactive=- teststate=- ariaLabel=- fill=- result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=null audDur=null track5=null final=0/0
+76019.1899a732.js:14  POST https://stats.vk-portal.net/web-stats/p?device_id=145507dff0bff198452e9a6c47d5caaf net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:14
+apply @ 76019.1899a732.js:13
+u @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStatsWithBatching @ 50914.e974cc8d.js:9
+push.542194.saveAndSendStatsNew.idlizeCall @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+s @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+requestIdleCallback
+idlizeCall @ 50914.e974cc8d.js:9
+saveAndSendStatsNew @ 50914.e974cc8d.js:9
+saveAndSendStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+writeLocked @ 50914.e974cc8d.js:9
+writeAndSendWebStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+saveProductionStats @ 50914.e974cc8d.js:9
+logEvent @ core_spa.67a5e35b.js:148
+logEvent @ core_spa.67a5e35b.js:148
+_logEvent @ core_spa.67a5e35b.js:148
+sendTabOpen @ core_spa.67a5e35b.js:148
+C @ core_spa.67a5e35b.js:148
+y @ core_spa.67a5e35b.js:148
+ru @ core_spa.67a5e35b.js:247
+await in ru
+rO @ core_spa.67a5e35b.js:247
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+audios553297430:154  GET https://r3.mail.ru/k?sign=2a8acc6b5997d7f23d779a3ebeff1bb64453affa&vk_id=553297430&src=desktop net::ERR_BLOCKED_BY_CLIENT
+core_spa.67a5e35b.js:247  GET https://ad.mail.ru/static/sync-loader.js net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:247
+oF @ 84419.9eb2a3c8.js:28
+s$ @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+76019.1899a732.js:14 [Violation]
+    Permissions policy violation: unload is not allowed in this document.
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ 76019.1899a732.js:13
+en @ core_spa.67a5e35b.js:111
+createActivityCounter @ core_spa.67a5e35b.js:111
+ensureActivityCounter @ core_spa.67a5e35b.js:281
+version @ audio_pages.9d6168de.js:1
+M @ core_spa.67a5e35b.js:281
+h @ audio_pages.9d6168de.js:1
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolve @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+createInstance @ core_spa.67a5e35b.js:281
+ensureInstance @ core_spa.67a5e35b.js:281
+resolveWithTransforms @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+aD @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+a$Provider @ core_spa.67a5e35b.js:281
+ak @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sS @ 84419.9eb2a3c8.js:28
+w @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+sq @ 84419.9eb2a3c8.js:28
+sG @ 84419.9eb2a3c8.js:28
+Promise.then
+(анонимный) @ 84419.9eb2a3c8.js:28
+oK @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+core_spa.67a5e35b.js:281  GET https://ad.mail.ru/adq/?callback=__rb1792788321484&q%5B%5D=1982164%3Fn%3Dads_leftmenu&cpm_floor=150&vk_id=553297430&count=1 net::ERR_BLOCKED_BY_CLIENT
+j @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:247
+tryRenderRbAttempt @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+tryRenderRbAttempt @ 84419.9eb2a3c8.js:28
+renderAdvert @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+renderAdvert @ 84419.9eb2a3c8.js:28
+setLocation @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+ObservableObject.key @ 84419.9eb2a3c8.js:28
+M @ core_spa.67a5e35b.js:247
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:247
+oF @ 84419.9eb2a3c8.js:28
+s$ @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+76019.1899a732.js:13  HEAD https://632221.ms.vk.ru/ net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+ed @ core_spa.67a5e35b.js:111
+startCollecting @ core_spa.67a5e35b.js:111
+e0 @ 84419.9eb2a3c8.js:28
+startCollecting @ 84419.9eb2a3c8.js:28
+start @ core_spa.67a5e35b.js:111
+start @ audio_pages.9d6168de.js:1
+activate @ audio_pages.9d6168de.js:1
+e0 @ 84419.9eb2a3c8.js:28
+activate @ 84419.9eb2a3c8.js:28
+mountEffect @ audio_pages.9d6168de.js:6
+(анонимный) @ audio_pages.9d6168de.js:6
+oF @ 84419.9eb2a3c8.js:28
+s$ @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sS @ 84419.9eb2a3c8.js:28
+w @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+sq @ 84419.9eb2a3c8.js:28
+sG @ 84419.9eb2a3c8.js:28
+Promise.then
+(анонимный) @ 84419.9eb2a3c8.js:28
+oK @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+oY @ 84419.9eb2a3c8.js:28
+oX @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+mixpanel-2.js:64 [batch] MIXPANEL REQUEST: [{…}]
+core_spa.67a5e35b.js:281  GET https://ad.mail.ru/adq/?callback=__rb1792788321648&q%5B%5D=45891%3Fn%3Dads_leftmenu&cpm_floor=5&vk_id=553297430&count=3 net::ERR_BLOCKED_BY_CLIENT
+j @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:247
+tryRenderRbAttempt @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+tryRenderRbAttempt @ 84419.9eb2a3c8.js:28
+renderAdvert @ core_spa.67a5e35b.js:247
+await in renderAdvert
+e0 @ 84419.9eb2a3c8.js:28
+renderAdvert @ 84419.9eb2a3c8.js:28
+setLocation @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+ObservableObject.key @ 84419.9eb2a3c8.js:28
+M @ core_spa.67a5e35b.js:247
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:247
+oF @ 84419.9eb2a3c8.js:28
+s$ @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/css/left_menu_invite_promo_menu_item_onboarding.751074f5.css net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+A @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/js/left_menu_invite_promo_menu_item_onboarding.7e3d097b.js?&r=2 net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+core_spa.67a5e35b.js:281  GET https://ad.mail.ru/adq/?callback=__rb1792788322222&q%5B%5D=45891%3Fn%3Dads_leftmenu&vk_id=553297430&count=3 net::ERR_BLOCKED_BY_CLIENT
+j @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:247
+tryRenderRbAttempt @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+tryRenderRbAttempt @ 84419.9eb2a3c8.js:28
+renderAdvert @ core_spa.67a5e35b.js:247
+await in renderAdvert
+e0 @ 84419.9eb2a3c8.js:28
+renderAdvert @ 84419.9eb2a3c8.js:28
+setLocation @ core_spa.67a5e35b.js:247
+e0 @ 84419.9eb2a3c8.js:28
+ObservableObject.key @ 84419.9eb2a3c8.js:28
+M @ core_spa.67a5e35b.js:247
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:247
+oF @ 84419.9eb2a3c8.js:28
+s$ @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+Error with Permissions-Policy header: Unrecognized feature: 'run-ad-auction'.
+Error with Permissions-Policy header: Unrecognized feature: 'join-ad-interest-group'.
+Error with Permissions-Policy header: Unrecognized feature: 'private-aggregation'.
+Error with Permissions-Policy header: Unrecognized feature: 'attribution-reporting'.
+q_frame.html?endpoint=aHR0cHM6Ly9xdWV1ZXY0LnZrLnJ1Lw%3D%3D&v=12:158 The page did not request an origin-keyed agent cluster, but was put in one anyway because the origin 'https://vk.ru' had previously been placed in an origin-keyed agent cluster. Update your headers to uniformly request origin-keying for all pages on the origin.
+userscript.html?name=%255BVOT%255D-Voice-Over-Translation.user.js&id=73de4b27-bf5e-4c7b-a5df-a745b612c25e:7130 [VOT DEBUG] [VOT][bootstrap][iframe] Loading extension {host: 'vk.ru', path: '/q_frame.html', mode: 'lazy'}
+userscript.html?name=%255BVOT%255D-Voice-Over-Translation.user.js&id=73de4b27-bf5e-4c7b-a5df-a745b612c25e:7130 [VOT DEBUG] [VOT][bootstrap][iframe] Lazy bootstrap enabled; waiting for video detection {host: 'vk.ru', path: '/q_frame.html'}
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=null audDur=null track5=null final=0/0
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/css/left_menu_invite_promo_menu_item_onboarding.751074f5.css net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+A @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+core_spa.67a5e35b.js:289  GET https://st1-15.vk.ru/dist/projects/vk-web/chunks/js/left_menu_invite_promo_menu_item_onboarding.7e3d097b.js?&r=3 net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+Promise.catch
+(анонимный) @ core_spa.67a5e35b.js:289
+loader @ core_spa.67a5e35b.js:247
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13 Error: Loading chunk 92299 failed after 3 retries.
+    at HTMLLinkElement.<anonymous> (core_spa.67a5e35b.js:289:127602)
+(анонимный) @ 76019.1899a732.js:13
+R @ core_spa.67a5e35b.js:281
+(анонимный) @ core_spa.67a5e35b.js:281
+Promise.then
+(анонимный) @ core_spa.67a5e35b.js:281
+R @ 84419.9eb2a3c8.js:28
+l @ 84419.9eb2a3c8.js:28
+sL @ 84419.9eb2a3c8.js:28
+sz @ 84419.9eb2a3c8.js:28
+sM @ 84419.9eb2a3c8.js:28
+r5 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+s6 @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+(анонимный) @ core_spa.67a5e35b.js:247
+window.<computed> @ audios553297430:72
+C @ core_spa.67a5e35b.js:247
+rO @ core_spa.67a5e35b.js:247
+await in rO
+787781 @ core_spa.67a5e35b.js:247
+__webpack_require__ @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+(анонимный) @ core_spa.67a5e35b.js:289
+76019.1899a732.js:13 Error: Loading chunk 92299 failed after 3 retries.
+    at HTMLLinkElement.<anonymous> (core_spa.67a5e35b.js:289:127602)
+(анонимный) @ 76019.1899a732.js:13
+oe @ 84419.9eb2a3c8.js:28
+a.componentDidCatch.n.callback @ 84419.9eb2a3c8.js:28
+iG @ 84419.9eb2a3c8.js:28
+oQ @ 84419.9eb2a3c8.js:28
+e @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sF @ 84419.9eb2a3c8.js:28
+sS @ 84419.9eb2a3c8.js:28
+w @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+R @ 84419.9eb2a3c8.js:28
+postMessage
+o @ 84419.9eb2a3c8.js:28
+T @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sC @ 84419.9eb2a3c8.js:28
+sw @ 84419.9eb2a3c8.js:28
+a0 @ 84419.9eb2a3c8.js:28
+onLoad @ 84419.9eb2a3c8.js:42
+eL @ 84419.9eb2a3c8.js:28
+eV @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+re @ 84419.9eb2a3c8.js:28
+rt @ 84419.9eb2a3c8.js:28
+(анонимный) @ 84419.9eb2a3c8.js:28
+sR @ 84419.9eb2a3c8.js:28
+eP @ 84419.9eb2a3c8.js:28
+rs @ 84419.9eb2a3c8.js:28
+tL @ 84419.9eb2a3c8.js:28
+r @ 76019.1899a732.js:13
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=null audDur=null track5=null final=0/0
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:41 [A.R.C. VK] [A.R.C.] play via API
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.0 audDur=NaN track5=137 final=0/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.0 audDur=NaN track5=137 final=0/137
+76019.1899a732.js:13  HEAD https://632121.ms.vk.ru/ net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+ed @ core_spa.67a5e35b.js:111
+startCollecting @ core_spa.67a5e35b.js:111
+e0 @ 84419.9eb2a3c8.js:28
+startCollecting @ 84419.9eb2a3c8.js:28
+start @ core_spa.67a5e35b.js:111
+B @ core_spa.67a5e35b.js:111
+O @ core_spa.67a5e35b.js:281
+emit @ core_spa.67a5e35b.js:281
+e0 @ 84419.9eb2a3c8.js:28
+emit @ 84419.9eb2a3c8.js:28
+handlePlayerPlayMarked @ core_spa.67a5e35b.js:103
+O @ core_spa.67a5e35b.js:281
+emit @ core_spa.67a5e35b.js:281
+e0 @ 84419.9eb2a3c8.js:28
+emit @ 84419.9eb2a3c8.js:28
+W @ core_spa.67a5e35b.js:18
+_play @ core_spa.67a5e35b.js:18
+await in _play
+play @ core_spa.67a5e35b.js:18
+handleCommand @ userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:682
+myWs.onmessage @ userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:204
+76019.1899a732.js:14  POST https://stats.vk-portal.net/web-stats/p?device_id=145507dff0bff198452e9a6c47d5caaf net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:14
+apply @ 76019.1899a732.js:13
+u @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStatsWithBatching @ 50914.e974cc8d.js:9
+push.542194.saveAndSendStatsNew.idlizeCall @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+s @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+requestIdleCallback
+idlizeCall @ 50914.e974cc8d.js:9
+saveAndSendStatsNew @ 50914.e974cc8d.js:9
+saveAndSendStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.0 audDur=NaN track5=137 final=0/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.0 audDur=137.2 track5=137 final=0/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.0 audDur=137.2 track5=137 final=0/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.1 audDur=137.2 track5=137 final=0/137
+76019.1899a732.js:13  GET https://stats.vk-portal.net/ net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:13
+window.fetch @ b2364022c.vknext.js:1
+await in window.fetch
+checkAdblock @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStatsWithBatching @ 50914.e974cc8d.js:9
+push.542194.saveAndSendStatsNew.idlizeCall @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+s @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+requestIdleCallback
+idlizeCall @ 50914.e974cc8d.js:9
+saveAndSendStatsNew @ 50914.e974cc8d.js:9
+saveAndSendStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+writeLocked @ 50914.e974cc8d.js:9
+writeAndSendWebStats @ 50914.e974cc8d.js:9
+saveVkResStats @ 50914.e974cc8d.js:9
+saveVkResStats @ 50914.e974cc8d.js:9
+(анонимный) @ core_spa.67a5e35b.js:238
+D @ core_spa.67a5e35b.js:238
+r @ 76019.1899a732.js:13
+76019.1899a732.js:14  POST https://akashi.vk-portal.net/api/v1/web net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:14
+apply @ 76019.1899a732.js:13
+u @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStatsWithBatching @ 50914.e974cc8d.js:9
+push.542194.saveAndSendStatsNew.idlizeCall @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+s @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+requestIdleCallback
+idlizeCall @ 50914.e974cc8d.js:9
+saveAndSendStatsNew @ 50914.e974cc8d.js:9
+saveAndSendStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+writeLocked @ 50914.e974cc8d.js:9
+writeAndSendWebStats @ 50914.e974cc8d.js:9
+saveVkResStats @ 50914.e974cc8d.js:9
+saveVkResStats @ 50914.e974cc8d.js:9
+(анонимный) @ core_spa.67a5e35b.js:238
+D @ core_spa.67a5e35b.js:238
+r @ 76019.1899a732.js:13
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.430 GAIN=0.0795 curAud=0.3400 playerVol=0.34
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.8 audDur=137.2 track5=137 final=0/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4300 slider=0.773 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=0.9 audDur=137.2 track5=137 final=0/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4300 slider=0.773 playerVol=0.43
+76019.1899a732.js:14  POST https://sdk-api.apptracer.ru/api/crash/trackSession?crashToken=B5d6H7nKgmqPMHnLp5DE9pSWT6tlYEDmDtAU2Uo9ipa&sdkVersion=2.6.9 net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:14
+apply @ 76019.1899a732.js:13
+c @ 76019.1899a732.js:2
+l @ 76019.1899a732.js:2
+r @ 76019.1899a732.js:13
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.380 GAIN=0.0549 curAud=0.4300 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.370 GAIN=0.0507 curAud=0.3800 playerVol=0.38
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.360 GAIN=0.0467 curAud=0.3700 playerVol=0.37
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.350 GAIN=0.0429 curAud=0.3600 playerVol=0.36
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.340 GAIN=0.0393 curAud=0.3500 playerVol=0.35
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.330 GAIN=0.0359 curAud=0.3400 playerVol=0.34
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.320 GAIN=0.0328 curAud=0.3300 playerVol=0.33
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3200 slider=0.704 playerVol=0.32
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3200 slider=0.704 playerVol=0.32
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.310 GAIN=0.0298 curAud=0.3200 playerVol=0.32
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3100 slider=0.688 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.300 GAIN=0.0270 curAud=0.3100 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.3 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.4 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.4 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.4 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.5 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.5 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.5 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=3.5 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+vkcom_injected.vms.js:1 Uncaught (in promise) Error: [audio hooks] users controls not found
+    at s (vkcom_injected.vms.js:1:43735)
+    at s (vkcom_injected.vms.js:1:43984)
+    at async A (vkcom_injected.vms.js:1:45251)
+s @ vkcom_injected.vms.js:1
+s @ vkcom_injected.vms.js:1
+await in s
+s @ vkcom_injected.vms.js:1
+await in s
+s @ vkcom_injected.vms.js:1
+await in s
+s @ vkcom_injected.vms.js:1
+await in s
+s @ vkcom_injected.vms.js:1
+await in s
+A @ vkcom_injected.vms.js:1
+c @ vkcom_injected.vms.js:1
+l @ vkcom_injected.vms.js:1
+t @ 7495.vms.js:1
+r @ 76019.1899a732.js:13
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.290 GAIN=0.0244 curAud=0.3000 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.280 GAIN=0.0220 curAud=0.2900 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.270 GAIN=0.0197 curAud=0.2800 playerVol=0.28
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.260 GAIN=0.0176 curAud=0.2700 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2600 slider=0.643 playerVol=0.26
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2600 slider=0.643 playerVol=0.26
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.250 GAIN=0.0156 curAud=0.2600 playerVol=0.26
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.0 audDur=137.2 track5=137 final=3/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.0 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.0 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.1 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.1 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.2 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2500 slider=0.633 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.580 GAIN=0.1951 curAud=0.2500 playerVol=0.25
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.600 GAIN=0.2160 curAud=0.5800 playerVol=0.58
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.610 GAIN=0.2270 curAud=0.6000 playerVol=0.6
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.620 GAIN=0.2383 curAud=0.6100 playerVol=0.61
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.640 GAIN=0.2621 curAud=0.6200 playerVol=0.62
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.650 GAIN=0.2746 curAud=0.6400 playerVol=0.64
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.660 GAIN=0.2875 curAud=0.6500 playerVol=0.65
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.690 GAIN=0.3285 curAud=0.6600 playerVol=0.66
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.710 GAIN=0.3579 curAud=0.6900 playerVol=0.69
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.730 GAIN=0.3890 curAud=0.7100 playerVol=0.71
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.760 GAIN=0.4390 curAud=0.7300 playerVol=0.73
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.780 GAIN=0.4746 curAud=0.7600 playerVol=0.76
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.800 GAIN=0.5120 curAud=0.7800 playerVol=0.78
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.810 GAIN=0.5314 curAud=0.8000 playerVol=0.8
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.830 GAIN=0.5718 curAud=0.8100 playerVol=0.81
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.840 GAIN=0.5927 curAud=0.8300 playerVol=0.83
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.860 GAIN=0.6361 curAud=0.8400 playerVol=0.84
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.890 GAIN=0.7050 curAud=0.8600 playerVol=0.86
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8900 slider=0.943 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8900 slider=0.943 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8900 slider=0.943 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8900 slider=0.943 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8900 slider=0.943 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8900 slider=0.943 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.920 GAIN=0.7787 curAud=0.8900 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.930 GAIN=0.8044 curAud=0.9200 playerVol=0.92
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.940 GAIN=0.8306 curAud=0.9300 playerVol=0.93
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.950 GAIN=0.8574 curAud=0.9400 playerVol=0.94
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.960 GAIN=0.8847 curAud=0.9500 playerVol=0.95
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.980 GAIN=0.9412 curAud=0.9600 playerVol=0.96
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.990 GAIN=0.9703 curAud=0.9800 playerVol=0.98
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=1.000 GAIN=1.0000 curAud=0.9900 playerVol=0.99
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=0.952 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=0.959 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=0.968 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=0.977 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=0.994 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.9 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=4.9 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.0 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.0 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.0 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.0 audDur=137.2 track5=137 final=4/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.0 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.0 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.1 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.1 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.1 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.1 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.1 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=1.0000 slider=1.000 playerVol=1
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.920 GAIN=0.7787 curAud=1.0000 playerVol=1
+76019.1899a732.js:14  POST https://stats.vk-portal.net/web-stats/p?device_id=145507dff0bff198452e9a6c47d5caaf net::ERR_BLOCKED_BY_CLIENT
+(анонимный) @ 76019.1899a732.js:14
+apply @ 76019.1899a732.js:13
+u @ 50914.e974cc8d.js:9
+sendStats @ 50914.e974cc8d.js:9
+await in sendStats
+sendStatsWithBatching @ 50914.e974cc8d.js:9
+push.542194.saveAndSendStatsNew.idlizeCall @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+setTimeout
+(анонимный) @ 76019.1899a732.js:14
+s @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+requestIdleCallback
+idlizeCall @ 50914.e974cc8d.js:9
+saveAndSendStatsNew @ 50914.e974cc8d.js:9
+saveAndSendStats @ 50914.e974cc8d.js:9
+(анонимный) @ 50914.e974cc8d.js:9
+r @ 76019.1899a732.js:13
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.910 GAIN=0.7536 curAud=0.9200 playerVol=0.92
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.900 GAIN=0.7290 curAud=0.9100 playerVol=0.91
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.890 GAIN=0.7050 curAud=0.9000 playerVol=0.9
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.880 GAIN=0.6815 curAud=0.8900 playerVol=0.89
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8800 slider=0.965 playerVol=0.88
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.870 GAIN=0.6585 curAud=0.8800 playerVol=0.88
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.860 GAIN=0.6361 curAud=0.8700 playerVol=0.87
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8600 slider=0.962 playerVol=0.86
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.850 GAIN=0.6141 curAud=0.8600 playerVol=0.86
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8500 slider=0.956 playerVol=0.85
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8500 slider=0.956 playerVol=0.85
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.840 GAIN=0.5927 curAud=0.8500 playerVol=0.85
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8400 slider=0.952 playerVol=0.84
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.830 GAIN=0.5718 curAud=0.8400 playerVol=0.84
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8300 slider=0.949 playerVol=0.83
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.820 GAIN=0.5514 curAud=0.8300 playerVol=0.83
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8200 slider=0.946 playerVol=0.82
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.810 GAIN=0.5314 curAud=0.8200 playerVol=0.82
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.800 GAIN=0.5120 curAud=0.8100 playerVol=0.81
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8000 slider=0.943 playerVol=0.8
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.8000 slider=0.943 playerVol=0.8
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.790 GAIN=0.4930 curAud=0.8000 playerVol=0.8
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.780 GAIN=0.4746 curAud=0.7900 playerVol=0.79
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.770 GAIN=0.4565 curAud=0.7800 playerVol=0.78
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7700 slider=0.932 playerVol=0.77
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.9 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.9 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.760 GAIN=0.4390 curAud=0.7700 playerVol=0.77
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7600 slider=0.929 playerVol=0.76
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.750 GAIN=0.4219 curAud=0.7600 playerVol=0.76
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.9 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7500 slider=0.925 playerVol=0.75
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.740 GAIN=0.4052 curAud=0.7500 playerVol=0.75
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.9 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.730 GAIN=0.3890 curAud=0.7400 playerVol=0.74
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7300 slider=0.914 playerVol=0.73
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7300 slider=0.914 playerVol=0.73
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=5.9 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.720 GAIN=0.3732 curAud=0.7300 playerVol=0.73
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7200 slider=0.914 playerVol=0.72
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7200 slider=0.911 playerVol=0.72
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.710 GAIN=0.3579 curAud=0.7200 playerVol=0.72
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.0 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.7100 slider=0.907 playerVol=0.71
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.0 audDur=137.2 track5=137 final=5/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.700 GAIN=0.3430 curAud=0.7100 playerVol=0.71
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.690 GAIN=0.3285 curAud=0.7000 playerVol=0.7
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6900 slider=0.899 playerVol=0.69
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6900 slider=0.899 playerVol=0.69
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.680 GAIN=0.3144 curAud=0.6900 playerVol=0.69
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.0 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6800 slider=0.895 playerVol=0.68
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.670 GAIN=0.3008 curAud=0.6800 playerVol=0.68
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.0 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6700 slider=0.891 playerVol=0.67
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.660 GAIN=0.2875 curAud=0.6700 playerVol=0.67
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6600 slider=0.891 playerVol=0.66
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6600 slider=0.891 playerVol=0.66
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6600 slider=0.887 playerVol=0.66
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6600 slider=0.887 playerVol=0.66
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.650 GAIN=0.2746 curAud=0.6600 playerVol=0.66
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6500 slider=0.883 playerVol=0.65
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.1 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.640 GAIN=0.2621 curAud=0.6500 playerVol=0.65
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6400 slider=0.879 playerVol=0.64
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.1 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6400 slider=0.879 playerVol=0.64
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6400 slider=0.879 playerVol=0.64
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.630 GAIN=0.2500 curAud=0.6400 playerVol=0.64
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.1 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6300 slider=0.875 playerVol=0.63
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.620 GAIN=0.2383 curAud=0.6300 playerVol=0.63
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6200 slider=0.870 playerVol=0.62
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.2 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.610 GAIN=0.2270 curAud=0.6200 playerVol=0.62
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6100 slider=0.866 playerVol=0.61
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6100 slider=0.866 playerVol=0.61
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.600 GAIN=0.2160 curAud=0.6100 playerVol=0.61
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.6000 slider=0.862 playerVol=0.6
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.6000 slider=0.862 playerVol=0.6
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.2 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.590 GAIN=0.2054 curAud=0.6000 playerVol=0.6
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5900 slider=0.857 playerVol=0.59
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5900 slider=0.857 playerVol=0.59
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5900 slider=0.857 playerVol=0.59
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.580 GAIN=0.1951 curAud=0.5900 playerVol=0.59
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.2 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5800 slider=0.853 playerVol=0.58
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5800 slider=0.853 playerVol=0.58
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.2 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.570 GAIN=0.1852 curAud=0.5800 playerVol=0.58
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5700 slider=0.848 playerVol=0.57
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5700 slider=0.848 playerVol=0.57
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.560 GAIN=0.1756 curAud=0.5700 playerVol=0.57
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.3 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5600 slider=0.843 playerVol=0.56
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5600 slider=0.843 playerVol=0.56
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.550 GAIN=0.1664 curAud=0.5600 playerVol=0.56
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.540 GAIN=0.1575 curAud=0.5500 playerVol=0.55
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5400 slider=0.838 playerVol=0.54
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5400 slider=0.833 playerVol=0.54
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.530 GAIN=0.1489 curAud=0.5400 playerVol=0.54
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5300 slider=0.828 playerVol=0.53
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5300 slider=0.828 playerVol=0.53
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.4 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5300 slider=0.828 playerVol=0.53
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.520 GAIN=0.1406 curAud=0.5300 playerVol=0.53
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5200 slider=0.828 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5200 slider=0.828 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5200 slider=0.828 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5200 slider=0.828 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5200 slider=0.828 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5200 slider=0.823 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.510 GAIN=0.1327 curAud=0.5200 playerVol=0.52
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5100 slider=0.823 playerVol=0.51
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.5100 slider=0.818 playerVol=0.51
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.500 GAIN=0.1250 curAud=0.5100 playerVol=0.51
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.5000 slider=0.818 playerVol=0.5
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.490 GAIN=0.1176 curAud=0.5000 playerVol=0.5
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4900 slider=0.808 playerVol=0.49
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.4 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4900 slider=0.808 playerVol=0.49
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.480 GAIN=0.1106 curAud=0.4900 playerVol=0.49
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4800 slider=0.802 playerVol=0.48
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.5 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.470 GAIN=0.1038 curAud=0.4800 playerVol=0.48
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4700 slider=0.797 playerVol=0.47
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.460 GAIN=0.0973 curAud=0.4700 playerVol=0.47
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.5 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4600 slider=0.791 playerVol=0.46
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4600 slider=0.791 playerVol=0.46
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4600 slider=0.791 playerVol=0.46
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.450 GAIN=0.0911 curAud=0.4600 playerVol=0.46
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4500 slider=0.785 playerVol=0.45
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.440 GAIN=0.0852 curAud=0.4500 playerVol=0.45
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4400 slider=0.779 playerVol=0.44
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.430 GAIN=0.0795 curAud=0.4400 playerVol=0.44
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4300 slider=0.773 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4300 slider=0.773 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.5 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.5 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4300 slider=0.773 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4300 slider=0.773 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.420 GAIN=0.0741 curAud=0.4300 playerVol=0.43
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4200 slider=0.767 playerVol=0.42
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4200 slider=0.767 playerVol=0.42
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.6 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.410 GAIN=0.0689 curAud=0.4200 playerVol=0.42
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4100 slider=0.761 playerVol=0.41
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4100 slider=0.761 playerVol=0.41
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4100 slider=0.761 playerVol=0.41
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4100 slider=0.761 playerVol=0.41
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.400 GAIN=0.0640 curAud=0.4100 playerVol=0.41
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4000 slider=0.761 playerVol=0.4
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.4000 slider=0.761 playerVol=0.4
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.4000 slider=0.761 playerVol=0.4
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.390 GAIN=0.0593 curAud=0.4000 playerVol=0.4
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.380 GAIN=0.0549 curAud=0.3900 playerVol=0.39
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3800 slider=0.741 playerVol=0.38
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.370 GAIN=0.0507 curAud=0.3800 playerVol=0.38
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.7 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3700 slider=0.734 playerVol=0.37
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3700 slider=0.734 playerVol=0.37
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.360 GAIN=0.0467 curAud=0.3700 playerVol=0.37
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.7 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3600 slider=0.727 playerVol=0.36
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.350 GAIN=0.0429 curAud=0.3600 playerVol=0.36
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3500 slider=0.719 playerVol=0.35
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.7 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.340 GAIN=0.0393 curAud=0.3500 playerVol=0.35
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3400 slider=0.719 playerVol=0.34
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.7 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.330 GAIN=0.0359 curAud=0.3400 playerVol=0.34
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3300 slider=0.704 playerVol=0.33
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3300 slider=0.704 playerVol=0.33
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.320 GAIN=0.0328 curAud=0.3300 playerVol=0.33
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3200 slider=0.696 playerVol=0.32
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3200 slider=0.696 playerVol=0.32
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.7 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.310 GAIN=0.0298 curAud=0.3200 playerVol=0.32
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3100 slider=0.696 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3100 slider=0.688 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.8 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3100 slider=0.688 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3100 slider=0.688 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.8 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.300 GAIN=0.0270 curAud=0.3100 playerVol=0.31
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.688 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.688 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.3000 slider=0.680 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.8 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.290 GAIN=0.0244 curAud=0.3000 playerVol=0.3
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2900 slider=0.671 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2900 slider=0.671 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.8 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2900 slider=0.671 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2900 slider=0.671 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2900 slider=0.671 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2900 slider=0.671 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.9 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.280 GAIN=0.0220 curAud=0.2900 playerVol=0.29
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2800 slider=0.671 playerVol=0.28
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.9 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2800 slider=0.662 playerVol=0.28
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.9 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2800 slider=0.662 playerVol=0.28
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2800 slider=0.662 playerVol=0.28
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:555 [VOL] REQ=0.270 GAIN=0.0197 curAud=0.2800 playerVol=0.28
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=6.9 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.0 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.0 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.0 audDur=137.2 track5=137 final=6/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.0 audDur=137.2 track5=137 final=7/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:580 [VOL] AFTER100 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.0 audDur=137.2 track5=137 final=7/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.1 audDur=137.2 track5=137 final=7/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.2 audDur=137.2 track5=137 final=7/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=7.2 audDur=137.2 track5=137 final=7/137
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:586 [VOL] AFTER500 aud=0.2700 slider=0.653 playerVol=0.27
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:424 [LIKE] tid=MusicAudio_ToggleOwning testactive=false teststate=null ariaLabel= fill=false result=false
+userscript.html?name=A.R.C.-VK-Music-Controller.user.js&id=9aa9204c-9bea-43d7-9fcc-7e0966e99d90:1282 [PROG_READ] audCT=8.8 audDur=137.2 track5=137 final=8/137

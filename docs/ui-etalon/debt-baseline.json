@@ -1,0 +1,14 @@
+{
+  "version": "1.2.0-ui",
+  "name": "A.R.C. Visual Constitution Debt Baseline",
+  "metrics": {
+    "bgWhiteFills": 480,
+    "backdropOverCanvas": 56,
+    "longUppercase": 2181,
+    "sub12pxTypography": 211,
+    "coloredStatusFills": 280,
+    "transparentSpaceRoots": 3,
+    "offScaleBlackAlphas": 252,
+    "literalAccentClasses": 258
+  }
+}

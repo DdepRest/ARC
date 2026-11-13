@@ -1,0 +1,11 @@
+torch>=2.0.0
+torchaudio>=2.0.0
+Flask>=2.0.0
+flask-cors>=3.0.10
+omegaconf>=2.3.post1,<3
+pyyaml>=6.0
+soundfile>=0.12.1
+numpy<2.0.0
+scipy
+onnxruntime>=1.16.0
+ruaccent>=1.4.0
