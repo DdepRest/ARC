@@ -63,7 +63,7 @@ const onProviderValueChange = async (raw: string) => {
   }
 };
 
-const onSampleRateChange = (val: string) => {
+const onSampleRateChange = (val: number | string) => {
   settingsStore.ttsSampleRate = Number(val) as 8000 | 24000 | 48000;
 };
 

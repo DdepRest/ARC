@@ -7,7 +7,7 @@
     <div class="relative w-full min-w-0" :title="selectedOptionLabel">
       <select
         :id="id"
-        :value="modelValue"
+        :value="selectedIndex >= 0 ? String(selectedIndex) : ''"
         :disabled="disabled"
         :title="selectedOptionLabel"
         class="w-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] hover:border-[var(--arc-text-muted)] rounded-[10px] pl-3 pr-8 text-xs font-mono text-[var(--arc-text-primary)] transition duration-200 outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed truncate"
@@ -16,9 +16,17 @@
         @change="onChange"
       >
         <option
-          v-for="option in options"
-          :key="String(option.value)"
-          :value="option.value"
+          v-if="selectedIndex === -1"
+          value=""
+          disabled
+          hidden
+        >
+          {{ placeholder || '' }}
+        </option>
+        <option
+          v-for="(option, index) in options"
+          :key="`${index}-${typeof option.value}:${String(option.value)}`"
+          :value="String(index)"
           :disabled="option.disabled"
           :title="option.label"
           class="bg-[var(--arc-popover)] text-[var(--arc-text-primary)] py-2"
@@ -34,13 +42,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string | number | boolean = string | number | boolean">
 import { computed } from 'vue';
 import { ChevronDown } from 'lucide-vue-next';
 
-interface SelectOption {
+type SelectValue = string | number | boolean;
+
+interface SelectOption<V extends SelectValue = SelectValue> {
   label: string;
-  value: string | number | boolean;
+  value: V;
   disabled?: boolean;
 }
 
@@ -48,23 +58,32 @@ type Size = 'sm' | 'md' | 'lg';
 
 const props = withDefaults(defineProps<{
   id?: string;
-  modelValue: string | number | boolean;
-  options: SelectOption[];
+  modelValue: T;
+  options: SelectOption<T>[];
   label?: string;
+  placeholder?: string;
   disabled?: boolean;
   size?: Size;
 }>(), {
   disabled: false,
-  size: 'md'
+  size: 'md',
+  placeholder: ''
 });
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void;
+  (e: 'update:modelValue', value: T): void;
+  (e: 'change', value: T): void;
 }>();
 
+const selectedIndex = computed(() =>
+  props.options.findIndex((o) => Object.is(o.value, props.modelValue))
+);
+
 const selectedOptionLabel = computed(() => {
-  const found = props.options.find(o => String(o.value) === String(props.modelValue));
-  return found ? found.label : String(props.modelValue || '');
+  if (selectedIndex.value >= 0) {
+    return props.options[selectedIndex.value].label;
+  }
+  return props.placeholder || '';
 });
 
 const sizeClasses: Record<Size, string> = {
@@ -74,7 +93,12 @@ const sizeClasses: Record<Size, string> = {
 };
 
 const onChange = (event: Event) => {
-  const target = event.target as HTMLSelectElement;
-  emit('update:modelValue', target.value);
+  const target = event.target as HTMLSelectElement | null;
+  if (!target || target.value === '') return;
+  const idx = Number(target.value);
+  if (!Number.isInteger(idx) || idx < 0 || idx >= props.options.length) return;
+  const selected = props.options[idx];
+  emit('update:modelValue', selected.value);
+  emit('change', selected.value);
 };
 </script>

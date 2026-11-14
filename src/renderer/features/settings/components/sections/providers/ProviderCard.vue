@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Save, Trash2, Eye, EyeOff, ExternalLink, RefreshCw, Sparkles, Check, Lock, ShieldAlert, ShieldOff, Search, KeyRound, Layers, Sliders } from 'lucide-vue-next';
+import { Save, Trash2, Eye, EyeOff, ExternalLink, RefreshCw, Sparkles, Check, Lock, ShieldAlert, ShieldOff, Search, KeyRound, Layers, Sliders, RotateCcw } from 'lucide-vue-next';
 import { useAiConfigStore, type ProviderTestState } from '../../../../../stores/aiConfig';
 import { validateProviderEndpoint, formatCheckedAtTime } from '../../../logic/provider-validation';
+import type { SaveLifecycleState } from '../../../composables/useProviderInspectorDraft';
 import { PRESETS } from './presetsData';
 import { isFreeLlmGateway, extractHostPort, normalizeOpenAiEndpoint } from '../../../../../../shared/utils/free-llm.util';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
@@ -11,16 +12,35 @@ import ProviderModelCatalog from './ProviderModelCatalog.vue';
 import ProviderRoutingStrategy from './ProviderRoutingStrategy.vue';
 import ProviderParamsGrid from './ProviderParamsGrid.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   provider: any;
+  enabled?: boolean;
   isExpanded: boolean;
   testResult?: ProviderTestState | null;
   fetchedModels: string[];
   isLoadingModels: boolean;
-}>();
+  saveState?: SaveLifecycleState;
+  saveError?: string | null;
+  pendingSwitchTargetName?: string | null;
+  isQuarantined?: boolean;
+  quarantineMinsLeft?: number;
+}>(), {
+  enabled: true,
+  saveState: 'clean',
+  saveError: null,
+  pendingSwitchTargetName: null,
+  isQuarantined: false,
+  quarantineMinsLeft: 0
+});
 
 const emit = defineEmits<{
   (e: 'toggle-expand'): void;
+  (e: 'toggle-enabled'): void;
+  (e: 'save-draft'): void;
+  (e: 'reset-draft'): void;
+  (e: 'confirm-save-switch'): void;
+  (e: 'discard-switch'): void;
+  (e: 'cancel-switch'): void;
   (e: 'test-provider'): void;
   (e: 'fetch-models', isAutoDetect?: boolean): void;
   (e: 'delete-provider'): void;
@@ -32,17 +52,14 @@ const showKey = ref(false);
 const autoDetectStatus = ref<{ status: 'idle' | 'loading' | 'success' | 'error'; count?: number; message?: string }>({ status: 'idle' });
 let apiKeyDebounceTimer: any = null;
 let autoDetectTimeout: any = null;
-const isSaved = ref(false);
-const saveError = ref<string | null>(null);
-const hasUnsavedChanges = ref(false);
 const showDeleteConfirm = ref(false);
+const isScanningPort = ref(false);
+
 const endpointValidation = computed(() => validateProviderEndpoint(props.provider.endpoint));
-const markConfigDirty = () => { hasUnsavedChanges.value = true; saveError.value = null; aiStore.clearProviderTestState(props.provider.id); };
+const isDirtyOrError = computed(() => props.saveState === 'dirty' || props.saveState === 'error');
 
 watch(() => props.provider?.id, () => {
   showDeleteConfirm.value = false;
-  saveError.value = null;
-  hasUnsavedChanges.value = false;
 });
 
 const LOCAL_ENDPOINT_PRESETS = [
@@ -53,10 +70,6 @@ const LOCAL_ENDPOINT_PRESETS = [
   { host: '127.0.0.1:1234', label: '127.0.0.1:1234 (LM Studio)', endpoint: 'http://127.0.0.1:1234/v1/chat/completions' }
 ];
 
-const quarantineInfo = computed(() => aiStore.quarantinedProviders.find(q => q.id === props.provider.id));
-const isQuarantined = computed(() => Boolean(quarantineInfo.value && quarantineInfo.value.quarantineUntil > Date.now()));
-const quarantineMinsLeft = computed(() => quarantineInfo.value ? Math.max(1, Math.ceil((quarantineInfo.value.quarantineUntil - Date.now()) / 60000)) : 0);
-
 const handleResetQuarantine = async () => { await aiStore.resetQuarantine(props.provider.id); };
 
 watch(() => props.isLoadingModels, (loading, prevLoading) => {
@@ -66,27 +79,6 @@ watch(() => props.isLoadingModels, (loading, prevLoading) => {
     setTimeout(() => { if (autoDetectStatus.value.status !== 'loading') autoDetectStatus.value = { status: 'idle' }; }, 3500);
   }
 });
-
-const handleSave = async () => {
-  saveError.value = null;
-  if (!endpointValidation.value.valid) {
-    saveError.value = endpointValidation.value.error || 'Некорректный URL эндпоинта';
-    return;
-  }
-  const res = await aiStore.saveProvider(props.provider);
-  if (res && res.success === false) {
-    saveError.value = res.error || 'Ошибка сохранения настроек провайдера';
-    return;
-  }
-  hasUnsavedChanges.value = false;
-  isSaved.value = true;
-  setTimeout(() => { isSaved.value = false; }, 2000);
-};
-
-const toggleEnabled = () => {
-  props.provider.enabled = !props.provider.enabled;
-  aiStore.saveProvider(props.provider);
-};
 
 const triggerAutoDetect = () => {
   autoDetectStatus.value = { status: 'loading', message: 'Сканирование API...' };
@@ -102,7 +94,6 @@ const triggerAutoDetect = () => {
 };
 
 const onApiKeyInput = () => {
-  markConfigDirty();
   if (apiKeyDebounceTimer) clearTimeout(apiKeyDebounceTimer);
   const raw = props.provider.apiKey?.trim() || '';
   if (!raw || raw.length < 3 || raw === '••••••••••••••••') {
@@ -122,11 +113,7 @@ const getPresetUrl = () => {
   return PRESETS.find(p => p.name === props.provider.name)?.url;
 };
 
-const showLocal3067KeyLink = computed(() => {
-  return props.provider.type === 'local' && isFreeLlmGateway(props.provider);
-});
-
-const isScanningPort = ref(false);
+const showLocal3067KeyLink = computed(() => props.provider.type === 'local' && isFreeLlmGateway(props.provider));
 
 const normalizeInputEndpoint = () => {
   if (!props.provider.endpoint || typeof props.provider.endpoint !== 'string') return;
@@ -141,8 +128,6 @@ const scanFreeLlmPort = async () => {
     if (res?.found && res.port) {
       props.provider.endpoint = res.endpoint || `http://${res.host || '127.0.0.1'}:${res.port}/v1/chat/completions`;
       props.provider.type = 'local';
-      markConfigDirty();
-      await aiStore.saveProvider(props.provider);
     }
   } finally {
     isScanningPort.value = false;
@@ -152,29 +137,29 @@ const scanFreeLlmPort = async () => {
 const applyEndpointPreset = (endpoint: string) => {
   props.provider.endpoint = endpoint;
   props.provider.type = 'local';
-  markConfigDirty();
-  aiStore.saveProvider(props.provider);
 };
 
 const handleParamsUpdate = (params: { priority: number; temperature: number; maxTokens: number }) => {
   props.provider.priority = params.priority;
   props.provider.temperature = params.temperature;
   props.provider.maxTokens = params.maxTokens;
-  aiStore.saveProvider(props.provider);
 };
 
 const handleStrategyUpdate = (strategy: 'smart_route' | 'fallback' | 'ensemble') => {
   props.provider.routingStrategy = strategy;
-  aiStore.saveProvider(props.provider);
 };
 
 const handleExclusiveUpdate = (exclusive: boolean) => {
   props.provider.isExclusive = exclusive;
-  aiStore.saveProvider(props.provider);
 };
 
-const handleTypeChange = (val: string) => { props.provider.type = val; markConfigDirty(); };
-const handleNoAuthToggle = (val: boolean) => { props.provider.noAuthHeader = val; markConfigDirty(); aiStore.saveProvider(props.provider); };
+const handleTypeChange = (val: string | number | boolean) => {
+  props.provider.type = val === 'local' ? 'local' : 'cloud';
+};
+
+const handleNoAuthToggle = (val: boolean) => {
+  props.provider.noAuthHeader = val;
+};
 
 const requiresApiKey = computed(() => {
   if (props.provider.type === 'local' || props.provider.noAuthHeader) return false;
@@ -183,8 +168,8 @@ const requiresApiKey = computed(() => {
 });
 
 const statusBadge = computed(() => {
-  if (isQuarantined.value) return { label: 'КАРАНТИН', cls: 'text-[var(--status-err)] border-[var(--status-err)]/30', dot: 'bg-[var(--status-err)]' };
-  if (!props.provider.enabled) return { label: 'ОТКЛЮЧЕН', cls: 'text-[var(--arc-text-muted)] border-[var(--arc-hairline)]', dot: 'bg-[var(--status-off)]' };
+  if (props.isQuarantined) return { label: 'КАРАНТИН', cls: 'text-[var(--status-err)] border-[var(--status-err)]/30', dot: 'bg-[var(--status-err)]' };
+  if (!props.enabled) return { label: 'ОТКЛЮЧЕН', cls: 'text-[var(--arc-text-muted)] border-[var(--arc-hairline)]', dot: 'bg-[var(--status-off)]' };
   if (props.testResult?.status === 'loading') return { label: 'ПРОВЕРКА...', cls: 'text-[var(--status-warn)] border-[var(--status-warn)]/30', dot: 'bg-[var(--status-warn)]' };
   if (props.testResult?.status === 'error') return { label: 'ОШИБКА СВЯЗИ', cls: 'text-[var(--status-err)] border-[var(--status-err)]/30', dot: 'bg-[var(--status-err)]' };
   if (!endpointValidation.value.valid) return { label: 'НЕВЕРНЫЙ URL', cls: 'text-[var(--status-err)] border-[var(--status-err)]/30', dot: 'bg-[var(--status-err)]' };
@@ -195,6 +180,13 @@ const statusBadge = computed(() => {
   }
   return { label: 'НАСТРОЕН · НЕ ПРОВЕРЕН', cls: 'text-[var(--arc-text-secondary)] border-[var(--arc-hairline)]', dot: 'bg-[var(--status-warn)]' };
 });
+
+const saveButtonLabel = computed(() => {
+  if (props.saveState === 'saving') return 'СОХРАНЕНИЕ...';
+  if (props.saveState === 'saved') return 'СОХРАНЕНО';
+  if (isDirtyOrError.value) return 'СОХРАНИТЬ*';
+  return 'СОХРАНИТЬ';
+});
 </script>
 
 <template>
@@ -202,6 +194,24 @@ const statusBadge = computed(() => {
     class="rounded-[16px] border border-[var(--arc-hairline)] transition-colors duration-150 overflow-hidden bg-[var(--arc-block)] min-w-0 w-full"
     :style="{ background: 'var(--arc-block-gradient, linear-gradient(180deg, #161616 0%, #0F0F0F 100%))', boxShadow: 'var(--arc-block-elevation, inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.65))' }"
   >
+    <!-- MATTE SWITCH CONFIRMATION BAR (when switching provider with dirty draft) -->
+    <div
+      v-if="pendingSwitchTargetName"
+      role="alertdialog"
+      aria-label="Подтверждение смены шлюза при наличии несохранённых изменений"
+      class="px-4 py-3 border-b border-[var(--status-warn)]/40 bg-[var(--arc-well)] flex flex-wrap items-center justify-between gap-3 text-xs font-mono"
+    >
+      <div class="flex items-center gap-2 text-[var(--status-warn)] min-w-0">
+        <ShieldAlert class="w-4 h-4 shrink-0" />
+        <span>Несохранённые правки в профиле «{{ provider.name }}». Перейти к «{{ pendingSwitchTargetName }}»?</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0 flex-wrap">
+        <button type="button" :disabled="saveState === 'saving'" @click="emit('confirm-save-switch')" class="px-2.5 py-1 rounded-[7px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--status-ok)] border border-[var(--status-ok)]/40 uppercase cursor-pointer disabled:opacity-50">Сохранить и перейти</button>
+        <button type="button" :disabled="saveState === 'saving'" @click="emit('discard-switch')" class="px-2.5 py-1 rounded-[7px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--status-err)] border border-[var(--status-err)]/40 uppercase cursor-pointer disabled:opacity-50">Сбросить правки</button>
+        <button type="button" :disabled="saveState === 'saving'" @click="emit('cancel-switch')" class="px-2.5 py-1 rounded-[7px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)] border border-[var(--arc-hairline)] uppercase cursor-pointer disabled:opacity-50">Остаться</button>
+      </div>
+    </div>
+
     <!-- INSPECTOR HEADER -->
     <div 
       class="p-4 sm:p-5 flex flex-col gap-3 border-b border-[var(--arc-hairline)]"
@@ -209,21 +219,25 @@ const statusBadge = computed(() => {
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2.5 flex-wrap">
-          <button type="button" @click.stop="toggleEnabled" class="px-2.5 py-1 rounded-[8px] border transition cursor-pointer flex items-center gap-2 text-xs font-mono uppercase" :class="provider.enabled ? 'bg-[var(--arc-well)] border-[var(--status-ok)]/30 text-[var(--arc-text-primary)]' : 'bg-[var(--arc-well)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)]'" title="Включить или отключить шлюз в ротации">
-            <span class="w-2 h-2 rounded-full transition-colors" :class="statusBadge.dot"></span><span>{{ provider.enabled ? 'В ротации' : 'Отключён' }}</span>
+          <button type="button" :aria-pressed="Boolean(enabled)" @click.stop="emit('toggle-enabled')" class="px-2.5 py-1 rounded-[8px] border transition cursor-pointer flex items-center gap-2 text-xs font-mono uppercase" :class="enabled ? 'bg-[var(--arc-well)] border-[var(--status-ok)]/30 text-[var(--arc-text-primary)]' : 'bg-[var(--arc-well)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)]'" title="Включить или отключить шлюз в ротации">
+            <span class="w-2 h-2 rounded-full transition-colors" :class="statusBadge.dot"></span><span>{{ enabled ? 'В ротации' : 'Отключён' }}</span>
           </button>
           <span class="text-base font-bold text-[var(--arc-text-primary)] tracking-wide font-mono">{{ provider.name }}</span>
           <span class="text-xs font-mono tracking-wider font-semibold px-2.5 py-0.5 rounded-[6px] border uppercase bg-[var(--arc-well)]" :class="statusBadge.cls">{{ statusBadge.label }}</span>
+          <span v-if="isDirtyOrError" class="text-xs font-mono px-2 py-0.5 rounded-[6px] bg-[var(--arc-well)] text-[var(--status-warn)] border border-[var(--status-warn)]/35 uppercase font-semibold">ЧЕРНОВИК</span>
           <span v-if="provider.isExclusive" class="text-xs font-mono px-2 py-0.5 rounded-[6px] bg-[var(--arc-well)] text-[var(--status-warn)] border border-[var(--status-warn)]/30 uppercase font-semibold">ЭКСКЛЮЗИВ</span>
           <span v-if="isQuarantined" class="text-xs font-mono px-2 py-0.5 rounded-[6px] bg-[var(--arc-well)] text-[var(--status-err)] border border-[var(--status-err)]/30 uppercase font-semibold tabular-nums">{{ quarantineMinsLeft }} МИН</span>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
+          <button v-if="isDirtyOrError" type="button" :disabled="saveState === 'saving'" @click.stop="emit('reset-draft')" class="text-xs font-mono px-2.5 py-1.5 rounded-[8px] transition uppercase border border-[var(--arc-hairline)] cursor-pointer disabled:opacity-50 flex items-center gap-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]" title="Отменить несохранённые изменения">
+            <RotateCcw class="w-3.5 h-3.5" /><span>СБРОСИТЬ</span>
+          </button>
           <button type="button" @click.stop="emit('test-provider')" class="text-xs font-mono px-3 py-1.5 rounded-[8px] transition tracking-wider uppercase border cursor-pointer disabled:opacity-50 flex items-center gap-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)]" :class="testResult?.status === 'success' ? 'text-[var(--status-ok)] border-[var(--status-ok)]/30' : (testResult?.status === 'error' ? 'text-[var(--status-err)] border-[var(--status-err)]/30' : 'text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] border-[var(--arc-hairline)]')" :disabled="testResult?.status === 'loading' || !endpointValidation.valid">
             <RefreshCw v-if="testResult?.status === 'loading'" class="w-3.5 h-3.5 animate-spin text-[var(--accent)]" /><span>{{ testResult?.status === 'loading' ? 'ТЕСТ...' : 'ТЕСТ СВЯЗИ' }}</span>
           </button>
-          <button type="button" @click.stop="handleSave" :disabled="!endpointValidation.valid" class="text-xs font-mono px-3.5 py-1.5 rounded-[8px] transition tracking-wider uppercase border cursor-pointer disabled:opacity-50 flex items-center gap-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)]" :class="isSaved ? 'text-[var(--status-ok)] border-[var(--status-ok)]/40' : hasUnsavedChanges ? 'text-[var(--status-warn)] border-[var(--status-warn)]/40' : 'text-[var(--accent)] border-[var(--accent)]/35'" title="Сохранить настройки профиля">
-            <Check v-if="isSaved" class="w-3.5 h-3.5 text-[var(--status-ok)]" /><Save v-else class="w-3.5 h-3.5" /><span>{{ isSaved ? 'СОХРАНЕНО' : hasUnsavedChanges ? 'СОХРАНИТЬ*' : 'СОХРАНИТЬ' }}</span>
+          <button type="button" @click.stop="emit('save-draft')" :disabled="!endpointValidation.valid || saveState === 'saving'" class="text-xs font-mono px-3.5 py-1.5 rounded-[8px] transition tracking-wider uppercase border cursor-pointer disabled:opacity-50 flex items-center gap-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)]" :class="saveState === 'saved' ? 'text-[var(--status-ok)] border-[var(--status-ok)]/40' : isDirtyOrError ? 'text-[var(--status-warn)] border-[var(--status-warn)]/40' : 'text-[var(--accent)] border-[var(--accent)]/35'" title="Сохранить настройки профиля">
+            <RefreshCw v-if="saveState === 'saving'" class="w-3.5 h-3.5 animate-spin text-[var(--accent)]" /><Check v-else-if="saveState === 'saved'" class="w-3.5 h-3.5 text-[var(--status-ok)]" /><Save v-else class="w-3.5 h-3.5" /><span>{{ saveButtonLabel }}</span>
           </button>
         </div>
       </div>
@@ -254,10 +268,10 @@ const statusBadge = computed(() => {
           <ShieldAlert class="w-4 h-4 shrink-0" />
           <span>Провайдер заблокирован карантином (осталось {{ quarantineMinsLeft }} мин).</span>
         </div>
-        <button @click="handleResetQuarantine" class="px-2.5 py-1 text-xs font-mono uppercase bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--status-err)] border border-[var(--status-err)]/35 rounded shrink-0 transition-colors cursor-pointer">СБРОСИТЬ КАРАНТИН</button>
+        <button type="button" @click="handleResetQuarantine" class="px-2.5 py-1 text-xs font-mono uppercase bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--status-err)] border border-[var(--status-err)]/35 rounded shrink-0 transition-colors cursor-pointer">СБРОСИТЬ КАРАНТИН</button>
       </div>
 
-      <div v-if="saveError" class="text-xs font-mono px-3.5 py-2 rounded-lg border border-[var(--status-err)]/30 bg-[var(--arc-well)] text-[var(--status-err)]">{{ saveError }}</div>
+      <div v-if="saveError" role="alert" class="text-xs font-mono px-3.5 py-2 rounded-lg border border-[var(--status-err)]/30 bg-[var(--arc-well)] text-[var(--status-err)]">{{ saveError }}</div>
       <div v-if="testResult && testResult.status !== 'untested'" class="text-xs font-mono px-3.5 py-2.5 rounded-lg border bg-[var(--arc-well)] flex flex-col gap-1.5 transition" :class="testResult.status === 'success' ? 'text-[var(--status-ok)] border-[var(--status-ok)]/30' : (testResult.status === 'error' ? 'text-[var(--status-err)] border-[var(--status-err)]/30' : 'text-[var(--accent)] border-[var(--accent)]/30')">
         <div class="flex items-center justify-between gap-2 font-bold tracking-wider text-xs">
           <span v-if="testResult.status === 'success'">✓ СОЕДИНЕНИЕ УСПЕШНО</span>
@@ -276,7 +290,7 @@ const statusBadge = computed(() => {
               <span class="text-xs font-sans font-semibold text-[var(--arc-text-primary)]">Имя профиля</span>
               <span class="text-xs font-mono text-[var(--arc-text-hint)]">ID: {{ provider.id }}</span>
             </div>
-            <input v-model="provider.name" @input="markConfigDirty" class="bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-2 text-xs text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors" placeholder="например FreeLLMAPI, OpenRouter" />
+            <input v-model="provider.name" class="bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-2 text-xs text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors" placeholder="например FreeLLMAPI, OpenRouter" />
           </div>
 
           <div class="flex flex-col gap-1.5">
@@ -286,7 +300,7 @@ const statusBadge = computed(() => {
 
           <div class="flex flex-col gap-1.5 sm:col-span-2 pt-2 border-t border-[var(--arc-hairline)]">
             <span class="text-xs font-sans font-semibold text-[var(--arc-text-primary)]">Адрес эндпоинта (Endpoint URL)</span>
-            <input v-model="provider.endpoint" @input="markConfigDirty" @blur="normalizeInputEndpoint" placeholder="http://127.0.0.1:3067/v1/chat/completions" class="bg-[var(--arc-input)] border rounded-[10px] px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none" :class="endpointValidation.valid ? 'border-[var(--arc-hairline)] focus:border-[var(--accent)]' : 'border-[var(--status-err)]/60'" />
+            <input v-model="provider.endpoint" @blur="normalizeInputEndpoint" placeholder="http://127.0.0.1:3067/v1/chat/completions" class="bg-[var(--arc-input)] border rounded-[10px] px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none" :class="endpointValidation.valid ? 'border-[var(--arc-hairline)] focus:border-[var(--accent)]' : 'border-[var(--status-err)]/60'" />
             <span v-if="!endpointValidation.valid" class="text-xs font-mono text-[var(--status-err)]">{{ endpointValidation.error }}</span>
 
             <div v-if="provider.type === 'local'" class="flex flex-wrap items-center gap-1.5 pt-1">
@@ -320,7 +334,7 @@ const statusBadge = computed(() => {
           <div class="relative flex items-center">
             <input v-model="provider.apiKey" @input="onApiKeyInput" :type="showKey ? 'text' : 'password'" class="w-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] pr-24 focus:outline-none focus:border-[var(--accent)]" :placeholder="provider.type === 'local' ? 'sk-... (или пусто для локальных)' : 'sk-or-v1-...'" />
             <div class="absolute right-2 flex items-center gap-1">
-              <button @click="triggerAutoDetect" class="px-2 py-0.5 text-xs font-mono bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] rounded border border-[var(--arc-hairline)] transition-colors flex items-center gap-1 cursor-pointer" title="Автоопределить модели">
+              <button type="button" @click="triggerAutoDetect" class="px-2 py-0.5 text-xs font-mono bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] rounded border border-[var(--arc-hairline)] transition-colors flex items-center gap-1 cursor-pointer" title="Автоопределить модели">
                 <Sparkles class="w-3 h-3 text-[var(--accent)]" /> АВТО
               </button>
               <button @click="showKey = !showKey" class="px-1.5 text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] cursor-pointer" type="button">
@@ -357,17 +371,17 @@ const statusBadge = computed(() => {
 
       <!-- INSPECTOR FOOTER -->
       <div class="flex justify-between items-center pt-3 border-t border-[var(--arc-hairline)]">
-        <button type="button" @click="handleSave" class="px-3.5 py-1.5 rounded-[8px] border transition shrink-0 flex items-center gap-1.5 text-xs font-mono cursor-pointer bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] uppercase" :class="isSaved ? 'text-[var(--status-ok)] border-[var(--status-ok)]/40' : 'text-[var(--accent)] border-[var(--accent)]/35'">
-          <Check v-if="isSaved" class="w-3.5 h-3.5 text-[var(--status-ok)]" /><Save v-else class="w-3.5 h-3.5" />
-          <span>{{ isSaved ? 'СОХРАНЕНО' : 'СОХРАНИТЬ ПРОФИЛЬ' }}</span>
+        <button type="button" :disabled="!endpointValidation.valid || saveState === 'saving'" @click="emit('save-draft')" class="px-3.5 py-1.5 rounded-[8px] border transition shrink-0 flex items-center gap-1.5 text-xs font-mono cursor-pointer bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] uppercase disabled:opacity-50" :class="saveState === 'saved' ? 'text-[var(--status-ok)] border-[var(--status-ok)]/40' : isDirtyOrError ? 'text-[var(--status-warn)] border-[var(--status-warn)]/40' : 'text-[var(--accent)] border-[var(--accent)]/35'">
+          <RefreshCw v-if="saveState === 'saving'" class="w-3.5 h-3.5 animate-spin text-[var(--accent)]" /><Check v-else-if="saveState === 'saved'" class="w-3.5 h-3.5 text-[var(--status-ok)]" /><Save v-else class="w-3.5 h-3.5" />
+          <span>{{ saveState === 'saving' ? 'СОХРАНЕНИЕ...' : saveState === 'saved' ? 'СОХРАНЕНО' : isDirtyOrError ? 'СОХРАНИТЬ ПРОФИЛЬ*' : 'СОХРАНИТЬ ПРОФИЛЬ' }}</span>
         </button>
 
         <div v-if="showDeleteConfirm" class="flex items-center gap-2">
           <span class="text-xs font-mono text-[var(--status-err)]">Удалить профиль?</span>
-          <button @click="emit('delete-provider')" class="text-xs font-mono px-2.5 py-1 bg-[var(--arc-well)] text-[var(--status-err)] hover:text-[var(--arc-text-primary)] border border-[var(--status-err)]/40 rounded transition uppercase cursor-pointer">ДА</button>
-          <button @click="showDeleteConfirm = false" class="text-xs font-mono px-2.5 py-1 bg-[var(--arc-well)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] rounded transition uppercase cursor-pointer">НЕТ</button>
+          <button type="button" @click="emit('delete-provider')" class="text-xs font-mono px-2.5 py-1 bg-[var(--arc-well)] text-[var(--status-err)] hover:text-[var(--arc-text-primary)] border border-[var(--status-err)]/40 rounded transition uppercase cursor-pointer">ДА</button>
+          <button type="button" @click="showDeleteConfirm = false" class="text-xs font-mono px-2.5 py-1 bg-[var(--arc-well)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] rounded transition uppercase cursor-pointer">НЕТ</button>
         </div>
-        <button v-else @click="showDeleteConfirm = true" class="text-xs font-mono px-3 py-1.5 bg-[var(--arc-well)] text-[var(--status-err)] hover:bg-[var(--arc-hover)] border border-[var(--status-err)]/30 rounded-[8px] transition uppercase flex items-center gap-1.5 cursor-pointer">
+        <button v-else type="button" @click="showDeleteConfirm = true" class="text-xs font-mono px-3 py-1.5 bg-[var(--arc-well)] text-[var(--status-err)] hover:bg-[var(--arc-hover)] border border-[var(--status-err)]/30 rounded-[8px] transition uppercase flex items-center gap-1.5 cursor-pointer">
           <Trash2 class="w-3.5 h-3.5" /> УДАЛИТЬ ПРОФИЛЬ
         </button>
       </div>

@@ -79,7 +79,6 @@ if (import.meta.hot) {
 import FallbackTabView from '../../components/ui/FallbackTabView.vue';
 import FilesTabView from '../../features/files/components/FilesTabView.vue';
 import VisionTabView from '../../features/vision/components/VisionTabView.vue';
-import SettingsPanel from '../../features/settings/components/SettingsPanel.vue';
 
 function defineResilientAsyncView(loader: () => Promise<any>) {
   return defineAsyncComponent({
@@ -99,6 +98,7 @@ const ChatView = defineResilientAsyncView(() => import('../../features/chat/comp
 const CommandsView = defineResilientAsyncView(() => import('../../features/commands/components/CommandsView.vue'));
 const ModulesView = defineResilientAsyncView(() => import('../../features/modules/components/ModulesView.vue'));
 const MemoryView = defineResilientAsyncView(() => import('../../features/memory/components/MemoryView.vue'));
+const SettingsPanel = defineResilientAsyncView(() => import('../../features/settings/components/SettingsPanel.vue'));
 const TasksView = defineResilientAsyncView(() => import('../../features/tasks/components/TasksView.vue'));
 const ObjectivesView = defineResilientAsyncView(() => import('../../features/objectives/components/ObjectivesView.vue'));
 const TranscriptionView = defineResilientAsyncView(() => import('../../features/transcription/components/TranscriptionView.vue'));

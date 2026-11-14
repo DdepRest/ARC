@@ -12,8 +12,10 @@ export interface VerifiedLocalInference {
 // Module-level persistent session telemetry (survives AiSettings v-if unmounts)
 const isOllamaOnline = ref(false);
 const checkingOllama = ref(false);
+const hasProbedOllama = ref(false);
 const isBuiltinDownloaded = ref(false);
 const checkingBuiltin = ref(false);
+const hasProbedBuiltin = ref(false);
 const builtinCheckError = ref<string | null>(null);
 const downloadingBuiltin = ref(false);
 const verifiedInference = ref<VerifiedLocalInference | null>(null);
@@ -22,8 +24,10 @@ export function getLocalEngineSessionState() {
   return {
     isOllamaOnline,
     checkingOllama,
+    hasProbedOllama,
     isBuiltinDownloaded,
     checkingBuiltin,
+    hasProbedBuiltin,
     builtinCheckError,
     downloadingBuiltin,
     verifiedInference
@@ -105,6 +109,7 @@ export function useLocalAIEngine() {
     } catch {
       isOllamaOnline.value = false;
     } finally {
+      hasProbedOllama.value = true;
       if (!isOllamaOnline.value && verifiedInference.value?.engine === 'ollama') {
         verifiedInference.value = null;
       }
@@ -126,12 +131,14 @@ export function useLocalAIEngine() {
         builtinCheckError.value = e?.message || 'Ошибка проверки файлов GGUF';
         isBuiltinDownloaded.value = false;
       } finally {
+        hasProbedBuiltin.value = true;
         if ((!isBuiltinDownloaded.value || builtinCheckError.value) && verifiedInference.value?.engine === 'builtin') {
           verifiedInference.value = null;
         }
         checkingBuiltin.value = false;
       }
     } else {
+      hasProbedBuiltin.value = true;
       isBuiltinDownloaded.value = false;
       builtinCheckError.value = 'Проверка файлов недоступна вне Electron';
       if (verifiedInference.value?.engine === 'builtin') {

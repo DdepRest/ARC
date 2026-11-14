@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useAiConfigStore } from '../../../../stores/aiConfig';
 import { getLocalEngineSessionState } from '../../composables/useLocalAIEngine';
-import { getFallbackContourStatus } from '../../logic/ai-status';
+import { getFallbackContourStatus, getLocalContourStatus } from '../../logic/ai-status';
 import SettingsGroup from '../primitives/SettingsGroup.vue';
 import SettingsBlock from '../primitives/SettingsBlock.vue';
 import SettingsRow from '../primitives/SettingsRow.vue';
@@ -17,22 +17,36 @@ const settingsStore = useSettingsStore();
 const aiConfigStore = useAiConfigStore();
 const localSession = getLocalEngineSessionState();
 
-const fallbackStatus = computed(() =>
-  getFallbackContourStatus({
-    forcedOfflineMode: settingsStore.forcedOfflineMode,
-    useLocalLLM: settingsStore.useLocalLLM,
-    useSmartRouting: settingsStore.useSmartRouting,
-    localLLMPriority: settingsStore.localLLMPriority,
-    localLLMModel: settingsStore.localLLMModel,
-    builtinLLMModel: settingsStore.builtinLLMModel,
-    providers: aiConfigStore.providers,
-    getProviderTestState: (p) => aiConfigStore.getProviderTestState(p),
-    isBuiltinDownloaded: localSession.isBuiltinDownloaded.value,
-    builtinCheckError: localSession.builtinCheckError.value,
-    isOllamaOnline: localSession.isOllamaOnline.value,
-    verifiedInference: localSession.verifiedInference.value
-  })
-);
+const localContourStatus = computed(() => getLocalContourStatus({
+  useLocalLLM: settingsStore.useLocalLLM,
+  localLLMModel: settingsStore.localLLMModel,
+  builtinLLMModel: settingsStore.builtinLLMModel,
+  isBuiltinDownloaded: localSession.isBuiltinDownloaded.value,
+  builtinCheckError: localSession.builtinCheckError.value,
+  checkingBuiltin: localSession.checkingBuiltin.value,
+  hasProbedBuiltin: localSession.hasProbedBuiltin.value,
+  isOllamaOnline: localSession.isOllamaOnline.value,
+  checkingOllama: localSession.checkingOllama.value,
+  hasProbedOllama: localSession.hasProbedOllama.value,
+  verifiedInference: localSession.verifiedInference.value
+}));
+
+const fallbackStatus = computed(() => getFallbackContourStatus({
+  forcedOfflineMode: settingsStore.forcedOfflineMode,
+  useLocalLLM: settingsStore.useLocalLLM,
+  useSmartRouting: settingsStore.useSmartRouting,
+  localLLMPriority: settingsStore.localLLMPriority,
+  localLLMModel: settingsStore.localLLMModel,
+  builtinLLMModel: settingsStore.builtinLLMModel,
+  providers: aiConfigStore.providers,
+  getProviderTestState: (p) => aiConfigStore.getProviderTestState(p),
+  isBuiltinDownloaded: localSession.isBuiltinDownloaded.value,
+  builtinCheckError: localSession.builtinCheckError.value,
+  hasProbedBuiltin: localSession.hasProbedBuiltin.value,
+  isOllamaOnline: localSession.isOllamaOnline.value,
+  hasProbedOllama: localSession.hasProbedOllama.value,
+  verifiedInference: localSession.verifiedInference.value
+}));
 
 const activeRouteSummary = computed(() => {
   if (settingsStore.forcedOfflineMode) {
@@ -57,7 +71,7 @@ const activeRouteSummary = computed(() => {
         ? 'Приоритет: Локальный ИИ → Облако'
         : 'Приоритет: Облако → Локальный резерв',
       shortStatus: settingsStore.localLLMPriority === 'primary' ? 'ЛОКАЛЬНЫЙ ПРИОРИТЕТ' : 'ОБЛАЧНЫЙ ПРИОРИТЕТ',
-      tone: 'ok' as const,
+      tone: localContourStatus.value.tone === 'ok' ? ('ok' as const) : ('warn' as const),
       detail: settingsStore.localLLMPriority === 'primary'
         ? 'Основной контур — локальный процессор/GPU'
         : 'Локальный движок используется как фолбек'
@@ -120,10 +134,10 @@ const thresholdPercent = computed(() => {
           <div class="flex flex-col gap-1 px-4 py-3 min-w-0 md:border-l border-t md:border-t-0 border-[var(--arc-divider)]">
             <span class="text-xs font-mono text-[var(--arc-text-machine)] tracking-wider uppercase">Контур локального ИИ</span>
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full shrink-0" :class="settingsStore.useLocalLLM ? 'bg-[var(--status-ok)]' : 'bg-[var(--arc-text-muted)]'"></span>
-              <span class="text-[14px] font-mono font-semibold tabular-nums" :class="settingsStore.useLocalLLM ? 'text-[var(--status-ok)]' : 'text-[var(--arc-text-muted)]'">{{ settingsStore.useLocalLLM ? 'АКТИВЕН' : 'ВЫКЛЮЧЕН' }}</span>
+              <span class="w-2 h-2 rounded-full shrink-0" :class="localContourStatus.tone === 'ok' ? 'bg-[var(--status-ok)]' : localContourStatus.tone === 'warn' ? 'bg-[var(--status-warn)]' : localContourStatus.tone === 'err' ? 'bg-[var(--status-err)]' : 'bg-[var(--arc-text-muted)]'"></span>
+              <span class="text-[14px] font-mono font-semibold tabular-nums truncate" :class="localContourStatus.tone === 'ok' ? 'text-[var(--status-ok)]' : localContourStatus.tone === 'warn' ? 'text-[var(--status-warn)]' : localContourStatus.tone === 'err' ? 'text-[var(--status-err)]' : 'text-[var(--arc-text-muted)]'">{{ localContourStatus.label }}</span>
             </div>
-            <span class="text-xs font-mono text-[var(--arc-text-hint)] truncate tabular-nums">{{ localRuntimeLabel }}</span>
+            <span class="text-xs font-mono text-[var(--arc-text-hint)] truncate tabular-nums" :title="localContourStatus.detail">{{ localRuntimeLabel }} · {{ localContourStatus.detail }}</span>
           </div>
 
           <!-- Колонка 3: Резервный контур и потоковый вывод -->

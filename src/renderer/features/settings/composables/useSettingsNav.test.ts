@@ -15,7 +15,7 @@ import {
 } from '../../../stores/aiConfig';
 import { useSettingsStore } from '../stores/settings.store';
 import { validateProviderEndpoint } from '../logic/provider-validation';
-import { getFallbackContourStatus, computeAiSectionStatuses } from '../logic/ai-status';
+import { getFallbackContourStatus, getLocalContourStatus, computeAiSectionStatuses } from '../logic/ai-status';
 
 describe('useSettingsNav Infrastructure & Intelligence Telemetry Tests', () => {
   beforeEach(() => {
@@ -23,7 +23,9 @@ describe('useSettingsNav Infrastructure & Intelligence Telemetry Tests', () => {
     resetModelHubSessionForTests();
     const localSession = getLocalEngineSessionState();
     localSession.isOllamaOnline.value = false;
+    localSession.hasProbedOllama.value = false;
     localSession.isBuiltinDownloaded.value = false;
+    localSession.hasProbedBuiltin.value = false;
     localSession.builtinCheckError.value = null;
     localSession.verifiedInference.value = null;
 
@@ -338,5 +340,74 @@ describe('useSettingsNav Infrastructure & Intelligence Telemetry Tests', () => {
     expect(aiSectionStatuses.value?.['section-providers']).toBeDefined();
     expect(aiSectionStatuses.value?.['section-local']).toBeDefined();
     expect(aiSectionStatuses.value?.['section-models']).toBeDefined();
+  });
+
+  it('should compute honest local contour statuses (unprobed vs missing vs ready vs verified) without false АКТИВЕН (P1 3.3)', () => {
+    // 1. Disabled in config -> ВЫКЛЮЧЕН
+    expect(
+      getLocalContourStatus({
+        useLocalLLM: false,
+        localLLMModel: 'builtin',
+        builtinLLMModel: 'LFM3-1.7B-Q4_K_M.gguf',
+        isBuiltinDownloaded: true,
+        hasProbedBuiltin: true,
+        isOllamaOnline: true,
+        hasProbedOllama: true,
+        verifiedInference: null
+      })
+    ).toEqual({ label: 'ВЫКЛЮЧЕН', tone: 'off', detail: 'Локальный контур выключен' });
+
+    // 2. Enabled in config, but NOT probed yet -> ВКЛЮЧЕН В КОНФИГУРАЦИИ (warn), never АКТИВЕН
+    const unprobedBuiltin = getLocalContourStatus({
+      useLocalLLM: true,
+      localLLMModel: 'builtin',
+      builtinLLMModel: 'LFM3-1.7B-Q4_K_M.gguf',
+      isBuiltinDownloaded: false,
+      hasProbedBuiltin: false,
+      isOllamaOnline: false,
+      hasProbedOllama: false,
+      verifiedInference: null
+    });
+    expect(unprobedBuiltin.label).toBe('ВКЛЮЧЕН В КОНФИГУРАЦИИ');
+    expect(unprobedBuiltin.tone).toBe('warn');
+
+    const unprobedOllama = getLocalContourStatus({
+      useLocalLLM: true,
+      localLLMModel: 'llama3.2',
+      builtinLLMModel: 'LFM3-1.7B-Q4_K_M.gguf',
+      isBuiltinDownloaded: false,
+      hasProbedBuiltin: false,
+      isOllamaOnline: false,
+      hasProbedOllama: false,
+      verifiedInference: null
+    });
+    expect(unprobedOllama.label).toBe('ВКЛЮЧЕН В КОНФИГУРАЦИИ');
+    expect(unprobedOllama.tone).toBe('warn');
+
+    // 3. Probed & missing/offline -> НЕТ ВЕСОВ / OLLAMA ОФЛАЙН (err)
+    expect(
+      getLocalContourStatus({
+        useLocalLLM: true,
+        localLLMModel: 'builtin',
+        builtinLLMModel: 'LFM3-1.7B-Q4_K_M.gguf',
+        isBuiltinDownloaded: false,
+        hasProbedBuiltin: true,
+        isOllamaOnline: false,
+        verifiedInference: null
+      }).label
+    ).toBe('НЕТ ВЕСОВ');
+
+    // 4. Probed & verified -> ПРОВЕРЕН (GGUF) (ok)
+    expect(
+      getLocalContourStatus({
+        useLocalLLM: true,
+        localLLMModel: 'builtin',
+        builtinLLMModel: 'LFM3-1.7B-Q4_K_M.gguf',
+        isBuiltinDownloaded: true,
+        hasProbedBuiltin: true,
+        isOllamaOnline: false,
+        verifiedInference: { engine: 'builtin', model: 'LFM3-1.7B-Q4_K_M.gguf', checkedAt: Date.now() }
+      })
+    ).toEqual({ label: 'ПРОВЕРЕН (GGUF)', tone: 'ok', detail: 'Инференс подтверждён' });
   });
 });

@@ -219,7 +219,10 @@ export const useAiConfigStore = defineStore('aiConfig', () => {
   }
 
   async function testConnection(provider: AIProvider): Promise<{ success: boolean; error?: string }> {
-    syncProviderKeyDigest(provider);
+    const existingSaved = providers.value.find((p) => p.id === provider.id);
+    if (!existingSaved || existingSaved.apiKey !== MASKED_KEY_VALUE) {
+      syncProviderKeyDigest(provider);
+    }
     const fp = buildProviderFingerprint(provider, providerKeyDigests.value[provider.id]);
     setProviderTestState(provider.id, { status: 'loading', configFingerprint: fp });
     if (typeof window === 'undefined' || !window.api) {

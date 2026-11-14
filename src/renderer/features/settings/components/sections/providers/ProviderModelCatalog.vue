@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import { Search, RefreshCw } from 'lucide-vue-next';
 import ArcCheckbox from '../../../../../components/ui/ArcCheckbox.vue';
-import { useAiConfigStore } from '../../../../../stores/aiConfig';
 
 const props = defineProps<{
   provider: any;
@@ -12,9 +11,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'fetch-models'): void;
+  (e: 'dirty'): void;
 }>();
-
-const aiStore = useAiConfigStore();
 
 const searchQuery = ref('');
 const activeCategoryFilter = ref('all');
@@ -97,7 +95,7 @@ const addCustomModel = (modelName: string) => {
     props.provider.selectedModels.push(clean);
   }
   props.provider.model = clean;
-  aiStore.saveProvider(props.provider);
+  emit('dirty');
 };
 
 const isModelSelected = (modelName: string) => {
@@ -121,14 +119,14 @@ const toggleModelSelection = (modelName: string) => {
   if (!props.provider.routingStrategy) {
     props.provider.routingStrategy = 'smart_route';
   }
-  aiStore.saveProvider(props.provider);
+  emit('dirty');
 };
 
 const removeSelectedModel = (modelName: string) => {
   if (!props.provider.selectedModels) {
     if (props.provider.model === modelName) {
       props.provider.model = '';
-      aiStore.saveProvider(props.provider);
+      emit('dirty');
     }
     return;
   }
@@ -138,7 +136,7 @@ const removeSelectedModel = (modelName: string) => {
     if (props.provider.selectedModels.length > 0) {
       props.provider.model = props.provider.selectedModels[0];
     }
-    aiStore.saveProvider(props.provider);
+    emit('dirty');
   }
 };
 
@@ -153,7 +151,7 @@ const selectAllFilteredModels = () => {
   if (props.provider.selectedModels.length > 0) {
     props.provider.model = props.provider.selectedModels[0];
   }
-  aiStore.saveProvider(props.provider);
+  emit('dirty');
 };
 
 const clearSelectedModels = () => {
@@ -161,7 +159,7 @@ const clearSelectedModels = () => {
     const first = props.provider.selectedModels[0] || props.provider.model;
     props.provider.selectedModels = first ? [first] : [];
   }
-  aiStore.saveProvider(props.provider);
+  emit('dirty');
 };
 
 const filteredModelsList = computed(() => filterModels());

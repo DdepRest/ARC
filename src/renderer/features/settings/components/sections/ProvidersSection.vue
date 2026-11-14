@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { RefreshCw, Sparkles, ShieldAlert, Cpu, Globe, Cloud } from 'lucide-vue-next';
-import { useAiConfigStore, buildProviderFingerprint } from '../../../../stores/aiConfig';
+import { useAiConfigStore, buildProviderFingerprint, type AIProvider } from '../../../../stores/aiConfig';
 import { validateProviderEndpoint } from '../../logic/provider-validation';
+import {
+  getProviderListStatus,
+  useProviderInspectorDraft,
+  useQuarantineWatch
+} from '../../composables/useProviderInspectorDraft';
 import SettingsSectionHeader from '../SettingsSectionHeader.vue';
 import SettingsGroup from '../primitives/SettingsGroup.vue';
 import CrossLink from '../primitives/CrossLink.vue';
@@ -16,20 +21,45 @@ const aiStore = useAiConfigStore();
 
 const fetchedModels = ref<Record<string, string[]>>({});
 const modelFetchStates = ref<Record<string, 'loading' | 'idle'>>({});
-const expandedProvider = ref<string | null>(null);
+const togglingIds = ref<Record<string, boolean>>({});
 const showGeminiModal = ref(false);
 const showManualIpModal = ref(false);
 
-const selectedProvider = computed(() => {
-  if (!aiStore.providers.length) return null;
-  return aiStore.providers.find(p => p.id === expandedProvider.value) || aiStore.providers[0];
-});
+const {
+  activeQuarantineCount,
+  isProviderQuarantined,
+  getQuarantineMinutesLeft
+} = useQuarantineWatch(
+  computed(() => aiStore.quarantinedProviders),
+  () => aiStore.refreshQuarantine()
+);
 
-watch(() => aiStore.providers, (list) => {
-  if (list.length > 0 && (!expandedProvider.value || !list.some(p => p.id === expandedProvider.value))) {
-    expandedProvider.value = list[0].id;
+const {
+  selectedProviderId: expandedProvider,
+  selectedStoreProvider: selectedProvider,
+  draftProvider,
+  saveError,
+  saveLifecycleState,
+  pendingSwitchProvider,
+  loadDraftFromProvider,
+  buildMergedProviderPayload,
+  saveDraft,
+  resetDraft,
+  requestSelectProvider,
+  confirmSaveAndSwitch,
+  discardAndSwitch,
+  cancelSwitch
+} = useProviderInspectorDraft(
+  {
+    providers: computed(() => aiStore.providers),
+    saveProvider: (p) => aiStore.saveProvider(p)
+  },
+  (prov) => {
+    if (!fetchedModels.value[prov.id] || fetchedModels.value[prov.id].length === 0) {
+      fetchModels(prov);
+    }
   }
-}, { immediate: true, deep: true });
+);
 
 const hasGeminiKey = computed(() => {
   const p = aiStore.providers.find(prov => 
@@ -51,9 +81,6 @@ const verifiedProvidersCount = computed(() => aiStore.providers.filter(p =>
 ).length);
 const localGatewaysCount = computed(() => aiStore.providers.filter(p => p.type === 'local').length);
 const cloudGatewaysCount = computed(() => aiStore.providers.filter(p => p.type !== 'local').length);
-const activeQuarantineCount = computed(() =>
-  aiStore.quarantinedProviders.filter(q => q.quarantineUntil > Date.now()).length
-);
 
 const providersHeaderStatus = computed(() => {
   if (aiStore.providers.length === 0) return { label: 'НЕТ ШЛЮЗОВ', tone: 'warn' as const };
@@ -64,116 +91,106 @@ const providersHeaderStatus = computed(() => {
   return { label: 'ВСЕ ОТКЛЮЧЕНЫ', tone: 'off' as const };
 });
 
-const getProviderListStatus = (p: any) => {
-  const q = aiStore.quarantinedProviders.find(item => item.id === p.id && item.quarantineUntil > Date.now());
-  if (q) return { label: 'КАРАНТИН', dot: 'bg-[var(--status-err)]', text: 'text-[var(--status-err)]' };
-  if (!p.enabled) return { label: 'ОТКЛ', dot: 'bg-[var(--status-off)]', text: 'text-[var(--arc-text-hint)]' };
-  const t = aiStore.getProviderTestState(p);
-  if (t?.status === 'loading') return { label: 'ТЕСТ...', dot: 'bg-[var(--status-warn)]', text: 'text-[var(--status-warn)]' };
-  if (t?.status === 'error') return { label: 'ОШИБКА', dot: 'bg-[var(--status-err)]', text: 'text-[var(--status-err)]' };
-  if (!validateProviderEndpoint(p.endpoint).valid) return { label: 'URL?', dot: 'bg-[var(--status-err)]', text: 'text-[var(--status-err)]' };
-  if (p.type !== 'local' && !p.noAuthHeader && !(p.apiKey && p.apiKey.trim().length > 0)) {
-    return { label: 'КЛЮЧ?', dot: 'bg-[var(--status-warn)]', text: 'text-[var(--status-warn)]' };
-  }
-  if (t?.status === 'success') return { label: 'OK', dot: 'bg-[var(--status-ok)]', text: 'text-[var(--status-ok)]' };
-  return { label: 'ГОТОВ', dot: 'bg-[var(--status-warn)]', text: 'text-[var(--arc-text-secondary)]' };
-};
+const getListStatus = (p: AIProvider) =>
+  getProviderListStatus(p, aiStore.getProviderTestState(p), isProviderQuarantined(p.id));
 
-const toggleProviderEnabled = (provider: any) => {
-  provider.enabled = !provider.enabled;
-  aiStore.saveProvider(provider);
+const draftTestResult = computed(() => {
+  if (!draftProvider.value) return null;
+  return aiStore.getProviderTestState(draftProvider.value);
+});
+
+const toggleProviderEnabled = async (provider: AIProvider) => {
+  if (!provider || togglingIds.value[provider.id]) return;
+  togglingIds.value[provider.id] = true;
+  try {
+    provider.enabled = !provider.enabled;
+    await aiStore.saveProvider(provider);
+  } finally {
+    togglingIds.value[provider.id] = false;
+  }
 };
 
 const loadProviders = () => { aiStore.loadProviders(); };
 
-const selectProvider = (provider: any) => {
-  expandedProvider.value = provider.id;
-  if (!fetchedModels.value[provider.id] || fetchedModels.value[provider.id].length === 0) {
-    fetchModels(provider);
-  }
+const selectProvider = (provider: AIProvider) => {
+  requestSelectProvider(provider);
 };
 
-const fetchModels = async (provider: any, isAutoDetect = false) => {
-  modelFetchStates.value[provider.id] = 'loading';
+const fetchModels = async (providerArg?: AIProvider | null, isAutoDetect = false) => {
+  const base = providerArg || buildMergedProviderPayload() || selectedProvider.value;
+  if (!base) return;
+  modelFetchStates.value[base.id] = 'loading';
   try {
     if (window.api) {
-      if (provider.apiKey && provider.apiKey.trim().length > 0 && provider.apiKey !== '••••••••••••••••') {
-        provider.noAuthHeader = false;
+      const queryPayload = JSON.parse(JSON.stringify(base));
+      if (queryPayload.apiKey && queryPayload.apiKey.trim().length > 0 && queryPayload.apiKey !== '••••••••••••••••') {
+        queryPayload.noAuthHeader = false;
       }
-      const result = await window.api.getAvailableModels(JSON.parse(JSON.stringify(provider)));
+      const result = await window.api.getAvailableModels(queryPayload);
       const rawList = Array.isArray(result) ? result : (result?.models || []);
       const models = rawList.map((m: any) => (typeof m === 'string' ? m : m.id || m.name)).filter(Boolean);
-      fetchedModels.value[provider.id] = models;
-      provider.lastModelsFetchAt = Date.now();
-      if (models.length > 0) {
-        provider.modelsUpdatedAt = Date.now();
-        provider.modelsFetchError = undefined;
-        let hasChanges = isAutoDetect || Boolean(provider.apiKey && provider.apiKey !== '••••••••••••••••');
-        if (!provider.model || (provider.model !== 'auto' && !models.includes(provider.model))) {
-          provider.model = models[0];
-          hasChanges = true;
+      fetchedModels.value[base.id] = models;
+      if (draftProvider.value && draftProvider.value.id === base.id) {
+        draftProvider.value.lastModelsFetchAt = Date.now();
+        if (models.length > 0) {
+          draftProvider.value.modelsUpdatedAt = Date.now();
+          draftProvider.value.modelsFetchError = undefined;
+          if (!draftProvider.value.model || (draftProvider.value.model !== 'auto' && !models.includes(draftProvider.value.model))) {
+            draftProvider.value.model = models[0];
+          }
+          if (!draftProvider.value.selectedModels || draftProvider.value.selectedModels.length === 0) {
+            draftProvider.value.selectedModels = [draftProvider.value.model];
+          }
+          if (isAutoDetect && draftProvider.value.apiKey && draftProvider.value.apiKey !== '••••••••••••••••') {
+            draftProvider.value.noAuthHeader = false;
+          }
+        } else {
+          draftProvider.value.modelsFetchError = 'Сервер не вернул модели или недоступен';
         }
-        if (!provider.selectedModels || provider.selectedModels.length === 0) {
-          provider.selectedModels = [provider.model];
-          hasChanges = true;
-        }
-        if (hasChanges) await aiStore.saveProvider(provider);
-      } else {
-        provider.modelsFetchError = 'Сервер не вернул модели или недоступен';
       }
     }
   } catch (e: any) {
-    console.warn(`[Providers] Fetch models failed for ${provider?.name || provider?.id}:`, e?.message || e);
-    fetchedModels.value[provider.id] = [];
-    provider.lastModelsFetchAt = Date.now();
-    provider.modelsFetchError = e.message || 'Ошибка загрузки моделей';
+    console.warn(`[Providers] Fetch models failed for ${base?.name || base?.id}:`, e?.message || e);
+    fetchedModels.value[base.id] = [];
+    if (draftProvider.value && draftProvider.value.id === base.id) {
+      draftProvider.value.lastModelsFetchAt = Date.now();
+      draftProvider.value.modelsFetchError = e.message || 'Ошибка загрузки моделей';
+    }
   } finally {
-    modelFetchStates.value[provider.id] = 'idle';
+    modelFetchStates.value[base.id] = 'idle';
   }
 };
 
-const testProvider = async (provider: any) => {
-  const endpointCheck = validateProviderEndpoint(provider.endpoint);
+const testProvider = async (explicitProvider?: AIProvider) => {
+  const candidate = explicitProvider || buildMergedProviderPayload() || selectedProvider.value;
+  if (!candidate) return;
+  const endpointCheck = validateProviderEndpoint(candidate.endpoint);
   if (!endpointCheck.valid) {
-    aiStore.setProviderTestState(provider.id, {
+    aiStore.setProviderTestState(candidate.id, {
       status: 'error',
       message: endpointCheck.error,
       checkedAt: Date.now(),
-      configFingerprint: buildProviderFingerprint(provider)
+      configFingerprint: buildProviderFingerprint(candidate)
     });
     return;
   }
 
-  if (provider.apiKey && provider.apiKey.trim().length > 0 && provider.apiKey !== '••••••••••••••••') {
-    provider.noAuthHeader = false;
-  }
-  const saveRes = await aiStore.saveProvider(provider);
-  if (saveRes && saveRes.success === false) {
-    aiStore.setProviderTestState(provider.id, {
-      status: 'error',
-      message: saveRes.error || 'Не удалось сохранить конфигурацию провайдера',
-      checkedAt: Date.now(),
-      configFingerprint: buildProviderFingerprint(provider)
-    });
-    return;
-  }
-
-  const result = await aiStore.testConnection(provider);
-  if ((result as any).models && (result as any).models.length > 0) {
-    fetchedModels.value[provider.id] = [...new Set([...(fetchedModels.value[provider.id] || []), ...(result as any).models])];
-  }
-  if (result.success) {
-    provider.enabled = true;
-    const isLocalFree =
-      provider.type === 'local' ||
-      Boolean(provider.endpoint && /:3067|:31415|freeapi|freellm/i.test(provider.endpoint)) ||
-      Boolean(provider.name && /freeapi|freellm/i.test(provider.name));
-    if (isLocalFree && (!provider.priority || provider.priority > 1)) provider.priority = 1;
-    if ((result as any).workingModel && (!provider.model || (provider.model !== 'auto' && provider.model !== (result as any).workingModel))) {
-      provider.model = (result as any).workingModel;
+  if (candidate.apiKey && candidate.apiKey.trim().length > 0 && candidate.apiKey !== '••••••••••••••••') {
+    candidate.noAuthHeader = false;
+    if (draftProvider.value && draftProvider.value.id === candidate.id) {
+      draftProvider.value.noAuthHeader = false;
     }
-    await aiStore.saveProvider(provider);
-    fetchModels(provider, true);
+  }
+
+  const result = await aiStore.testConnection(candidate);
+  if ((result as any)?.models && (result as any).models.length > 0) {
+    fetchedModels.value[candidate.id] = [...new Set([...(fetchedModels.value[candidate.id] || []), ...(result as any).models])];
+  }
+  if (result?.success && draftProvider.value && draftProvider.value.id === candidate.id) {
+    if ((result as any).workingModel && (!draftProvider.value.model || (draftProvider.value.model !== 'auto' && draftProvider.value.model !== (result as any).workingModel))) {
+      draftProvider.value.model = (result as any).workingModel;
+    }
+    fetchModels(candidate, true);
   }
 };
 
@@ -181,20 +198,23 @@ const addProvider = async (preset: ProviderPreset) => {
   const newId = 'new_' + Date.now();
   const defaultModels = preset.model ? [preset.model] : [];
   const isLocalFreeGateway = preset.type === 'local' && preset.freeTier === 'free';
-  const newProvider = {
+  const newProvider: AIProvider = {
     id: newId, name: preset.name, type: preset.type, endpoint: preset.endpoint,
     model: preset.model || '', selectedModels: defaultModels, routingStrategy: 'smart_route' as const,
     priority: isLocalFreeGateway ? 1 : aiStore.providers.length + 1, maxTokens: 2048, temperature: 0.7,
-    enabled: true, apiKey: '', noAuthHeader: isLocalFreeGateway, freeTier: preset.freeTier, isExclusive: false
+    enabled: true, apiKey: '', noAuthHeader: isLocalFreeGateway, isExclusive: false
   };
   await aiStore.saveProvider(newProvider);
-  expandedProvider.value = newId;
+  loadDraftFromProvider(newProvider);
   fetchModels(newProvider);
 };
 
 const handleManualIpConnected = async (newProvider: any) => {
   await loadProviders();
-  if (newProvider?.id) { expandedProvider.value = newProvider.id; testProvider(newProvider); }
+  if (newProvider?.id) {
+    loadDraftFromProvider(newProvider);
+    testProvider(newProvider);
+  }
 };
 
 const deleteProvider = async (id: string) => { await aiStore.deleteProvider(id); };
@@ -235,16 +255,16 @@ onMounted(loadProviders);
 
         <div class="flex items-center gap-2 flex-wrap shrink-0">
           <PresetCatalogComp @select-preset="addProvider" />
-          <button id="providers.gemini_key" data-setting-id="providers.gemini_key" data-search="ключ google gemini api key облако провайдеры" @click="showGeminiModal = true" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Настройка Google Gemini API ключа">
+          <button id="providers.gemini_key" type="button" data-setting-id="providers.gemini_key" data-search="ключ google gemini api key облако провайдеры" @click="showGeminiModal = true" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Настройка Google Gemini API ключа">
             <Sparkles class="w-3.5 h-3.5" :class="hasGeminiKey ? 'text-[var(--status-ok)]' : 'text-[var(--status-warn)]'" />
             <span>GEMINI КЛЮЧ</span>
             <span class="w-1.5 h-1.5 rounded-full" :class="hasGeminiKey ? 'bg-[var(--status-ok)]' : 'bg-[var(--status-warn)]'"></span>
           </button>
-          <button id="providers.manual_ip" data-setting-id="providers.manual_ip" @click="showManualIpModal = true" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Ручной ввод IP для FreeAPILLM (127.0.0.1:3067) или локального шлюза" data-search="freeapillm локальный шлюз по ip 127.0.0.1:3067 ввести ip">
+          <button id="providers.manual_ip" type="button" data-setting-id="providers.manual_ip" @click="showManualIpModal = true" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Ручной ввод IP для FreeAPILLM (127.0.0.1:3067) или локального шлюза" data-search="freeapillm локальный шлюз по ip 127.0.0.1:3067 ввести ip">
             <Globe class="w-3.5 h-3.5 text-[var(--arc-text-muted)]" />
             <span>ВВЕСТИ IP</span>
           </button>
-          <button @click="loadProviders" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Обновить список провайдеров">
+          <button type="button" @click="loadProviders" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Обновить список провайдеров">
             <RefreshCw class="w-3.5 h-3.5 text-[var(--arc-text-muted)]" :class="{ 'animate-spin': aiStore.isLoading }" />
             <span>ОБНОВИТЬ</span>
           </button>
@@ -256,7 +276,7 @@ onMounted(loadProviders);
           <ShieldAlert class="w-4 h-4 shrink-0 text-[var(--status-warn)]" />
           <span class="text-xs text-[var(--arc-text-secondary)] font-sans">Ключ Google Gemini API не указан. Укажите ключ для облачного контура по умолчанию и мультимодальных функций.</span>
         </div>
-        <button @click="showGeminiModal = true" class="text-xs font-mono text-[var(--status-warn)] hover:text-[var(--arc-text-primary)] uppercase tracking-wider px-3 py-1.5 rounded-[10px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] transition shrink-0 cursor-pointer whitespace-nowrap self-start sm:self-center">Ввести ключ</button>
+        <button type="button" @click="showGeminiModal = true" class="text-xs font-mono text-[var(--status-warn)] hover:text-[var(--arc-text-primary)] uppercase tracking-wider px-3 py-1.5 rounded-[10px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] transition shrink-0 cursor-pointer whitespace-nowrap self-start sm:self-center">Ввести ключ</button>
       </div>
     </SettingsGroup>
 
@@ -280,26 +300,51 @@ onMounted(loadProviders);
             <span class="text-[var(--arc-text-secondary)] tabular-nums">{{ enabledProvidersCount }} / {{ aiStore.providers.length }} вкл.</span>
           </div>
 
-          <div class="flex flex-col gap-1.5 max-h-[540px] overflow-y-auto pr-0.5">
-            <div v-for="p in aiStore.providers" :key="p.id" role="button" tabindex="0" @click="selectProvider(p)" @keydown.enter.prevent="selectProvider(p)" class="p-3 rounded-[12px] border transition-colors cursor-pointer flex flex-col gap-2 select-none" :class="selectedProvider?.id === p.id ? 'bg-[var(--arc-block-elevated)] border-[var(--accent)]/45' : 'bg-[var(--arc-block)] border-[var(--arc-hairline)] hover:border-[var(--arc-border-focus,var(--arc-hairline))]'">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                  <button type="button" @click.stop="toggleProviderEnabled(p)" class="w-4 h-4 rounded flex items-center justify-center hover:bg-[var(--arc-hover)] shrink-0 cursor-pointer" title="Включить или отключить шлюз">
-                    <span class="w-2 h-2 rounded-full" :class="getProviderListStatus(p).dot"></span>
-                  </button>
+          <div class="flex flex-col gap-1.5 max-h-[540px] overflow-y-auto pr-0.5" role="list" aria-label="Список шлюзов провайдеров">
+            <div v-for="p in aiStore.providers" :key="p.id" role="listitem" class="p-2.5 rounded-[12px] border transition-colors flex items-center gap-2 select-none" :class="selectedProvider?.id === p.id ? 'bg-[var(--arc-block-elevated)] border-[var(--accent)]/45' : 'bg-[var(--arc-block)] border-[var(--arc-hairline)] hover:border-[var(--arc-border-focus,var(--arc-hairline))]'">
+              <button type="button" :disabled="Boolean(togglingIds[p.id])" :aria-pressed="Boolean(p.enabled)" :aria-label="`${p.enabled ? 'Отключить' : 'Включить'} шлюз ${p.name}`" @click="toggleProviderEnabled(p)" class="w-7 h-7 rounded-[8px] border border-[var(--arc-hairline)] bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] flex items-center justify-center shrink-0 cursor-pointer transition-colors focus:outline-none focus:border-[var(--accent)] disabled:opacity-50" :title="p.enabled ? 'Шлюз включён в ротации (нажмите для отключения)' : 'Шлюз отключён (нажмите для включения)'">
+                <span class="w-2 h-2 rounded-full" :class="getListStatus(p).dot"></span>
+              </button>
+
+              <button type="button" :aria-pressed="selectedProvider?.id === p.id" :aria-label="`Выбрать шлюз ${p.name}, статус: ${getListStatus(p).label}`" @click="selectProvider(p)" class="flex-1 min-w-0 text-left flex flex-col gap-1.5 px-1.5 py-0.5 rounded-[8px] cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-xs font-mono font-bold text-[var(--arc-text-primary)] truncate">{{ p.name }}</span>
+                  <span class="text-xs font-mono font-semibold shrink-0" :class="getListStatus(p).text">{{ getListStatus(p).label }}</span>
                 </div>
-                <span class="text-xs font-mono font-semibold shrink-0" :class="getProviderListStatus(p).text">{{ getProviderListStatus(p).label }}</span>
-              </div>
-              <div class="flex items-center justify-between gap-2 text-xs font-mono text-[var(--arc-text-hint)]">
-                <span class="truncate">{{ p.model || (p.selectedModels && p.selectedModels[0]) || 'Модель не выбрана' }}</span>
-                <span class="px-1.5 py-0.5 rounded bg-[var(--arc-well)] border border-[var(--arc-hairline)] uppercase shrink-0">{{ p.type === 'local' ? 'LOC' : 'API' }}</span>
-              </div>
+                <div class="flex items-center justify-between gap-2 text-xs font-mono text-[var(--arc-text-hint)]">
+                  <span class="truncate">{{ p.model || (p.selectedModels && p.selectedModels[0]) || 'Модель не выбрана' }}</span>
+                  <span class="px-1.5 py-0.5 rounded bg-[var(--arc-well)] border border-[var(--arc-hairline)] uppercase shrink-0">{{ p.type === 'local' ? 'LOC' : 'API' }}</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>
 
-        <ProviderCard v-if="selectedProvider" :key="selectedProvider.id" :provider="selectedProvider" :is-expanded="true" :test-result="aiStore.getProviderTestState(selectedProvider)" :fetched-models="fetchedModels[selectedProvider.id] || []" :is-loading-models="modelFetchStates[selectedProvider.id] === 'loading'" @toggle-expand="selectProvider(selectedProvider)" @test-provider="testProvider(selectedProvider)" @fetch-models="(isAuto) => fetchModels(selectedProvider, isAuto)" @delete-provider="deleteProvider(selectedProvider.id)" />
+        <ProviderCard
+          v-if="selectedProvider && draftProvider"
+          :key="selectedProvider.id"
+          :provider="draftProvider"
+          :enabled="Boolean(selectedProvider.enabled)"
+          :is-expanded="true"
+          :test-result="draftTestResult"
+          :fetched-models="fetchedModels[selectedProvider.id] || []"
+          :is-loading-models="modelFetchStates[selectedProvider.id] === 'loading'"
+          :save-state="saveLifecycleState"
+          :save-error="saveError"
+          :pending-switch-target-name="pendingSwitchProvider?.name || null"
+          :is-quarantined="isProviderQuarantined(selectedProvider.id)"
+          :quarantine-mins-left="getQuarantineMinutesLeft(selectedProvider.id)"
+          @toggle-expand="selectProvider(selectedProvider)"
+          @toggle-enabled="toggleProviderEnabled(selectedProvider)"
+          @save-draft="saveDraft"
+          @reset-draft="resetDraft"
+          @confirm-save-switch="confirmSaveAndSwitch"
+          @discard-switch="discardAndSwitch"
+          @cancel-switch="cancelSwitch"
+          @test-provider="testProvider()"
+          @fetch-models="(isAuto) => fetchModels(undefined, isAuto)"
+          @delete-provider="deleteProvider(selectedProvider.id)"
+        />
       </div>
 
       <div class="px-4 py-3 rounded-[14px] border border-[var(--arc-hairline)] bg-[var(--arc-well)] flex flex-wrap items-center justify-between gap-3">

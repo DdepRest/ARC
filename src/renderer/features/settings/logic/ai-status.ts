@@ -23,8 +23,10 @@ export interface AiStatusSnapshot {
   isBuiltinDownloaded: boolean;
   builtinCheckError?: string | null;
   checkingBuiltin?: boolean;
+  hasProbedBuiltin?: boolean;
   isOllamaOnline: boolean;
   checkingOllama?: boolean;
+  hasProbedOllama?: boolean;
   verifiedInference: VerifiedLocalInference | null;
   diskCheckStatus: DiskCheckStatus;
   installedQuantsCount: number;
@@ -40,6 +42,78 @@ export function isProviderConfigured(p: AIProvider): boolean {
   return true;
 }
 
+export function getLocalContourStatus(
+  ctx: Pick<
+    AiStatusSnapshot,
+    | 'useLocalLLM'
+    | 'localLLMModel'
+    | 'builtinLLMModel'
+    | 'isBuiltinDownloaded'
+    | 'builtinCheckError'
+    | 'checkingBuiltin'
+    | 'hasProbedBuiltin'
+    | 'isOllamaOnline'
+    | 'checkingOllama'
+    | 'hasProbedOllama'
+    | 'verifiedInference'
+  >
+): SubsystemStatusSummary {
+  if (!ctx.useLocalLLM) {
+    return { label: 'ВЫКЛЮЧЕН', tone: 'off', detail: 'Локальный контур выключен' };
+  }
+
+  if (ctx.localLLMModel === 'builtin') {
+    if (ctx.checkingBuiltin) {
+      return { label: 'ПРОВЕРКА...', tone: 'warn', detail: 'Проверка весов GGUF' };
+    }
+    if (
+      ctx.isBuiltinDownloaded &&
+      !ctx.builtinCheckError &&
+      ctx.verifiedInference?.engine === 'builtin' &&
+      ctx.verifiedInference?.model === ctx.builtinLLMModel
+    ) {
+      return { label: 'ПРОВЕРЕН (GGUF)', tone: 'ok', detail: 'Инференс подтверждён' };
+    }
+    if (ctx.isBuiltinDownloaded && !ctx.builtinCheckError) {
+      return { label: 'ВЕСА ГОТОВЫ', tone: 'warn', detail: 'Веса на диске, тест не выполнен' };
+    }
+    if (ctx.hasProbedBuiltin === false) {
+      return {
+        label: 'ВКЛЮЧЕН В КОНФИГУРАЦИИ',
+        tone: 'warn',
+        detail: 'Активен флаг конфигурации; наличие весов GGUF не проверялось'
+      };
+    }
+    return {
+      label: 'НЕТ ВЕСОВ',
+      tone: 'err',
+      detail: ctx.builtinCheckError ? `Ошибка проверки GGUF: ${ctx.builtinCheckError}` : 'Модель не скачана'
+    };
+  }
+
+  if (ctx.checkingOllama) {
+    return { label: 'ПРОВЕРКА...', tone: 'warn', detail: 'Опрос сервера Ollama' };
+  }
+  if (
+    ctx.isOllamaOnline &&
+    ctx.verifiedInference?.engine === 'ollama' &&
+    ctx.verifiedInference?.model === ctx.localLLMModel
+  ) {
+    return { label: 'ПРОВЕРЕН (OLLAMA)', tone: 'ok', detail: 'Инференс подтверждён' };
+  }
+  if (ctx.isOllamaOnline) {
+    return { label: 'СЕРВЕР ОНЛАЙН', tone: 'warn', detail: 'Модель не тестировалась' };
+  }
+  if (ctx.hasProbedOllama === false) {
+    return {
+      label: 'ВКЛЮЧЕН В КОНФИГУРАЦИИ',
+      tone: 'warn',
+      detail: 'Активен флаг конфигурации; доступность Ollama не проверялась'
+    };
+  }
+  return { label: 'OLLAMA ОФЛАЙН', tone: 'err', detail: 'Сервер недоступен' };
+}
+
 export function getFallbackContourStatus(ctx: Pick<
   AiStatusSnapshot,
   | 'forcedOfflineMode'
@@ -52,7 +126,9 @@ export function getFallbackContourStatus(ctx: Pick<
   | 'getProviderTestState'
   | 'isBuiltinDownloaded'
   | 'builtinCheckError'
+  | 'hasProbedBuiltin'
   | 'isOllamaOnline'
+  | 'hasProbedOllama'
   | 'verifiedInference'
 >): SubsystemStatusSummary {
   if (ctx.forcedOfflineMode) {
@@ -119,6 +195,13 @@ export function getFallbackContourStatus(ctx: Pick<
         detail: 'Веса GGUF на диске; тест инференса ещё не запускался'
       };
     }
+    if (ctx.hasProbedBuiltin === false) {
+      return {
+        label: 'ВКЛЮЧЕН В КОНФИГУРАЦИИ',
+        tone: 'warn',
+        detail: 'Локальный GGUF-резерв включён в конфигурации; веса ещё не проверялись'
+      };
+    }
     return {
       label: 'РЕЗЕРВ НЕ ГОТОВ',
       tone: 'err',
@@ -143,6 +226,13 @@ export function getFallbackContourStatus(ctx: Pick<
       label: 'СЕРВЕР ДОСТУПЕН (НЕ ПРОВЕРЕН)',
       tone: 'warn',
       detail: 'Сервер Ollama в сети, но инференс выбранной модели не тестировался'
+    };
+  }
+  if (ctx.hasProbedOllama === false) {
+    return {
+      label: 'ВКЛЮЧЕН В КОНФИГУРАЦИИ',
+      tone: 'warn',
+      detail: 'Резерв Ollama включён в конфигурации; доступность сервера ещё не проверялась'
     };
   }
   return {
@@ -178,38 +268,11 @@ export function computeAiSectionStatuses(
     providersStatus = { label: 'ОТКЛЮЧЕНО', tone: 'off', detail: 'Все шлюзы выключены' };
   }
 
-  // 3. Local AI
-  let localStatus: SubsystemStatusSummary;
-  if (!ctx.useLocalLLM) {
-    localStatus = { label: 'ОТКЛЮЧЕН', tone: 'off', detail: 'Локальный контур выключен' };
-  } else if (ctx.localLLMModel === 'builtin') {
-    if (ctx.checkingBuiltin) {
-      localStatus = { label: 'ПРОВЕРКА...', tone: 'warn', detail: 'Проверка весов GGUF' };
-    } else if (
-      ctx.isBuiltinDownloaded &&
-      !ctx.builtinCheckError &&
-      ctx.verifiedInference?.engine === 'builtin' &&
-      ctx.verifiedInference?.model === ctx.builtinLLMModel
-    ) {
-      localStatus = { label: 'ПРОВЕРЕН (GGUF)', tone: 'ok', detail: 'Инференс подтверждён' };
-    } else if (ctx.isBuiltinDownloaded && !ctx.builtinCheckError) {
-      localStatus = { label: 'ВЕСА ГОТОВЫ', tone: 'warn', detail: 'Веса на диске, тест не выполнен' };
-    } else {
-      localStatus = { label: 'НЕТ ВЕСОВ', tone: 'err', detail: 'Модель не скачана' };
-    }
-  } else if (ctx.checkingOllama) {
-    localStatus = { label: 'ПРОВЕРКА...', tone: 'warn', detail: 'Опрос сервера Ollama' };
-  } else if (
-    ctx.isOllamaOnline &&
-    ctx.verifiedInference?.engine === 'ollama' &&
-    ctx.verifiedInference?.model === ctx.localLLMModel
-  ) {
-    localStatus = { label: 'ПРОВЕРЕН (OLLAMA)', tone: 'ok', detail: 'Инференс подтверждён' };
-  } else if (ctx.isOllamaOnline) {
-    localStatus = { label: 'СЕРВЕР ОНЛАЙН', tone: 'warn', detail: 'Модель не тестировалась' };
-  } else {
-    localStatus = { label: 'OLLAMA ОФЛАЙН', tone: 'err', detail: 'Сервер недоступен' };
-  }
+  // 3. Local AI (SSOT)
+  const localContour = getLocalContourStatus(ctx);
+  const localStatus: SubsystemStatusSummary = !ctx.useLocalLLM
+    ? { label: 'ОТКЛЮЧЕН', tone: 'off', detail: 'Локальный контур выключен' }
+    : localContour;
 
   // 4. Models Hub
   let modelsStatus: SubsystemStatusSummary;
