@@ -2,9 +2,9 @@
   <div 
     ref="scrollContainer" 
     @scroll="onScroll"
-    class="settings-scroll-container flex-1 min-h-0 h-full w-full overflow-y-auto arc-scroll px-3 sm:px-6 md:pl-10 md:pr-8 lg:pl-12 lg:pr-10 pt-4 sm:pt-6 pb-20 bg-transparent"
+    class="settings-scroll-container flex-1 min-h-0 h-full w-full overflow-y-auto arc-scroll px-3 sm:px-6 md:pl-10 md:pr-8 lg:pl-12 lg:pr-10 pt-5 sm:pt-7 pb-24 bg-transparent"
   >
-    <div class="max-w-[1040px] w-full mx-auto flex flex-col gap-6">
+    <div class="max-w-[1120px] w-full mx-auto flex flex-col gap-8">
       <!-- Page 1: Model Routing & Orchestration -->
       <RoutingSection v-if="currentSectionId === 'section-router'" />
 

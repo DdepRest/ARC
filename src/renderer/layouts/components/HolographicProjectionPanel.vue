@@ -79,16 +79,30 @@ if (import.meta.hot) {
 import FallbackTabView from '../../components/ui/FallbackTabView.vue';
 import FilesTabView from '../../features/files/components/FilesTabView.vue';
 import VisionTabView from '../../features/vision/components/VisionTabView.vue';
+import SettingsPanel from '../../features/settings/components/SettingsPanel.vue';
 
-const ChatView = defineAsyncComponent(() => import('../../features/chat/components/ChatView.vue'));
-const CommandsView = defineAsyncComponent(() => import('../../features/commands/components/CommandsView.vue'));
-const ModulesView = defineAsyncComponent(() => import('../../features/modules/components/ModulesView.vue'));
-const MemoryView = defineAsyncComponent(() => import('../../features/memory/components/MemoryView.vue'));
-const SettingsPanel = defineAsyncComponent(() => import('../../features/settings/components/SettingsPanel.vue'));
-const TasksView = defineAsyncComponent(() => import('../../features/tasks/components/TasksView.vue'));
-const ObjectivesView = defineAsyncComponent(() => import('../../features/objectives/components/ObjectivesView.vue'));
-const TranscriptionView = defineAsyncComponent(() => import('../../features/transcription/components/TranscriptionView.vue'));
-const UpdatesHistorySection = defineAsyncComponent(() => import('../../features/settings/components/UpdatesHistorySection.vue'));
+function defineResilientAsyncView(loader: () => Promise<any>) {
+  return defineAsyncComponent({
+    loader,
+    errorComponent: FallbackTabView,
+    onError(error, retry, fail, attempts) {
+      if (attempts <= 3) {
+        setTimeout(() => retry(), 250 * attempts);
+      } else {
+        fail();
+      }
+    }
+  });
+}
+
+const ChatView = defineResilientAsyncView(() => import('../../features/chat/components/ChatView.vue'));
+const CommandsView = defineResilientAsyncView(() => import('../../features/commands/components/CommandsView.vue'));
+const ModulesView = defineResilientAsyncView(() => import('../../features/modules/components/ModulesView.vue'));
+const MemoryView = defineResilientAsyncView(() => import('../../features/memory/components/MemoryView.vue'));
+const TasksView = defineResilientAsyncView(() => import('../../features/tasks/components/TasksView.vue'));
+const ObjectivesView = defineResilientAsyncView(() => import('../../features/objectives/components/ObjectivesView.vue'));
+const TranscriptionView = defineResilientAsyncView(() => import('../../features/transcription/components/TranscriptionView.vue'));
+const UpdatesHistorySection = defineResilientAsyncView(() => import('../../features/settings/components/UpdatesHistorySection.vue'));
 
 const props = defineProps<{
   isCanvasActive: boolean;

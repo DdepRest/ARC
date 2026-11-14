@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Server, Check, Globe, RefreshCw, Zap, Search } from 'lucide-vue-next';
 import ArcModal from '../../../../../components/ui/ArcModal.vue';
+import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import { useAiConfigStore } from '../../../../../stores/aiConfig';
 import { normalizeOpenAiEndpoint } from '../../../../../../shared/utils/free-llm.util';
 
@@ -277,22 +278,19 @@ async function handleSaveAndConnect() {
         </div>
       </div>
 
-      <!-- Checkbox: Make Primary / Exclusive -->
-      <label class="flex items-center gap-2.5 py-1 px-1 cursor-pointer select-none group">
-        <input
+      <!-- Toggle: Make Primary / Exclusive -->
+      <div
+        class="p-3 rounded-[12px] bg-[var(--arc-block)] border transition-colors"
+        :class="makeActive ? 'border-[rgba(var(--accent-rgb),0.45)]' : 'border-[var(--arc-hairline)] hover:border-[var(--arc-edge-strong)]'"
+      >
+        <ArcToggle
           v-model="makeActive"
-          type="checkbox"
-          class="rounded border-[var(--arc-hairline)] bg-[var(--arc-input)] accent-[var(--status-ok)] focus:ring-0 cursor-pointer"
+          size="sm"
+          label="Сделать активным приоритетным шлюзом"
+          description="Все запросы диалога и чата будут сразу направляться на указанный IP."
+          wrapper-class="w-full"
         />
-        <div class="flex flex-col">
-          <span class="text-xs font-medium text-[var(--arc-text-primary)] transition-colors">
-            Сделать активным приоритетным шлюзом
-          </span>
-          <span class="text-xs text-[var(--arc-text-muted)]">
-            Все запросы диалога и чата будут сразу направляться на указанный IP.
-          </span>
-        </div>
-      </label>
+      </div>
 
       <!-- Test Feedback Status Banner -->
       <div 

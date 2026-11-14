@@ -33,8 +33,10 @@
   --arc-frame: #070707;  /* оправа проекции, НЕ rgba */
   --arc-bg: #080808;     /* главный фон программы */
   --arc-plane: #080808;  /* плоскость чтения, сплошной hex */
-  --arc-block: #101010;  /* кликабельные блоки */
-  --arc-input: #0D0D0D;  /* поля ввода */
+  --arc-block: #131313;  /* основная пластина группы настроек */
+  --arc-block-elevated: #171717;
+  --arc-well: #060606;   /* утопленная техническая область внутри блока */
+  --arc-input: #070707;  /* поля ввода */
   --arc-popover: #161616; /* меню, дропдауны, тосты */
   --arc-tooltip: #1A1A1A;
   --arc-modal: #0E0E0E;
@@ -48,12 +50,18 @@
   /* ========================================================================= */
   /* 1.2 Strokes and Edges                                                     */
   /* ========================================================================= */
-  --arc-hairline: rgba(255, 255, 255, 0.06);
-  --arc-border: rgba(255, 255, 255, 0.06);
-  --arc-divider: rgba(255, 255, 255, 0.05);
-  --arc-hairline-top: rgba(255, 255, 255, 0.08);
-  --arc-hover: rgba(255, 255, 255, 0.03);
-  --arc-selected: rgba(255, 255, 255, 0.045);
+  --arc-hairline: rgba(255, 255, 255, 0.08);
+  --arc-border: rgba(255, 255, 255, 0.08);
+  --arc-divider: rgba(255, 255, 255, 0.06);
+  --arc-edge-strong: rgba(255, 255, 255, 0.12);
+  --arc-hairline-top: rgba(255, 255, 255, 0.12);
+  --arc-hover: rgba(255, 255, 255, 0.04);
+  --arc-selected: rgba(255, 255, 255, 0.065);
+  --arc-block-gradient: linear-gradient(180deg, #161616 0%, #0F0F0F 100%);
+  --arc-block-active-gradient: linear-gradient(180deg, #1C1C1C 0%, #121212 100%);
+  --arc-block-elevation: inset 0 1px 0 rgba(255, 255, 255, 0.11), 0 12px 32px rgba(0, 0, 0, 0.65);
+  --arc-block-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11), 0 12px 32px rgba(0, 0, 0, 0.65);
+  --arc-well-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.50);
   --arc-plane-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 48px rgba(0, 0, 0, 0.80);
   --arc-frame-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 18px 48px rgba(0, 0, 0, 0.70), 0 0 56px -12px rgba(var(--accent-rgb, 239, 68, 68), 0.20);
   --arc-popover-border: 1px solid rgba(255, 255, 255, 0.10);

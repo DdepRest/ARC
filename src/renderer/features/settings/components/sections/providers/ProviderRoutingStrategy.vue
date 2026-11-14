@@ -27,37 +27,37 @@ const toggleExclusive = (val: boolean) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2.5 pt-1">
+  <div class="flex flex-col gap-3" :style="{ fontFamily: 'var(--font-ui)' }">
     <!-- Header -->
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-1.5">
-        <Target class="w-3.5 h-3.5 text-[var(--accent)]" />
-        <span class="text-xs font-mono font-bold text-[var(--arc-text-machine)] uppercase tracking-wider">
-          СТРАТЕГИЯ МАРШРУТИЗАЦИИ
+      <div class="flex items-center gap-2">
+        <Target class="w-4 h-4 text-[var(--accent)]" />
+        <span class="text-[13.5px] font-semibold text-[var(--arc-text-primary)] tracking-tight">
+          Стратегия маршрутизации внутри шлюза
         </span>
       </div>
     </div>
 
     <!-- Strategy Selection Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
       <!-- Smart Route -->
       <button 
         type="button"
         @click="selectStrategy('smart_route')"
-        class="px-3 py-2 rounded-[10px] border text-left flex flex-col gap-1 transition cursor-pointer"
+        class="p-3 rounded-[10px] border text-left flex flex-col gap-1 transition cursor-pointer"
         :class="modelValue === 'smart_route' 
-          ? 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.4)] text-[var(--arc-text-primary)]' 
-          : 'bg-[var(--arc-plane)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
-        :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }"
+          ? 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.45)] text-[var(--arc-text-primary)]' 
+          : 'bg-[var(--arc-well)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
+        :style="{ boxShadow: 'var(--arc-well-shadow)' }"
       >
         <div class="flex items-center justify-between">
-          <span class="text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <span class="text-[13px] font-semibold flex items-center gap-1.5">
             <Zap class="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
-            УМНЫЙ МАРШРУТ
+            Умный маршрут
           </span>
           <Check v-if="modelValue === 'smart_route'" class="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
         </div>
-        <span class="text-xs font-mono text-[var(--arc-text-hint)] leading-tight">
+        <span class="text-xs text-[var(--arc-text-hint)] leading-snug">
           Динамический выбор модели под задачу
         </span>
       </button>
@@ -66,20 +66,20 @@ const toggleExclusive = (val: boolean) => {
       <button 
         type="button"
         @click="selectStrategy('fallback')"
-        class="px-3 py-2 rounded-[10px] border text-left flex flex-col gap-1 transition cursor-pointer"
+        class="p-3 rounded-[10px] border text-left flex flex-col gap-1 transition cursor-pointer"
         :class="modelValue === 'fallback' 
-          ? 'bg-[var(--arc-selected)] border-[rgba(var(--status-warn-rgb,234,179,8),0.4)] text-[var(--arc-text-primary)]' 
-          : 'bg-[var(--arc-plane)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
-        :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }"
+          ? 'bg-[var(--arc-selected)] border-[rgba(var(--status-warn-rgb,234,179,8),0.45)] text-[var(--arc-text-primary)]' 
+          : 'bg-[var(--arc-well)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
+        :style="{ boxShadow: 'var(--arc-well-shadow)' }"
       >
         <div class="flex items-center justify-between">
-          <span class="text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <span class="text-[13px] font-semibold flex items-center gap-1.5">
             <RefreshCw class="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
-            ФОЛБЕК ЦЕПОЧКА
+            Фолбек цепочка
           </span>
           <Check v-if="modelValue === 'fallback'" class="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
         </div>
-        <span class="text-xs font-mono text-[var(--arc-text-hint)] leading-tight">
+        <span class="text-xs text-[var(--arc-text-hint)] leading-snug">
           Автопереход при сбое модели
         </span>
       </button>
@@ -88,20 +88,20 @@ const toggleExclusive = (val: boolean) => {
       <button 
         type="button"
         @click="selectStrategy('ensemble')"
-        class="px-3 py-2 rounded-[10px] border text-left flex flex-col gap-1 transition cursor-pointer"
+        class="p-3 rounded-[10px] border text-left flex flex-col gap-1 transition cursor-pointer"
         :class="modelValue === 'ensemble' 
-          ? 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.4)] text-[var(--arc-text-primary)]' 
-          : 'bg-[var(--arc-plane)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
-        :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }"
+          ? 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.45)] text-[var(--arc-text-primary)]' 
+          : 'bg-[var(--arc-well)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
+        :style="{ boxShadow: 'var(--arc-well-shadow)' }"
       >
         <div class="flex items-center justify-between">
-          <span class="text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <span class="text-[13px] font-semibold flex items-center gap-1.5">
             <Crosshair class="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
-            ПЕРВАЯ ДОСТУПНАЯ
+            Первая доступная
           </span>
           <Check v-if="modelValue === 'ensemble'" class="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
         </div>
-        <span class="text-xs font-mono text-[var(--arc-text-hint)] leading-tight">
+        <span class="text-xs text-[var(--arc-text-hint)] leading-snug">
           Прямой запрос к первой модели
         </span>
       </button>
@@ -109,22 +109,22 @@ const toggleExclusive = (val: boolean) => {
 
     <!-- Exclusive Mode Toggle Strip -->
     <div 
-      class="py-2.5 px-3.5 bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-[10px] flex items-center justify-between gap-3"
-      :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)' }"
+      class="py-3 px-4 bg-[var(--arc-well)] border border-[var(--arc-hairline)] rounded-[10px] flex items-center justify-between gap-3"
+      :style="{ boxShadow: 'var(--arc-well-shadow)' }"
     >
       <div class="flex flex-col gap-0.5 min-w-0">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-mono font-semibold text-[var(--arc-text-primary)] uppercase tracking-wider">
+          <span class="text-[13px] font-semibold text-[var(--arc-text-primary)]">
             Эксклюзивный режим
           </span>
           <span 
             v-if="isExclusive" 
-            class="text-xs font-mono px-2 py-0.5 bg-[var(--arc-block)] text-[var(--status-warn)] border border-[rgba(var(--status-warn-rgb,234,179,8),0.3)] rounded-[6px] font-bold"
+            class="text-xs font-mono text-[var(--status-warn)] font-semibold"
           >
-            АКТИВЕН
+            · Активен
           </span>
         </div>
-        <span class="text-xs text-[var(--arc-text-hint)] font-mono truncate">
+        <span class="text-xs text-[var(--arc-text-hint)] truncate">
           Запросы отправляются только этому шлюзу без фолбеков
         </span>
       </div>

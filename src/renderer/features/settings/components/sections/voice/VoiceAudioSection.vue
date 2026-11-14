@@ -6,6 +6,7 @@ import { useVoice } from '../../../../../composables/useVoice';
 import { useMicTest } from '../../../composables/useMicTest';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import ArcSlider from '../../../../../components/ui/ArcSlider.vue';
+import ArcSelect from '../../../../../components/ui/ArcSelect.vue';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
@@ -183,14 +184,11 @@ const startCalibration = async () => {
             data-search="микрофон устройство ввода audio input microphone"
           >
             <div class="w-60 sm:w-72 shrink-0">
-              <select 
-                v-model="selectedMic"
-                class="bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer hover:bg-[var(--arc-hover)] w-full truncate"
-              >
-                <option v-for="mic in microphones" :key="mic.deviceId" :value="mic.deviceId" class="bg-[var(--arc-block)] text-white">
-                  {{ mic.label || `Микрофон (${mic.deviceId.slice(0, 6)}...)` }}
-                </option>
-              </select>
+              <ArcSelect
+                :model-value="selectedMic"
+                :options="microphones.map(mic => ({ label: mic.label || `Микрофон (${mic.deviceId.slice(0, 6)}...)`, value: mic.deviceId }))"
+                @update:model-value="val => { selectedMic = val; }"
+              />
             </div>
           </SettingsRow>
 

@@ -84,8 +84,12 @@ const thresholdPercent = computed(() => {
 </script>
 
 <template>
-  <section id="section-router" class="scroll-mt-14 flex flex-col gap-7 text-[var(--arc-text-primary)]">
-    <!-- Уровень 1: Workspace Header + Сводка активного маршрута -->
+  <section
+    id="section-router"
+    class="scroll-mt-14 flex flex-col gap-10 text-[var(--arc-text-primary)]"
+    :style="{ fontFamily: 'var(--font-ui)' }"
+  >
+    <!-- Уровень 1: Workspace Header + Приборная шкала телеметрии маршрута (HUD Readout Strip) -->
     <SettingsSectionHeader
       variant="workspace"
       categoryLabel="Интеллект · Подсистема 01"
@@ -97,36 +101,36 @@ const thresholdPercent = computed(() => {
       :icon="GitBranch"
     >
       <template #summary>
-        <!-- Текущий маршрут (Реальные показатели без декоративных значений) -->
+        <!-- Приборная шкала телеметрии (HUD Readout Strip — Recessed Well, отличная от карточек настроек) -->
         <div
-          class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 rounded-[14px] bg-[var(--arc-block)] border border-[var(--arc-hairline)]"
-          :style="{ background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)', boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' }"
+          class="grid grid-cols-1 md:grid-cols-3 gap-0 rounded-[12px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] overflow-hidden"
+          :style="{ boxShadow: 'var(--arc-well-shadow)' }"
         >
           <!-- Колонка 1: Реальная стратегия исполнения -->
-          <div class="flex flex-col gap-1 px-2 py-1">
-            <div class="flex items-center gap-1.5 text-xs font-mono text-[var(--arc-text-machine)] uppercase tracking-wider">
+          <div class="flex flex-col gap-1 px-4 py-3 min-w-0">
+            <div class="flex items-center gap-1.5 text-xs font-mono text-[var(--arc-text-machine)] tracking-wider uppercase">
               <Activity class="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
               <span>Текущая стратегия</span>
             </div>
-            <span class="text-xs font-mono font-semibold text-[var(--arc-text-primary)] truncate">{{ activeRouteSummary.mode }}</span>
+            <span class="text-[14px] font-semibold text-[var(--arc-text-primary)] truncate">{{ activeRouteSummary.mode }}</span>
             <span class="text-xs text-[var(--arc-text-hint)] leading-snug">{{ activeRouteSummary.detail }}</span>
           </div>
 
           <!-- Колонка 2: Состояние локального ИИ -->
-          <div class="flex flex-col gap-1 px-2 py-1 md:border-l border-t md:border-t-0 border-[var(--arc-hairline)] pt-2.5 md:pt-1 md:pl-4">
-            <span class="text-xs font-mono text-[var(--arc-text-machine)] uppercase tracking-wider">Контур локального ИИ</span>
+          <div class="flex flex-col gap-1 px-4 py-3 min-w-0 md:border-l border-t md:border-t-0 border-[var(--arc-divider)]">
+            <span class="text-xs font-mono text-[var(--arc-text-machine)] tracking-wider uppercase">Контур локального ИИ</span>
             <div class="flex items-center gap-2">
-              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="settingsStore.useLocalLLM ? 'bg-[var(--status-ok)]' : 'bg-[var(--arc-text-muted)]'"></span>
-              <span class="text-xs font-mono font-semibold" :class="settingsStore.useLocalLLM ? 'text-[var(--status-ok)]' : 'text-[var(--arc-text-muted)]'">{{ settingsStore.useLocalLLM ? 'АКТИВЕН' : 'ВЫКЛЮЧЕН' }}</span>
+              <span class="w-2 h-2 rounded-full shrink-0" :class="settingsStore.useLocalLLM ? 'bg-[var(--status-ok)]' : 'bg-[var(--arc-text-muted)]'"></span>
+              <span class="text-[14px] font-mono font-semibold tabular-nums" :class="settingsStore.useLocalLLM ? 'text-[var(--status-ok)]' : 'text-[var(--arc-text-muted)]'">{{ settingsStore.useLocalLLM ? 'АКТИВЕН' : 'ВЫКЛЮЧЕН' }}</span>
             </div>
-            <span class="text-xs font-mono text-[var(--arc-text-hint)] truncate">{{ localRuntimeLabel }}</span>
+            <span class="text-xs font-mono text-[var(--arc-text-hint)] truncate tabular-nums">{{ localRuntimeLabel }}</span>
           </div>
 
           <!-- Колонка 3: Резервный контур и потоковый вывод -->
-          <div class="flex flex-col gap-1 px-2 py-1 md:border-l border-t md:border-t-0 border-[var(--arc-hairline)] pt-2.5 md:pt-1 md:pl-4">
-            <span class="text-xs font-mono text-[var(--arc-text-machine)] uppercase tracking-wider">Резервный контур · SSE {{ settingsStore.llmStreamingEnabled ? 'ВКЛ' : 'ВЫКЛ' }}</span>
-            <div class="flex items-center gap-2 text-xs font-mono">
-              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="fallbackStatus.tone === 'ok' ? 'bg-[var(--status-ok)]' : fallbackStatus.tone === 'warn' ? 'bg-[var(--status-warn)]' : fallbackStatus.tone === 'err' ? 'bg-[var(--status-err)]' : 'bg-[var(--arc-text-muted)]'"></span>
+          <div class="flex flex-col gap-1 px-4 py-3 min-w-0 md:border-l border-t md:border-t-0 border-[var(--arc-divider)]">
+            <span class="text-xs font-mono text-[var(--arc-text-machine)] tracking-wider uppercase tabular-nums">Резервный контур · SSE {{ settingsStore.llmStreamingEnabled ? 'ВКЛ' : 'ВЫКЛ' }}</span>
+            <div class="flex items-center gap-2 text-[14px] font-mono">
+              <span class="w-2 h-2 rounded-full shrink-0" :class="fallbackStatus.tone === 'ok' ? 'bg-[var(--status-ok)]' : fallbackStatus.tone === 'warn' ? 'bg-[var(--status-warn)]' : fallbackStatus.tone === 'err' ? 'bg-[var(--status-err)]' : 'bg-[var(--arc-text-muted)]'"></span>
               <span class="font-semibold truncate" :class="fallbackStatus.tone === 'ok' ? 'text-[var(--status-ok)]' : fallbackStatus.tone === 'warn' ? 'text-[var(--status-warn)]' : fallbackStatus.tone === 'err' ? 'text-[var(--status-err)]' : 'text-[var(--arc-text-muted)]'">{{ fallbackStatus.label }}</span>
             </div>
             <span class="text-xs text-[var(--arc-text-hint)] leading-snug">{{ fallbackStatus.detail }}</span>
@@ -143,7 +147,7 @@ const thresholdPercent = computed(() => {
       :badgeText="settingsStore.useSmartRouting ? `Порог: ${settingsStore.smartRoutingThreshold} симв.` : 'Ручной приоритет'"
     >
       <SettingsBlock>
-        <div class="flex flex-col divide-y divide-[var(--arc-hairline)]">
+        <div class="flex flex-col divide-y divide-[var(--arc-divider)]">
           <!-- Семантический роутер -->
           <SettingsRow
             id="router.smartRouting"
@@ -152,8 +156,15 @@ const thresholdPercent = computed(() => {
             data-search="семантический роутер умный маршрут smart routing автовыбор"
           >
             <div class="flex items-center gap-3 shrink-0">
-              <span class="text-xs font-mono tracking-wider uppercase text-[var(--arc-text-muted)]">
-                {{ settingsStore.useSmartRouting ? 'АКТИВЕН' : 'ОТКЛЮЧЕН' }}
+              <span
+                class="inline-flex items-center gap-1.5 text-xs font-mono font-medium tabular-nums"
+                :class="settingsStore.useSmartRouting ? 'text-[var(--status-ok)]' : 'text-[var(--arc-text-muted)]'"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full shrink-0"
+                  :class="settingsStore.useSmartRouting ? 'bg-[var(--status-ok)]' : 'bg-[var(--arc-text-muted)]'"
+                ></span>
+                <span>{{ settingsStore.useSmartRouting ? 'Активен' : 'Отключён' }}</span>
               </span>
               <ArcToggle 
                 v-model="settingsStore.useSmartRouting" 
@@ -162,17 +173,21 @@ const thresholdPercent = computed(() => {
             </div>
           </SettingsRow>
 
-          <!-- Уровень 3: Вложенная панель калибровки порога маршрутизации -->
+          <!-- Уровень 3: Втопленный Приборный Колодец (Recessed Well) калибровки порога маршрутизации -->
           <div 
             v-show="settingsStore.useSmartRouting" 
-            class="p-4 sm:p-5 flex flex-col gap-4 bg-[var(--arc-plane)]"
+            class="px-5 py-5 flex flex-col gap-4 bg-[var(--arc-well)]"
+            :style="{ boxShadow: 'var(--arc-well-shadow)' }"
             data-search="порог роутера router threshold уверенность лимит символов"
           >
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
                 <Settings2 class="w-4 h-4 text-[var(--accent)] shrink-0" />
-                <span class="text-xs font-mono font-semibold text-[var(--arc-text-primary)] uppercase tracking-wider">
+                <span class="text-[13.5px] font-semibold text-[var(--arc-text-primary)] tracking-tight">
                   Калибровка порога маршрутизации
+                </span>
+                <span class="text-xs font-mono text-[var(--arc-text-muted)] tabular-nums">
+                  · {{ settingsStore.smartRoutingThreshold }} симв.
                 </span>
               </div>
               <div class="flex items-center gap-1.5">
@@ -181,7 +196,7 @@ const thresholdPercent = computed(() => {
                   :key="presetVal"
                   type="button"
                   @click="settingsStore.smartRoutingThreshold = presetVal"
-                  class="px-2 py-0.5 rounded-[6px] text-xs font-mono border transition-colors cursor-pointer tabular-nums"
+                  class="px-2.5 py-1 rounded-[7px] text-xs font-mono border transition-colors cursor-pointer tabular-nums"
                   :class="settingsStore.smartRoutingThreshold === presetVal
                     ? 'bg-[var(--arc-selected)] text-[var(--arc-text-primary)] border-[var(--accent)] font-semibold'
                     : 'bg-[var(--arc-block)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
@@ -192,19 +207,19 @@ const thresholdPercent = computed(() => {
             </div>
 
             <!-- Двухзонная шкала распределения -->
-            <div class="flex flex-col gap-2 p-3 rounded-[12px] bg-[var(--arc-block)] border border-[var(--arc-hairline)]">
-              <div class="flex items-center justify-between text-xs font-mono tabular-nums">
-                <span class="text-[var(--status-ok)]">
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center justify-between gap-2 text-xs font-mono tabular-nums">
+                <span class="text-[var(--status-ok)] font-medium">
                   ≤ {{ settingsStore.smartRoutingThreshold }} симв. → Локальный контур
                 </span>
                 <span class="text-[var(--arc-text-secondary)]">
-                  > {{ settingsStore.smartRoutingThreshold }} симв. → Облачный шлюз
+                  &gt; {{ settingsStore.smartRoutingThreshold }} симв. → Облачный шлюз
                 </span>
               </div>
 
-              <div class="relative h-2 rounded-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] overflow-hidden">
+              <div class="relative h-2.5 rounded-full bg-[var(--arc-block)] border border-[var(--arc-hairline)] overflow-hidden">
                 <div 
-                  class="absolute inset-y-0 left-0 bg-[var(--status-ok)]/45"
+                  class="absolute inset-y-0 left-0 bg-[var(--status-ok)]/50 transition-all duration-150"
                   :style="{ width: thresholdPercent + '%' }"
                 ></div>
                 <div 
@@ -212,8 +227,8 @@ const thresholdPercent = computed(() => {
                   :style="{ width: (100 - thresholdPercent) + '%' }"
                 ></div>
                 <div 
-                  class="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[var(--arc-text-primary)] border border-[var(--arc-block)] shadow"
-                  :style="{ left: 'calc(' + thresholdPercent + '% - 5px)' }"
+                  class="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[var(--arc-text-primary)] border-2 border-[var(--arc-well)] shadow"
+                  :style="{ left: 'calc(' + thresholdPercent + '% - 6px)' }"
                 ></div>
               </div>
 
@@ -244,31 +259,31 @@ const thresholdPercent = computed(() => {
             data-search="приоритет локального ии local priority сначала облако сначала локальная"
           >
             <div 
-              class="flex gap-1.5 p-1 bg-[var(--arc-input)] rounded-[10px] border border-[var(--arc-hairline)] shrink-0"
-              :style="{ boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.75)' }"
+              class="flex gap-1.5 p-1 bg-[var(--arc-well)] rounded-[10px] border border-[var(--arc-hairline)] shrink-0"
+              :style="{ boxShadow: 'var(--arc-well-shadow)' }"
               data-setting-id="localai.priority"
             >
               <button 
                 type="button"
-                class="py-1.5 px-3 rounded-[8px] text-xs font-mono font-semibold transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                class="py-1.5 px-3.5 rounded-[7px] text-xs font-medium transition cursor-pointer whitespace-nowrap flex items-center gap-2"
                 :class="settingsStore.localLLMPriority === 'fallback' 
-                  ? 'bg-[var(--arc-block)] text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]' 
+                  ? 'bg-[var(--arc-block)] text-[var(--arc-text-primary)] border border-[var(--arc-edge-strong)] shadow-sm' 
                   : 'text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] border border-transparent'"
                 @click="settingsStore.localLLMPriority = 'fallback'"
               >
-                <span v-if="settingsStore.localLLMPriority === 'fallback'" class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
-                Сначала облако
+                <span class="w-1.5 h-1.5 rounded-full" :class="settingsStore.localLLMPriority === 'fallback' ? 'bg-[var(--accent)]' : 'bg-[var(--arc-text-disabled)]'"></span>
+                <span>Сначала облако</span>
               </button>
               <button 
                 type="button"
-                class="py-1.5 px-3 rounded-[8px] text-xs font-mono font-semibold transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                class="py-1.5 px-3.5 rounded-[7px] text-xs font-medium transition cursor-pointer whitespace-nowrap flex items-center gap-2"
                 :class="settingsStore.localLLMPriority === 'primary' 
-                  ? 'bg-[var(--arc-block)] text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]' 
+                  ? 'bg-[var(--arc-block)] text-[var(--arc-text-primary)] border border-[var(--arc-edge-strong)] shadow-sm' 
                   : 'text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] border border-transparent'"
                 @click="settingsStore.localLLMPriority = 'primary'"
               >
-                <span v-if="settingsStore.localLLMPriority === 'primary'" class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
-                Сначала локальная
+                <span class="w-1.5 h-1.5 rounded-full" :class="settingsStore.localLLMPriority === 'primary' ? 'bg-[var(--status-ok)]' : 'bg-[var(--arc-text-disabled)]'"></span>
+                <span>Сначала локальная</span>
               </button>
             </div>
           </SettingsRow>
@@ -283,7 +298,7 @@ const thresholdPercent = computed(() => {
       description="Потоковый вывод токенов, строгая сетевая изоляция и автоматическая разгрузка видеокарты в фоне."
     >
       <SettingsBlock>
-        <div class="flex flex-col divide-y divide-[var(--arc-hairline)]">
+        <div class="flex flex-col divide-y divide-[var(--arc-divider)]">
           <!-- Потоковая генерация -->
           <SettingsRow
             id="providers.streaming"
@@ -292,8 +307,15 @@ const thresholdPercent = computed(() => {
             data-search="потоковая генерация streaming llm tokens"
           >
             <div class="flex items-center gap-3 shrink-0">
-              <span class="text-xs font-mono tracking-wider uppercase text-[var(--arc-text-muted)]">
-                {{ settingsStore.llmStreamingEnabled ? 'ВКЛ' : 'ВЫКЛ' }}
+              <span
+                class="inline-flex items-center gap-1.5 text-xs font-mono font-medium tabular-nums"
+                :class="settingsStore.llmStreamingEnabled ? 'text-[var(--status-ok)]' : 'text-[var(--arc-text-muted)]'"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full shrink-0"
+                  :class="settingsStore.llmStreamingEnabled ? 'bg-[var(--status-ok)]' : 'bg-[var(--arc-text-muted)]'"
+                ></span>
+                <span>{{ settingsStore.llmStreamingEnabled ? 'Вкл' : 'Выкл' }}</span>
               </span>
               <ArcToggle 
                 v-model="settingsStore.llmStreamingEnabled" 
@@ -332,8 +354,12 @@ const thresholdPercent = computed(() => {
           </SettingsRow>
         </div>
 
-        <!-- Предупреждение при офлайн-режиме без локального ИИ -->
-        <div v-if="settingsStore.forcedOfflineMode && !settingsStore.useLocalLLM" class="px-4 py-3 border-t border-[var(--status-warn)]/30 bg-[var(--arc-plane)] flex items-center justify-between gap-3">
+        <!-- Предупреждение при офлайн-режиме без локального ИИ (Well) -->
+        <div
+          v-if="settingsStore.forcedOfflineMode && !settingsStore.useLocalLLM"
+          class="px-5 py-3.5 border-t border-[var(--status-warn)]/30 bg-[var(--arc-well)] flex flex-wrap items-center justify-between gap-3"
+          :style="{ boxShadow: 'var(--arc-well-shadow)' }"
+        >
           <div class="flex items-center gap-2 text-xs text-[var(--status-warn)]">
             <ShieldAlert class="w-4 h-4 shrink-0" />
             <span>Офлайн-режим включён, но локальный ИИ деактивирован. Включите локальный контур для работы диалогов.</span>
@@ -341,9 +367,9 @@ const thresholdPercent = computed(() => {
           <CrossLink label="Открыть Локальный ИИ" tab="intelligence" sectionId="section-local" />
         </div>
 
-        <!-- Связанные подсистемы -->
-        <div class="px-4 sm:px-5 py-3 border-t border-[var(--arc-hairline)] flex flex-wrap items-center justify-between gap-3 bg-[var(--arc-plane)]">
-          <span class="text-xs font-mono text-[var(--arc-text-machine)] uppercase tracking-wider">Связанные разделы:</span>
+        <!-- Связанные подсистемы (Well footer) -->
+        <div class="px-5 py-3 border-t border-[var(--arc-divider)] flex flex-wrap items-center justify-between gap-3 bg-[var(--arc-well)]">
+          <span class="text-xs font-mono text-[var(--arc-text-machine)] tracking-wide">Связанные разделы:</span>
           <div class="flex flex-wrap items-center gap-4">
             <CrossLink label="Облачные провайдеры" tab="intelligence" sectionId="section-providers" />
             <CrossLink label="Локальный ИИ (GGUF / Ollama)" tab="intelligence" sectionId="section-local" />

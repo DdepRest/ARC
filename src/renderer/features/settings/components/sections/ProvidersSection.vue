@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { RefreshCw, Sparkles, ShieldAlert, Cpu, Globe, Cloud } from 'lucide-vue-next';
 import { useAiConfigStore, buildProviderFingerprint } from '../../../../stores/aiConfig';
 import { validateProviderEndpoint } from '../../logic/provider-validation';
@@ -19,6 +19,17 @@ const modelFetchStates = ref<Record<string, 'loading' | 'idle'>>({});
 const expandedProvider = ref<string | null>(null);
 const showGeminiModal = ref(false);
 const showManualIpModal = ref(false);
+
+const selectedProvider = computed(() => {
+  if (!aiStore.providers.length) return null;
+  return aiStore.providers.find(p => p.id === expandedProvider.value) || aiStore.providers[0];
+});
+
+watch(() => aiStore.providers, (list) => {
+  if (list.length > 0 && (!expandedProvider.value || !list.some(p => p.id === expandedProvider.value))) {
+    expandedProvider.value = list[0].id;
+  }
+}, { immediate: true, deep: true });
 
 const hasGeminiKey = computed(() => {
   const p = aiStore.providers.find(prov => 
@@ -53,16 +64,32 @@ const providersHeaderStatus = computed(() => {
   return { label: 'ВСЕ ОТКЛЮЧЕНЫ', tone: 'off' as const };
 });
 
+const getProviderListStatus = (p: any) => {
+  const q = aiStore.quarantinedProviders.find(item => item.id === p.id && item.quarantineUntil > Date.now());
+  if (q) return { label: 'КАРАНТИН', dot: 'bg-[var(--status-err)]', text: 'text-[var(--status-err)]' };
+  if (!p.enabled) return { label: 'ОТКЛ', dot: 'bg-[var(--status-off)]', text: 'text-[var(--arc-text-hint)]' };
+  const t = aiStore.getProviderTestState(p);
+  if (t?.status === 'loading') return { label: 'ТЕСТ...', dot: 'bg-[var(--status-warn)]', text: 'text-[var(--status-warn)]' };
+  if (t?.status === 'error') return { label: 'ОШИБКА', dot: 'bg-[var(--status-err)]', text: 'text-[var(--status-err)]' };
+  if (!validateProviderEndpoint(p.endpoint).valid) return { label: 'URL?', dot: 'bg-[var(--status-err)]', text: 'text-[var(--status-err)]' };
+  if (p.type !== 'local' && !p.noAuthHeader && !(p.apiKey && p.apiKey.trim().length > 0)) {
+    return { label: 'КЛЮЧ?', dot: 'bg-[var(--status-warn)]', text: 'text-[var(--status-warn)]' };
+  }
+  if (t?.status === 'success') return { label: 'OK', dot: 'bg-[var(--status-ok)]', text: 'text-[var(--status-ok)]' };
+  return { label: 'ГОТОВ', dot: 'bg-[var(--status-warn)]', text: 'text-[var(--arc-text-secondary)]' };
+};
+
+const toggleProviderEnabled = (provider: any) => {
+  provider.enabled = !provider.enabled;
+  aiStore.saveProvider(provider);
+};
+
 const loadProviders = () => { aiStore.loadProviders(); };
 
-const toggleExpand = (provider: any) => {
-  if (expandedProvider.value === provider.id) {
-    expandedProvider.value = null;
-  } else {
-    expandedProvider.value = provider.id;
-    if (!fetchedModels.value[provider.id] || fetchedModels.value[provider.id].length === 0) {
-      fetchModels(provider);
-    }
+const selectProvider = (provider: any) => {
+  expandedProvider.value = provider.id;
+  if (!fetchedModels.value[provider.id] || fetchedModels.value[provider.id].length === 0) {
+    fetchModels(provider);
   }
 };
 
@@ -155,21 +182,10 @@ const addProvider = async (preset: ProviderPreset) => {
   const defaultModels = preset.model ? [preset.model] : [];
   const isLocalFreeGateway = preset.type === 'local' && preset.freeTier === 'free';
   const newProvider = {
-    id: newId,
-    name: preset.name,
-    type: preset.type,
-    endpoint: preset.endpoint,
-    model: preset.model || '',
-    selectedModels: defaultModels,
-    routingStrategy: 'smart_route' as const,
-    priority: isLocalFreeGateway ? 1 : aiStore.providers.length + 1,
-    maxTokens: 2048,
-    temperature: 0.7,
-    enabled: true,
-    apiKey: '',
-    noAuthHeader: isLocalFreeGateway,
-    freeTier: preset.freeTier,
-    isExclusive: false
+    id: newId, name: preset.name, type: preset.type, endpoint: preset.endpoint,
+    model: preset.model || '', selectedModels: defaultModels, routingStrategy: 'smart_route' as const,
+    priority: isLocalFreeGateway ? 1 : aiStore.providers.length + 1, maxTokens: 2048, temperature: 0.7,
+    enabled: true, apiKey: '', noAuthHeader: isLocalFreeGateway, freeTier: preset.freeTier, isExclusive: false
   };
   await aiStore.saveProvider(newProvider);
   expandedProvider.value = newId;
@@ -178,10 +194,7 @@ const addProvider = async (preset: ProviderPreset) => {
 
 const handleManualIpConnected = async (newProvider: any) => {
   await loadProviders();
-  if (newProvider?.id) {
-    expandedProvider.value = newProvider.id;
-    testProvider(newProvider);
-  }
+  if (newProvider?.id) { expandedProvider.value = newProvider.id; testProvider(newProvider); }
 };
 
 const deleteProvider = async (id: string) => { await aiStore.deleteProvider(id); };
@@ -189,177 +202,108 @@ onMounted(loadProviders);
 </script>
 
 <template>
-  <section id="section-providers" class="flex flex-col gap-7 text-[var(--arc-text-primary)] scroll-mt-14">
-    <!-- Уровень 1: Workspace Header + Сводка подключений -->
-    <SettingsSectionHeader 
-      variant="workspace"
-      categoryLabel="Интеллект · Подсистема 02"
-      title="Облачные провайдеры" 
-      description="Управление внешними API-провайдерами, защищённое хранение ключей (DPAPI) и подключение локальных сетевых шлюзов по IP (FreeAPILLM)."
-      :statusLabel="providersHeaderStatus.label"
-      :statusTone="providersHeaderStatus.tone"
-      :blockCountText="`${aiStore.providers.length} зарегистрировано`"
-      :icon="Cloud" 
-    >
+  <section id="section-providers" class="flex flex-col gap-10 text-[var(--arc-text-primary)] scroll-mt-14">
+    <SettingsSectionHeader variant="workspace" categoryLabel="Интеллект · Подсистема 02" title="Облачные провайдеры" description="Управление внешними API-провайдерами, защищённое хранение ключей (DPAPI) и подключение локальных сетевых шлюзов по IP (FreeAPILLM)." :statusLabel="providersHeaderStatus.label" :statusTone="providersHeaderStatus.tone" :blockCountText="`${aiStore.providers.length} зарегистрировано`" :icon="Cloud">
       <template #summary>
-        <div 
-          class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-[14px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] font-mono text-xs tabular-nums"
-          :style="{ background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)', boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' }"
-        >
-          <div class="flex flex-col gap-0.5 px-2">
-            <span class="text-[var(--arc-text-machine)] uppercase">Всего шлюзов</span>
-            <span class="text-sm font-semibold text-[var(--arc-text-primary)]">
-              {{ aiStore.providers.length }} <span class="text-xs font-normal text-[var(--arc-text-hint)]">({{ cloudGatewaysCount }} обл. / {{ localGatewaysCount }} лок.)</span>
-            </span>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-[12px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] font-mono text-xs tabular-nums" :style="{ boxShadow: 'var(--arc-well-shadow)' }">
+          <div class="flex flex-col gap-1 px-2.5">
+            <span class="text-[var(--arc-text-hint)]">Всего шлюзов</span>
+            <span class="text-sm font-semibold text-[var(--arc-text-primary)]">{{ aiStore.providers.length }} <span class="text-xs font-normal text-[var(--arc-text-hint)]">({{ cloudGatewaysCount }} обл. / {{ localGatewaysCount }} лок.)</span></span>
           </div>
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Состояние проверки</span>
-            <span class="text-sm font-semibold" :class="verifiedProvidersCount > 0 ? 'text-[var(--status-ok)]' : configuredProvidersCount > 0 ? 'text-[var(--status-warn)]' : 'text-[var(--arc-text-muted)]'">
-              {{ verifiedProvidersCount }} проверено <span class="text-xs font-normal text-[var(--arc-text-hint)]">из {{ enabledProvidersCount }} вкл.</span>
-            </span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Состояние проверки</span>
+            <span class="text-sm font-semibold" :class="verifiedProvidersCount > 0 ? 'text-[var(--status-ok)]' : configuredProvidersCount > 0 ? 'text-[var(--status-warn)]' : 'text-[var(--arc-text-muted)]'">{{ verifiedProvidersCount }} проверено <span class="text-xs font-normal text-[var(--arc-text-hint)]">из {{ enabledProvidersCount }} вкл.</span></span>
           </div>
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Google Gemini API</span>
-            <span class="text-sm font-semibold" :class="hasGeminiKey ? 'text-[var(--status-ok)]' : 'text-[var(--status-warn)]'">
-              {{ hasGeminiKey ? 'Ключ задан' : 'Не настроен' }}
-            </span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Google Gemini API</span>
+            <span class="text-sm font-semibold" :class="hasGeminiKey ? 'text-[var(--status-ok)]' : 'text-[var(--status-warn)]'">{{ hasGeminiKey ? 'Ключ задан' : 'Не настроен' }}</span>
           </div>
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Карантин сбоев</span>
-            <span class="text-sm font-semibold" :class="activeQuarantineCount > 0 ? 'text-[var(--status-err)]' : 'text-[var(--arc-text-secondary)]'">
-              {{ activeQuarantineCount > 0 ? `${activeQuarantineCount} заблокировано` : '0 (норма)' }}
-            </span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Карантин сбоев</span>
+            <span class="text-sm font-semibold" :class="activeQuarantineCount > 0 ? 'text-[var(--status-err)]' : 'text-[var(--arc-text-secondary)]'">{{ activeQuarantineCount > 0 ? `${activeQuarantineCount} заблокировано` : '0 (норма)' }}</span>
           </div>
         </div>
       </template>
     </SettingsSectionHeader>
 
-    <!-- Уровень 2: Функциональная группа 1 — Подключение нового шлюза и диагностика -->
-    <SettingsGroup
-      indexLabel="01"
-      title="Подключение нового шлюза"
-      description="Добавьте готовый профиль из каталога пресетов, настройте базовый ключ Google Gemini или подключите локальный сервер по IP."
-    >
-      <div 
-        class="p-4 rounded-[16px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] flex flex-col lg:flex-row lg:items-center justify-between gap-3.5"
-        :style="{ background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)', boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 10px 28px rgba(0, 0, 0, 0.60)' }"
-      >
-        <div class="flex flex-col gap-0.5">
-          <span class="text-[13px] font-sans font-semibold text-[var(--arc-text-primary)]">Инструменты регистрации API и сетевых узлов</span>
+    <SettingsGroup indexLabel="01" title="Подключение нового шлюза" description="Добавьте готовый профиль из каталога пресетов, настройте базовый ключ Google Gemini или подключите локальный сервер по IP.">
+      <div class="p-4 sm:p-5 rounded-[16px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] flex flex-col lg:flex-row lg:items-center justify-between gap-3.5" :style="{ background: 'var(--arc-block-gradient, linear-gradient(180deg, #161616 0%, #0F0F0F 100%))', boxShadow: 'var(--arc-block-elevation)' }">
+        <div class="flex flex-col gap-1">
+          <span class="text-[13.5px] font-sans font-semibold text-[var(--arc-text-primary)]">Инструменты регистрации API и сетевых узлов</span>
           <span class="text-xs text-[var(--arc-text-hint)]">OpenRouter, OpenAI, DeepSeek, Anthropic, Groq, а также локальные шлюзы FreeLLMAPI и LM Studio.</span>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap shrink-0">
           <PresetCatalogComp @select-preset="addProvider" />
-
-          <button 
-            id="providers.gemini_key"
-            data-setting-id="providers.gemini_key"
-            data-search="ключ google gemini api key облако провайдеры"
-            @click="showGeminiModal = true"
-            class="px-3 py-1.5 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-            :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' }"
-            title="Настройка Google Gemini API ключа"
-          >
+          <button id="providers.gemini_key" data-setting-id="providers.gemini_key" data-search="ключ google gemini api key облако провайдеры" @click="showGeminiModal = true" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Настройка Google Gemini API ключа">
             <Sparkles class="w-3.5 h-3.5" :class="hasGeminiKey ? 'text-[var(--status-ok)]' : 'text-[var(--status-warn)]'" />
             <span>GEMINI КЛЮЧ</span>
             <span class="w-1.5 h-1.5 rounded-full" :class="hasGeminiKey ? 'bg-[var(--status-ok)]' : 'bg-[var(--status-warn)]'"></span>
           </button>
-
-          <button 
-            id="providers.manual_ip"
-            data-setting-id="providers.manual_ip"
-            @click="showManualIpModal = true"
-            class="px-3 py-1.5 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-            :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' }"
-            title="Ручной ввод IP для FreeAPILLM (127.0.0.1:3067) или локального шлюза"
-            data-search="freeapillm локальный шлюз по ip 127.0.0.1:3067 ввести ip"
-          >
+          <button id="providers.manual_ip" data-setting-id="providers.manual_ip" @click="showManualIpModal = true" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Ручной ввод IP для FreeAPILLM (127.0.0.1:3067) или локального шлюза" data-search="freeapillm локальный шлюз по ip 127.0.0.1:3067 ввести ip">
             <Globe class="w-3.5 h-3.5 text-[var(--arc-text-muted)]" />
             <span>ВВЕСТИ IP</span>
           </button>
-
-          <button 
-            @click="loadProviders"
-            class="px-3 py-1.5 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-            :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' }"
-            title="Обновить список провайдеров"
-          >
+          <button @click="loadProviders" class="px-3 py-1.5 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[10px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Обновить список провайдеров">
             <RefreshCw class="w-3.5 h-3.5 text-[var(--arc-text-muted)]" :class="{ 'animate-spin': aiStore.isLoading }" />
             <span>ОБНОВИТЬ</span>
           </button>
         </div>
       </div>
 
-      <!-- Состояние конфигурации: предупреждение об отсутствующем ключе Gemini -->
-      <div 
-        v-if="!hasGeminiKey" 
-        class="px-4 py-3 rounded-[14px] bg-[var(--arc-block)] border border-[var(--status-warn)]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-      >
+      <div v-if="!hasGeminiKey" class="px-4 py-3 rounded-[14px] bg-[var(--arc-well)] border border-[var(--status-warn)]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div class="flex items-center gap-2.5 text-[var(--status-warn)]">
           <ShieldAlert class="w-4 h-4 shrink-0 text-[var(--status-warn)]" />
-          <span class="text-xs text-[var(--arc-text-secondary)] font-sans">
-            Ключ Google Gemini API не указан. Укажите ключ для облачного контура по умолчанию и мультимодальных функций.
-          </span>
+          <span class="text-xs text-[var(--arc-text-secondary)] font-sans">Ключ Google Gemini API не указан. Укажите ключ для облачного контура по умолчанию и мультимодальных функций.</span>
         </div>
-        <button 
-          @click="showGeminiModal = true" 
-          class="text-xs font-mono text-[var(--status-warn)] hover:text-[var(--arc-text-primary)] uppercase tracking-wider px-3 py-1.5 rounded-[10px] bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] transition shrink-0 cursor-pointer whitespace-nowrap self-start sm:self-center"
-        >
-          Ввести ключ
-        </button>
+        <button @click="showGeminiModal = true" class="text-xs font-mono text-[var(--status-warn)] hover:text-[var(--arc-text-primary)] uppercase tracking-wider px-3 py-1.5 rounded-[10px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] transition shrink-0 cursor-pointer whitespace-nowrap self-start sm:self-center">Ввести ключ</button>
       </div>
     </SettingsGroup>
 
-    <!-- Уровень 2: Функциональная группа 2 — Зарегистрированные провайдеры -->
-    <SettingsGroup
-      indexLabel="02"
-      title="Зарегистрированные провайдеры"
-      description="Нажмите на карточку шлюза для настройки API-ключа, выбора моделей, параметров генерации и проверки соединения."
-      :badgeText="`Всего: ${aiStore.providers.length}`"
-    >
-      <div 
-        v-if="aiStore.isLoading && aiStore.providers.length === 0" 
-        class="py-8 px-4 border border-[var(--arc-hairline)] rounded-[16px] text-center flex flex-col items-center gap-2 bg-[var(--arc-block)]"
-      >
+    <SettingsGroup indexLabel="02" title="Реестр шлюзов и инспектор провайдера" description="Выберите шлюз в списке слева для настройки авторизации, моделей и параметров генерации в инспекторе справа." :badgeText="`Всего: ${aiStore.providers.length}`">
+      <div v-if="aiStore.isLoading && aiStore.providers.length === 0" class="py-8 px-4 border border-[var(--arc-hairline)] rounded-[16px] text-center flex flex-col items-center gap-2 bg-[var(--arc-block)]">
         <RefreshCw class="w-5 h-5 text-[var(--accent)] animate-spin mb-1" />
         <span class="text-xs font-mono text-[var(--arc-text-primary)]">Загрузка конфигурации провайдеров...</span>
       </div>
 
-      <div 
-        v-else-if="aiStore.providers.length === 0" 
-        class="py-9 px-4 border border-dashed border-[var(--arc-hairline)] rounded-[16px] text-center flex flex-col items-center gap-2.5 bg-[var(--arc-plane)]"
-      >
+      <div v-else-if="aiStore.providers.length === 0" class="py-9 px-4 border border-dashed border-[var(--arc-hairline)] rounded-[16px] text-center flex flex-col items-center gap-2.5 bg-[var(--arc-well)]">
         <Cpu class="w-5 h-5 text-[var(--arc-text-muted)]" />
         <span class="text-xs font-mono font-semibold text-[var(--arc-text-primary)] uppercase">Зарегистрированные шлюзы отсутствуют</span>
-        <span class="text-xs text-[var(--arc-text-hint)] max-w-md">
-          В системе не настроен ни один внешний провайдер. Добавьте профиль из каталога пресетов выше или подключите локальный сервер по IP.
-        </span>
-        <div class="flex items-center gap-2 mt-1">
-          <button type="button" @click="showGeminiModal = true" class="px-3 py-1.5 rounded-[10px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] text-xs font-mono text-[var(--arc-text-primary)] cursor-pointer transition">Настроить Gemini API</button>
-          <button type="button" @click="showManualIpModal = true" class="px-3 py-1.5 rounded-[10px] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] cursor-pointer transition">Подключить по IP</button>
+        <span class="text-xs text-[var(--arc-text-hint)] max-w-md">В системе не настроен ни один внешний провайдер. Добавьте профиль из каталога пресетов выше или подключите локальный сервер по IP.</span>
+      </div>
+
+      <!-- MASTER-DETAIL WORKSPACE -->
+      <div v-else class="grid grid-cols-1 lg:grid-cols-[296px_minmax(0,1fr)] gap-5 items-start">
+        <div class="p-2.5 rounded-[16px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] flex flex-col gap-2 min-w-0" :style="{ boxShadow: 'var(--arc-well-shadow)' }">
+          <div class="px-2.5 py-1.5 flex items-center justify-between border-b border-[var(--arc-hairline)] text-xs font-mono">
+            <span class="text-[var(--arc-text-hint)] uppercase">Список шлюзов</span>
+            <span class="text-[var(--arc-text-secondary)] tabular-nums">{{ enabledProvidersCount }} / {{ aiStore.providers.length }} вкл.</span>
+          </div>
+
+          <div class="flex flex-col gap-1.5 max-h-[540px] overflow-y-auto pr-0.5">
+            <div v-for="p in aiStore.providers" :key="p.id" role="button" tabindex="0" @click="selectProvider(p)" @keydown.enter.prevent="selectProvider(p)" class="p-3 rounded-[12px] border transition-colors cursor-pointer flex flex-col gap-2 select-none" :class="selectedProvider?.id === p.id ? 'bg-[var(--arc-block-elevated)] border-[var(--accent)]/45' : 'bg-[var(--arc-block)] border-[var(--arc-hairline)] hover:border-[var(--arc-border-focus,var(--arc-hairline))]'">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <button type="button" @click.stop="toggleProviderEnabled(p)" class="w-4 h-4 rounded flex items-center justify-center hover:bg-[var(--arc-hover)] shrink-0 cursor-pointer" title="Включить или отключить шлюз">
+                    <span class="w-2 h-2 rounded-full" :class="getProviderListStatus(p).dot"></span>
+                  </button>
+                  <span class="text-xs font-mono font-bold text-[var(--arc-text-primary)] truncate">{{ p.name }}</span>
+                </div>
+                <span class="text-xs font-mono font-semibold shrink-0" :class="getProviderListStatus(p).text">{{ getProviderListStatus(p).label }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 text-xs font-mono text-[var(--arc-text-hint)]">
+                <span class="truncate">{{ p.model || (p.selectedModels && p.selectedModels[0]) || 'Модель не выбрана' }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-[var(--arc-well)] border border-[var(--arc-hairline)] uppercase shrink-0">{{ p.type === 'local' ? 'LOC' : 'API' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <ProviderCard v-if="selectedProvider" :key="selectedProvider.id" :provider="selectedProvider" :is-expanded="true" :test-result="aiStore.getProviderTestState(selectedProvider)" :fetched-models="fetchedModels[selectedProvider.id] || []" :is-loading-models="modelFetchStates[selectedProvider.id] === 'loading'" @toggle-expand="selectProvider(selectedProvider)" @test-provider="testProvider(selectedProvider)" @fetch-models="(isAuto) => fetchModels(selectedProvider, isAuto)" @delete-provider="deleteProvider(selectedProvider.id)" />
       </div>
 
-      <div v-else class="flex flex-col gap-3">
-        <ProviderCard 
-          v-for="provider in aiStore.providers" 
-          :key="provider.id"
-          :provider="provider"
-          :is-expanded="expandedProvider === provider.id"
-          :test-result="aiStore.getProviderTestState(provider)"
-          :fetched-models="fetchedModels[provider.id] || []"
-          :is-loading-models="modelFetchStates[provider.id] === 'loading'"
-          @toggle-expand="toggleExpand(provider)"
-          @test-provider="testProvider(provider)"
-          @fetch-models="(isAuto) => fetchModels(provider, isAuto)"
-          @delete-provider="deleteProvider(provider.id)"
-        />
-      </div>
-
-      <!-- Переходы к смежным подразделам -->
-      <div class="px-4 py-3 rounded-[14px] border border-[var(--arc-hairline)] bg-[var(--arc-plane)] flex flex-wrap items-center justify-between gap-3">
-        <span class="text-xs font-mono text-[var(--arc-text-machine)] uppercase tracking-wider">Связанные разделы:</span>
+      <div class="px-4 py-3 rounded-[14px] border border-[var(--arc-hairline)] bg-[var(--arc-well)] flex flex-wrap items-center justify-between gap-3">
+        <span class="text-xs font-mono text-[var(--arc-text-hint)]">Связанные разделы:</span>
         <div class="flex flex-wrap items-center gap-4">
           <CrossLink label="Маршрутизация и потоковый вывод" tab="intelligence" sectionId="section-router" />
           <CrossLink label="Локальный ИИ (GGUF / Ollama)" tab="intelligence" sectionId="section-local" />

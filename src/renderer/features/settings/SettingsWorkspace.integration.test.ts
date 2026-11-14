@@ -108,6 +108,7 @@ describe('SettingsWorkspace Integration Tests (Split Navigation, Telemetry, IPC 
           }
         }),
         CrossLink: StubIcon,
+        ArcSelect: StubIcon,
         ModelCard: defineComponent({
           props: ['model'],
           setup(props) {
@@ -151,6 +152,8 @@ describe('SettingsWorkspace Integration Tests (Split Navigation, Telemetry, IPC 
           searchQuery,
           sortBy,
           sizeFilter,
+          setSortBy: (val: string) => { sortBy.value = val as 'quality' | 'speed' | 'size'; },
+          setSizeFilter: (val: string) => { sizeFilter.value = val as 'all' | '<1' | '1-4' | '4-8' | '>8'; },
           onlyCompatible,
           filters,
           resetFilters: () => {},

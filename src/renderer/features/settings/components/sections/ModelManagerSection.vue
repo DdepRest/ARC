@@ -1,7 +1,7 @@
 <template>
   <section 
     id="section-models" 
-    class="scroll-mt-14 flex flex-col gap-7 text-[var(--arc-text-primary)] font-sans"
+    class="scroll-mt-14 flex flex-col gap-10 text-[var(--arc-text-primary)] font-sans"
   >
     <!-- Уровень 1: Workspace Header + Аппаратный профиль памяти -->
     <SettingsSectionHeader
@@ -19,15 +19,14 @@
           id="models.hub"
           data-setting-id="models.hub"
           data-search="model hub модели загрузки веса vram озу квантование"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3.5 rounded-[14px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] font-mono text-xs tabular-nums"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3.5 rounded-[12px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] font-mono text-xs tabular-nums"
           :style="{
-            background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)',
-            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)'
+            boxShadow: 'var(--arc-well-shadow)'
           }"
         >
           <!-- Колонка 1: ОЗУ системы -->
-          <div class="flex flex-col gap-0.5 px-2">
-            <span class="text-[var(--arc-text-machine)] uppercase">Оперативная память (ОЗУ)</span>
+          <div class="flex flex-col gap-1 px-2.5">
+            <span class="text-[var(--arc-text-hint)]">Оперативная память (ОЗУ)</span>
             <span v-if="systemRamGb !== null" class="text-sm font-semibold text-[var(--status-ok)]">
               {{ systemRamGb }} ГБ <span class="text-xs font-normal text-[var(--arc-text-hint)]">Установлено ОЗУ</span>
             </span>
@@ -37,16 +36,16 @@
           </div>
 
           <!-- Колонка 2: Видеопамять (VRAM) -->
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Видеопамять (VRAM)</span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Видеопамять (VRAM)</span>
             <span class="text-sm font-semibold" :class="systemVramGb && systemVramGb > 0 ? 'text-[var(--arc-text-primary)]' : 'text-[var(--arc-text-muted)]'">
               {{ systemVramGb && systemVramGb > 0 ? `${systemVramGb} ГБ GPU` : (systemRamGb !== null ? 'Общий пул ОЗУ' : 'Не определено') }}
             </span>
           </div>
 
           <!-- Колонка 3: Установленные веса -->
-          <div class="flex flex-col gap-0.5 px-2 lg:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Установлено на диске</span>
+          <div class="flex flex-col gap-1 px-2.5 lg:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Установлено на диске</span>
             <span class="text-sm font-semibold" :class="diskCheckStatus === 'ERROR' ? 'text-[var(--status-err)]' : diskCheckStatus === 'UNAVAILABLE' ? 'text-[var(--status-warn)]' : 'text-[var(--arc-text-primary)]'">
               <template v-if="diskCheckStatus === 'UNAVAILABLE'">IPC недоступен</template>
               <template v-else-if="diskCheckStatus === 'ERROR'">Ошибка чтения</template>
@@ -56,13 +55,13 @@
           </div>
 
           <!-- Колонка 4: Профиль расчёта совместимости -->
-          <div class="flex flex-col gap-1 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Целевой контур расчёта</span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Целевой контур расчёта</span>
             <div v-if="systemVramGb && systemVramGb > 0" class="flex items-center gap-1.5">
               <button
                 type="button"
                 @click="useGpuCalc = true"
-                :class="useGpuCalc ? 'bg-[var(--arc-selected)] text-[var(--arc-text-primary)] border-[var(--accent)]' : 'bg-[var(--arc-plane)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
+                :class="useGpuCalc ? 'bg-[var(--arc-selected)] text-[var(--arc-text-primary)] border-[var(--accent)]' : 'bg-[var(--arc-block)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
                 class="px-2 py-0.5 rounded-[6px] text-xs font-mono font-semibold border transition-colors cursor-pointer"
               >
                 ГП ({{ systemVramGb }} ГБ)
@@ -70,7 +69,7 @@
               <button
                 type="button"
                 @click="useGpuCalc = false"
-                :class="!useGpuCalc ? 'bg-[var(--arc-selected)] text-[var(--arc-text-primary)] border-[var(--accent)]' : 'bg-[var(--arc-plane)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
+                :class="!useGpuCalc ? 'bg-[var(--arc-selected)] text-[var(--arc-text-primary)] border-[var(--accent)]' : 'bg-[var(--arc-block)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
                 class="px-2 py-0.5 rounded-[6px] text-xs font-mono font-semibold border transition-colors cursor-pointer"
               >
                 ЦП ({{ systemRamGb !== null ? `${systemRamGb} ГБ` : '—' }})
@@ -241,25 +240,33 @@
 
         <!-- Сортировка, фильтр размера и чекбокс совместимости -->
         <div class="flex flex-wrap items-center gap-2.5">
-          <select
-            v-model="sortBy"
-            class="bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-1.5 text-xs text-[var(--arc-text-secondary)] font-mono focus:outline-none focus:border-[var(--accent)] cursor-pointer"
-          >
-            <option value="quality">Сортировка: По качеству</option>
-            <option value="speed">Сортировка: По скорости</option>
-            <option value="size">Сортировка: По размеру</option>
-          </select>
+          <div class="w-48 shrink-0">
+            <ArcSelect
+              size="sm"
+              :model-value="sortBy"
+              :options="[
+                { label: 'Сортировка: По качеству', value: 'quality' },
+                { label: 'Сортировка: По скорости', value: 'speed' },
+                { label: 'Сортировка: По размеру', value: 'size' }
+              ]"
+              @update:model-value="setSortBy"
+            />
+          </div>
 
-          <select
-            v-model="sizeFilter"
-            class="bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-1.5 text-xs text-[var(--arc-text-secondary)] font-mono focus:outline-none focus:border-[var(--accent)] cursor-pointer"
-          >
-            <option value="all">Любой размер</option>
-            <option value="<1">До 1 ГБ</option>
-            <option value="1-4">1–4 ГБ</option>
-            <option value="4-8">4–8 ГБ</option>
-            <option value=">8">8+ ГБ</option>
-          </select>
+          <div class="w-36 shrink-0">
+            <ArcSelect
+              size="sm"
+              :model-value="sizeFilter"
+              :options="[
+                { label: 'Любой размер', value: 'all' },
+                { label: 'До 1 ГБ', value: '<1' },
+                { label: '1–4 ГБ', value: '1-4' },
+                { label: '4–8 ГБ', value: '4-8' },
+                { label: '8+ ГБ', value: '>8' }
+              ]"
+              @update:model-value="setSizeFilter"
+            />
+          </div>
 
           <label
             class="flex items-center gap-2 bg-[var(--arc-input)] px-3 py-1.5 rounded-[10px] border border-[var(--arc-hairline)] transition select-none"
@@ -326,6 +333,7 @@ import { useModelHubSession, getQuantCompatibility } from '../../composables/use
 import SettingsSectionHeader from '../SettingsSectionHeader.vue';
 import SettingsGroup from '../primitives/SettingsGroup.vue';
 import CrossLink from '../primitives/CrossLink.vue';
+import ArcSelect from '../../../../components/ui/ArcSelect.vue';
 import ModelCard from './models/ModelCard.vue';
 import { Cpu, CheckCircle, Loader2, HardDrive, RefreshCw, AlertTriangle, FolderOpen } from 'lucide-vue-next';
 
@@ -357,6 +365,9 @@ const searchQuery = ref('');
 const sortBy = ref<'quality' | 'speed' | 'size'>('quality');
 const sizeFilter = ref<'all' | '<1' | '1-4' | '4-8' | '>8'>('all');
 const onlyCompatible = ref(false);
+
+const setSortBy = (val: string) => { sortBy.value = val as 'quality' | 'speed' | 'size'; };
+const setSizeFilter = (val: string) => { sizeFilter.value = val as 'all' | '<1' | '1-4' | '4-8' | '>8'; };
 
 const filters = [
   { id: 'all', name: 'Все' },

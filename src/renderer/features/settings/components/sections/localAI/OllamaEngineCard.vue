@@ -4,19 +4,21 @@
     class="h-full flex flex-col justify-between gap-4 p-4 sm:p-5 rounded-[16px] border transition duration-200 cursor-pointer bg-[var(--arc-block)]"
     :class="[
       settingsStore.useLocalLLM && settingsStore.localLLMModel !== 'builtin'
-        ? 'border-[var(--status-warn)]/40' 
+        ? 'border-[var(--status-warn)]/45' 
         : 'border-[var(--arc-hairline)] hover:border-[var(--arc-border-focus,var(--arc-hairline))]'
     ]"
     :style="{
-      background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)',
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.50)'
+      background: settingsStore.useLocalLLM && settingsStore.localLLMModel !== 'builtin'
+        ? 'var(--arc-block-active-gradient, linear-gradient(180deg, #1C1C1C 0%, #121212 100%))'
+        : 'var(--arc-block-gradient, linear-gradient(180deg, #161616 0%, #0F0F0F 100%))',
+      boxShadow: 'var(--arc-block-elevation)'
     }"
   >
     <div class="flex flex-col gap-3.5">
       <!-- Header Row with Inline Active Status -->
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-3 min-w-0">
-          <div class="p-2 bg-[var(--arc-plane)] rounded-[10px] border border-[var(--status-warn)]/30 text-[var(--status-warn)] shrink-0 mt-0.5">
+          <div class="p-2 bg-[var(--arc-well)] rounded-[10px] border border-[var(--status-warn)]/30 text-[var(--status-warn)] shrink-0 mt-0.5">
             <Zap class="w-4 h-4" />
           </div>
           <div class="flex flex-col gap-1 min-w-0">
@@ -29,7 +31,7 @@
           class="px-2.5 py-0.5 rounded-[6px] text-xs font-mono font-semibold uppercase tracking-wider shrink-0 border"
           :class="settingsStore.useLocalLLM && settingsStore.localLLMModel !== 'builtin'
             ? 'bg-[var(--arc-selected)] text-[var(--status-warn)] border-[var(--status-warn)]/40'
-            : 'bg-[var(--arc-plane)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)]'"
+            : 'bg-[var(--arc-well)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)]'"
         >
           {{ settingsStore.useLocalLLM && settingsStore.localLLMModel !== 'builtin' ? translations.activeEngine : 'РЕЗЕРВ' }}
         </span>
@@ -42,7 +44,7 @@
           
           <div class="flex items-center gap-2">
             <div 
-              class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[6px] text-xs font-mono uppercase border bg-[var(--arc-plane)]"
+              class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[6px] text-xs font-mono uppercase border bg-[var(--arc-well)]"
               :class="isOllamaOnline ? 'border-[var(--status-ok)]/30 text-[var(--status-ok)]' : 'border-[var(--status-err)]/30 text-[var(--status-err)]'"
             >
               <span class="w-1.5 h-1.5 rounded-full" :class="isOllamaOnline ? 'bg-[var(--status-ok)]' : 'bg-[var(--status-err)]'"></span>
@@ -52,7 +54,7 @@
             <button 
               type="button"
               @click.stop="checkOllama" 
-              class="text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] p-1.5 rounded-[8px] transition shrink-0 cursor-pointer"
+              class="text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] p-1.5 rounded-[8px] transition shrink-0 cursor-pointer"
               :disabled="checkingOllama"
               :title="translations.checkStatus"
             >
@@ -62,7 +64,7 @@
         </div>
 
         <!-- Model selection dropdown and terminal warning -->
-        <div class="flex flex-col gap-2.5 p-3.5 rounded-[12px] border border-[var(--arc-hairline)] bg-[var(--arc-plane)]" @click.stop>
+        <div class="flex flex-col gap-2.5 p-3.5 rounded-[12px] border border-[var(--arc-hairline)] bg-[var(--arc-well)]" @click.stop>
           <span class="text-xs font-mono text-[var(--arc-text-hint)] tracking-wider uppercase font-semibold">{{ translations.selectModel }}</span>
           
           <div class="relative w-full">
@@ -117,16 +119,20 @@
             class="flex items-center justify-between gap-3 pt-2.5 mt-1 border-t border-[var(--arc-hairline)]"
           >
             <span class="text-xs font-mono text-[var(--arc-text-muted)]">Удержание модели в памяти (Keep-Alive)</span>
-            <select
-              v-model="settingsStore.ollamaKeepAlive"
-              class="bg-[var(--arc-block)] border border-[var(--arc-hairline)] rounded-[8px] px-3 py-1.5 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
-            >
-              <option value="5m" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">5 минут</option>
-              <option value="15m" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">15 минут</option>
-              <option value="30m" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">30 минут</option>
-              <option value="1h" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">1 час</option>
-              <option value="never" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Не выгружать (Never)</option>
-            </select>
+            <div class="w-44 shrink-0">
+              <ArcSelect
+                size="sm"
+                :model-value="settingsStore.ollamaKeepAlive"
+                :options="[
+                  { label: '5 минут', value: '5m' },
+                  { label: '15 минут', value: '15m' },
+                  { label: '30 минут', value: '30m' },
+                  { label: '1 час', value: '1h' },
+                  { label: 'Не выгружать (Never)', value: 'never' }
+                ]"
+                @update:model-value="val => { settingsStore.ollamaKeepAlive = val; }"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -148,6 +154,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Zap, RefreshCw, Check } from 'lucide-vue-next';
+import ArcSelect from '../../../../../components/ui/ArcSelect.vue';
 import { formatCheckedAtTime } from '../../../logic/provider-validation';
 
 const props = defineProps<{

@@ -19,6 +19,7 @@
           v-for="option in options"
           :key="String(option.value)"
           :value="option.value"
+          :disabled="option.disabled"
           :title="option.label"
           class="bg-[var(--arc-popover)] text-[var(--arc-text-primary)] py-2"
         >
@@ -40,6 +41,7 @@ import { ChevronDown } from 'lucide-vue-next';
 interface SelectOption {
   label: string;
   value: string | number | boolean;
+  disabled?: boolean;
 }
 
 type Size = 'sm' | 'md' | 'lg';

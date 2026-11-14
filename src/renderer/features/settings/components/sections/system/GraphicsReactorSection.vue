@@ -145,19 +145,16 @@
           description="Яркость зеркальных бликов на внешнем кольце и зажимах камеры."
           data-search="интенсивность металлических отражений envmap блеск металл"
         >
-          <div class="flex items-center gap-3 w-48">
-            <input
-              type="range"
-              min="50"
-              max="150"
-              step="5"
-              :value="cfg.envMapIntensity"
-              @input="(e) => store.updateGraphicsParam('envMapIntensity', Number((e.target as HTMLInputElement).value))"
-              class="flex-1 accent-[var(--accent)] cursor-pointer"
+          <div class="w-52 shrink-0">
+            <ArcSlider
+              :model-value="cfg.envMapIntensity"
+              :min="50"
+              :max="150"
+              :step="5"
+              unit="%"
+              :show-value="true"
+              @update:model-value="(val: number) => store.updateGraphicsParam('envMapIntensity', val)"
             />
-            <span class="w-11 text-right text-xs font-mono text-[var(--arc-text-secondary)]">
-              {{ cfg.envMapIntensity }}%
-            </span>
           </div>
         </SettingsRow>
       </SettingsBlock>
@@ -182,20 +179,17 @@
           description="Баланс яркости ореола (100% — штатный профиль без засветки треугольника)."
           data-search="сила свечения bloom strength яркость ореола засветка"
         >
-          <div class="flex items-center gap-3 w-48">
-            <input
-              type="range"
-              min="50"
-              max="150"
-              step="5"
+          <div class="w-52 shrink-0">
+            <ArcSlider
+              :model-value="cfg.bloomStrength"
+              :min="50"
+              :max="150"
+              :step="5"
+              unit="%"
               :disabled="!cfg.bloomEnabled"
-              :value="cfg.bloomStrength"
-              @input="(e) => store.updateGraphicsParam('bloomStrength', Number((e.target as HTMLInputElement).value))"
-              class="flex-1 accent-[var(--accent)] cursor-pointer disabled:opacity-40"
+              :show-value="true"
+              @update:model-value="(val: number) => store.updateGraphicsParam('bloomStrength', val)"
             />
-            <span class="w-11 text-right text-xs font-mono text-[var(--arc-text-secondary)]">
-              {{ cfg.bloomStrength }}%
-            </span>
           </div>
         </SettingsRow>
 
@@ -205,20 +199,17 @@
           description="Ширина диффузного свечения вокруг эмиссионных контуров (0.20 — узкий, 0.80 — широкий)."
           data-search="радиус свечения bloom radius рассеивание ореол"
         >
-          <div class="flex items-center gap-3 w-48">
-            <input
-              type="range"
-              min="0.2"
-              max="0.8"
-              step="0.05"
+          <div class="w-52 shrink-0">
+            <ArcSlider
+              :model-value="cfg.bloomRadius"
+              :min="0.2"
+              :max="0.8"
+              :step="0.05"
               :disabled="!cfg.bloomEnabled"
-              :value="cfg.bloomRadius"
-              @input="(e) => store.updateGraphicsParam('bloomRadius', Number((e.target as HTMLInputElement).value))"
-              class="flex-1 accent-[var(--accent)] cursor-pointer disabled:opacity-40"
+              :show-value="true"
+              :format-value="(val: number) => val.toFixed(2)"
+              @update:model-value="(val: number) => store.updateGraphicsParam('bloomRadius', val)"
             />
-            <span class="w-11 text-right text-xs font-mono text-[var(--arc-text-secondary)]">
-              {{ cfg.bloomRadius.toFixed(2) }}
-            </span>
           </div>
         </SettingsRow>
 
@@ -356,6 +347,7 @@ import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
+import ArcSlider from '../../../../../components/ui/ArcSlider.vue';
 import GraphicsPresetBanner from './GraphicsPresetBanner.vue';
 import { Layers } from 'lucide-vue-next';
 

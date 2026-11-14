@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../../../stores/ui.store';
 import ArcToggle from '../../../../components/ui/ArcToggle.vue';
 import ArcSlider from '../../../../components/ui/ArcSlider.vue';
+import ArcSelect from '../../../../components/ui/ArcSelect.vue';
 import SettingsSectionHeader from '../SettingsSectionHeader.vue';
 import SettingsBlock from '../primitives/SettingsBlock.vue';
 import SettingsRow from '../primitives/SettingsRow.vue';
@@ -50,8 +51,7 @@ const fetchTtsPresets = async () => {
   } catch (e) { console.warn('Ignored error in catch', e); }
 };
 
-const onProviderChange = async (event: Event) => {
-  const raw = (event.target as HTMLSelectElement).value;
+const onProviderValueChange = async (raw: string) => {
   const v = (!['auto', 'silero', 'edge', 'native'].includes(raw) ? 'auto' : raw) as 'auto' | 'silero' | 'edge' | 'native';
   settingsStore.ttsProvider = v;
   if (typeof window !== 'undefined' && window.api?.setTtsProvider) {
@@ -61,6 +61,10 @@ const onProviderChange = async (event: Event) => {
       setTimeout(() => { void fetchTtsPresets(); }, 1800);
     }
   }
+};
+
+const onSampleRateChange = (val: string) => {
+  settingsStore.ttsSampleRate = Number(val) as 8000 | 24000 | 48000;
 };
 
 const restartServer = async () => {
@@ -151,18 +155,20 @@ const stopVoice = () => {
               <span class="px-2.5 py-1.5 rounded-lg border border-[var(--arc-hairline)] bg-[var(--arc-plane)] text-xs font-mono text-[var(--arc-text-muted)]">
                 Активный сейчас: <strong class="text-[var(--arc-text-primary)]">{{ activeEngineLabel }}</strong>
               </span>
-              <select
-                :value="settingsStore.ttsProvider"
-                @change="onProviderChange"
-                class="bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer hover:bg-[var(--arc-hover)] min-w-[180px]"
-              >
-                <option value="auto" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Auto (Silero → Edge → SAPI)</option>
-                <option value="silero" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Silero TTS v5.6 (RU)</option>
-                <option value="edge" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Edge TTS (Microsoft Neural)</option>
-                <option value="native" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Native SAPI / Системный</option>
-                <option value="piper" disabled class="bg-[var(--arc-block)] text-[var(--arc-text-muted)]">Piper ONNX (Planned v1.1)</option>
-                <option value="kokoro" disabled class="bg-[var(--arc-block)] text-[var(--arc-text-muted)]">Kokoro 82M (Planned v1.1)</option>
-              </select>
+              <div class="w-56 shrink-0">
+                <ArcSelect
+                  :model-value="settingsStore.ttsProvider"
+                  :options="[
+                    { label: 'Auto (Silero → Edge → SAPI)', value: 'auto' },
+                    { label: 'Silero TTS v5.6 (RU)', value: 'silero' },
+                    { label: 'Edge TTS (Microsoft Neural)', value: 'edge' },
+                    { label: 'Native SAPI / Системный', value: 'native' },
+                    { label: 'Piper ONNX (Planned v1.1)', value: 'piper', disabled: true },
+                    { label: 'Kokoro 82M (Planned v1.1)', value: 'kokoro', disabled: true }
+                  ]"
+                  @update:model-value="onProviderValueChange"
+                />
+              </div>
             </div>
           </SettingsRow>
 
@@ -174,17 +180,15 @@ const stopVoice = () => {
             data-search="голосовой профиль voice preset спикер speaker диктор"
           >
             <div class="flex items-center gap-2 shrink-0">
-              <select 
-                v-model="settingsStore.voicePresetId" 
-                class="bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer hover:bg-[var(--arc-hover)] min-w-[180px]"
-              >
-                <option v-if="presets.length === 0" :value="settingsStore.voicePresetId" class="bg-[var(--arc-block)] text-white">
-                  Стандартный профиль ({{ settingsStore.voicePresetId || 'aidar' }})
-                </option>
-                <option v-for="voice in presets" :key="voice.id" :value="voice.id" class="bg-[var(--arc-block)] text-white">
-                  {{ voice.name }}
-                </option>
-              </select>
+              <div class="w-52 shrink-0">
+                <ArcSelect
+                  :model-value="settingsStore.voicePresetId"
+                  :options="presets.length === 0
+                    ? [{ label: `Стандартный профиль (${settingsStore.voicePresetId || 'aidar'})`, value: settingsStore.voicePresetId }]
+                    : presets.map(v => ({ label: v.name, value: v.id }))"
+                  @update:model-value="val => { settingsStore.voicePresetId = val; }"
+                />
+              </div>
               <button 
                 type="button"
                 @click="uiStore.speak('Синтез речи успешно настроен. A.R.C. готов к работе.', undefined, { force: true })"
@@ -228,14 +232,17 @@ const stopVoice = () => {
             description="Более высокая частота обеспечивает чистый студийный тембр."
             data-search="качество звука частота дискретизации sample rate 48000"
           >
-            <select 
-              v-model="settingsStore.ttsSampleRate" 
-              class="w-36 bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer tabular-nums"
-            >
-              <option :value="8000">8000 Гц</option>
-              <option :value="24000">24000 Гц</option>
-              <option :value="48000">48000 Гц</option>
-            </select>
+            <div class="w-36 shrink-0">
+              <ArcSelect
+                :model-value="settingsStore.ttsSampleRate"
+                :options="[
+                  { label: '8000 Гц', value: 8000 },
+                  { label: '24000 Гц', value: 24000 },
+                  { label: '48000 Гц', value: 48000 }
+                ]"
+                @update:model-value="onSampleRateChange"
+              />
+            </div>
           </SettingsRow>
 
           <!-- DSP Robot Effect -->

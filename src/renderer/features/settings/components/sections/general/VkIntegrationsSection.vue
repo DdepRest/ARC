@@ -27,14 +27,18 @@
           description="Выберите поисковый движок для выполнения веб-запросов (DuckDuckGo / Tavily / Serper)."
           data-search="провайдер веб-поиска search provider duckduckgo tavily serper"
         >
-          <select
-            v-model="store.searchProvider"
-            class="bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-[8px] px-3 py-1.5 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer hover:bg-[var(--arc-hover)] min-w-[180px]"
-          >
-            <option value="duckduckgo" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">DuckDuckGo (Без ключа)</option>
-            <option value="tavily" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Tavily AI Search</option>
-            <option value="serper" class="bg-[var(--arc-block)] text-[var(--arc-text-primary)]">Serper (Google Search)</option>
-          </select>
+          <div class="w-52 shrink-0">
+            <ArcSelect
+              size="sm"
+              :model-value="store.searchProvider"
+              :options="[
+                { label: 'DuckDuckGo (Без ключа)', value: 'duckduckgo' },
+                { label: 'Tavily AI Search', value: 'tavily' },
+                { label: 'Serper (Google Search)', value: 'serper' }
+              ]"
+              @update:model-value="setSearchProvider"
+            />
+          </div>
         </SettingsRow>
 
         <div class="px-4 py-3 border-t border-[var(--arc-hairline)] flex flex-wrap items-center justify-between gap-3 bg-[var(--arc-plane)]/40">
@@ -51,6 +55,7 @@
 <script setup lang="ts">
 import { useSettingsStore } from '../../../stores/settings.store';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
+import ArcSelect from '../../../../../components/ui/ArcSelect.vue';
 import CrossLink from '../../primitives/CrossLink.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
@@ -58,4 +63,5 @@ import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import { Globe } from 'lucide-vue-next';
 
 const store = useSettingsStore();
+const setSearchProvider = (val: string) => { store.searchProvider = val as 'duckduckgo' | 'tavily' | 'serper'; };
 </script>

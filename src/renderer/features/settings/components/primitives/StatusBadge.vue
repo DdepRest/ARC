@@ -1,19 +1,20 @@
 <template>
-  <div class="inline-flex items-center gap-2">
-    <span 
-      class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[var(--arc-hairline)] bg-[var(--arc-block)] text-xs font-mono tracking-[0.08em] uppercase font-semibold text-[var(--arc-text-secondary)]"
-      :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' }"
+  <div class="inline-flex items-center gap-2.5">
+    <!-- Unboxed inline status text with semantic dot -->
+    <span
+      class="inline-flex items-center gap-1.5 text-xs font-mono tracking-wide font-semibold tabular-nums"
+      :class="textClasses"
     >
-      <span class="w-1.5 h-1.5 rounded-full ring-1 ring-[var(--arc-hairline)] shrink-0" :class="dotClasses" />
+      <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="dotClasses" />
       <span><slot>{{ label }}</slot></span>
     </span>
 
+    <!-- Interactive action button keeps border & surface -->
     <button
       v-if="actionLabel"
       type="button"
       @click="$emit('action')"
-      class="px-2.5 py-0.5 rounded-[8px] border border-[var(--arc-hairline)] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-xs font-mono text-[var(--arc-text-primary)] transition-colors cursor-pointer"
-      :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' }"
+      class="px-2.5 py-0.5 rounded-[8px] border border-[var(--arc-edge-strong)] bg-[var(--arc-input)] hover:bg-[var(--arc-hover)] text-xs font-mono text-[var(--arc-text-primary)] transition-colors cursor-pointer"
     >
       {{ actionLabel }}
     </button>
@@ -35,6 +36,20 @@ const props = withDefaults(defineProps<{
 defineEmits<{
   (e: 'action'): void;
 }>();
+
+const textClasses = computed(() => {
+  switch (props.status) {
+    case 'ok':
+      return 'text-[var(--status-ok)]';
+    case 'warn':
+      return 'text-[var(--status-warn)]';
+    case 'err':
+      return 'text-[var(--status-err)]';
+    case 'off':
+    default:
+      return 'text-[var(--arc-text-secondary)]';
+  }
+});
 
 const dotClasses = computed(() => {
   switch (props.status) {

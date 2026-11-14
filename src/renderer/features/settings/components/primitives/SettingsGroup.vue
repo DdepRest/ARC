@@ -1,34 +1,41 @@
 <template>
-  <div class="flex flex-col gap-3.5" :id="id">
-    <!-- Functional Group Header (Level 2 Hierarchy) -->
-    <div 
+  <div class="flex flex-col gap-4" :id="id" :style="{ fontFamily: 'var(--font-ui)' }">
+    <!-- Functional Group Header (Level 2 Hierarchy — Architectural Section Rail) -->
+    <div
       v-if="title || $slots.header || $slots.actions"
-      class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-2.5 border-b border-[var(--arc-hairline)] select-none"
+      class="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 pb-2.5 select-none relative"
+      :style="{
+        borderBottom: '1px solid transparent',
+        backgroundImage: 'linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 55%, transparent 100%)',
+        backgroundPosition: '0 100%',
+        backgroundSize: '100% 1px',
+        backgroundRepeat: 'no-repeat'
+      }"
     >
-      <div class="flex flex-col gap-0.5 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span 
-            v-if="indexLabel" 
-            class="text-xs font-mono font-semibold text-[var(--accent)] tracking-wider uppercase shrink-0 tabular-nums"
+      <div class="flex flex-col gap-1 min-w-0">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <span
+            v-if="indexLabel"
+            class="px-1.5 py-0.5 rounded-[5px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] text-xs font-mono font-semibold text-[var(--accent)] tracking-wider shrink-0 tabular-nums"
           >
             {{ indexLabel }}
           </span>
-          <component 
-            :is="icon" 
-            v-if="icon" 
-            class="w-3.5 h-3.5 text-[var(--arc-text-machine)] shrink-0" 
+          <component
+            :is="icon"
+            v-if="icon"
+            class="w-4 h-4 text-[var(--arc-text-machine)] shrink-0"
           />
-          <h3 class="text-sm font-semibold text-[var(--arc-text-primary)] tracking-tight leading-snug">
+          <h3 class="text-[15.5px] sm:text-[16.5px] font-semibold text-[var(--arc-text-primary)] tracking-tight leading-snug">
             {{ title }}
           </h3>
-          <span 
-            v-if="badgeText" 
-            class="text-xs font-mono text-[var(--arc-text-machine)] px-2 py-0.5 rounded-[6px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] tabular-nums"
+          <span
+            v-if="badgeText"
+            class="text-xs font-mono text-[var(--arc-text-machine)] tabular-nums"
           >
-            {{ badgeText }}
+            · {{ badgeText }}
           </span>
         </div>
-        <p v-if="description" class="text-xs text-[var(--arc-text-hint)] leading-relaxed max-w-2xl">
+        <p v-if="description" class="text-[12.5px] sm:text-[13px] text-[var(--arc-text-hint)] leading-relaxed max-w-[68ch]">
           {{ description }}
         </p>
       </div>
@@ -39,7 +46,7 @@
     </div>
 
     <!-- Functional Group Content -->
-    <div class="flex flex-col gap-3.5">
+    <div class="flex flex-col gap-4">
       <slot />
     </div>
   </div>

@@ -2,28 +2,29 @@
   <div 
     ref="rowRef"
     :id="id || computedId"
-    class="group/row flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 px-4 sm:px-5 py-3.5 min-h-[52px] hover:bg-[var(--arc-hover)] transition-colors duration-200 relative"
+    class="group/row flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-6 px-5 py-4 min-h-[58px] hover:bg-[var(--arc-hover)] transition-colors duration-200 relative"
     :class="{ 'opacity-50 pointer-events-none': disabled }"
+    :style="{ fontFamily: 'var(--font-ui)' }"
     :data-search="computedSearchData"
     :data-setting-id="id || computedId"
     :data-frequency="frequency"
   >
     <!-- Label, hint, help tooltip and crosslink column -->
-    <div class="flex-1 min-w-0 pr-2">
+    <div class="flex-1 min-w-0 max-w-[68ch] pr-2">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-sm font-medium text-[var(--arc-text-primary,#E8E8E8)] leading-[1.40] transition-colors">
+        <span class="text-[14px] font-medium text-[var(--arc-text-primary,#E8E8E8)] group-hover/row:text-white leading-[1.40] transition-colors">
           {{ label }}
         </span>
 
         <!-- Term Help Tooltip -->
         <div v-if="termTip" class="relative group/tip inline-flex">
           <span 
-            class="w-4 h-4 rounded-full border border-[var(--arc-hairline)] bg-[var(--arc-plane)] text-[var(--arc-text-muted,#8F8F8F)] hover:text-[var(--arc-text-primary,#E8E8E8)] hover:border-[var(--arc-hairline-top)] text-xs font-mono flex items-center justify-center cursor-help transition-colors"
+            class="w-4 h-4 rounded-full border border-[var(--arc-hairline)] bg-[var(--arc-well)] text-[var(--arc-text-muted,#8F8F8F)] hover:text-[var(--arc-text-primary,#E8E8E8)] hover:border-[var(--arc-edge-strong)] text-xs font-mono flex items-center justify-center cursor-help transition-colors"
             tabindex="0"
           >
             ?
           </span>
-          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tip:block group-focus-within/tip:block z-50 w-64 p-3 rounded-[14px] bg-[var(--arc-popover,#161616)] border border-[var(--arc-hairline)] text-xs text-[var(--arc-text-secondary,#B4B4B4)] shadow-2xl leading-relaxed pointer-events-none text-left">
+          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tip:block group-focus-within/tip:block z-50 w-64 p-3 rounded-[14px] bg-[var(--arc-popover,#161616)] border border-[var(--arc-edge-strong)] text-xs text-[var(--arc-text-secondary,#B4B4B4)] shadow-2xl leading-relaxed pointer-events-none text-left">
             <span v-if="termTitle" class="block font-semibold text-[var(--arc-text-primary,#E8E8E8)] mb-1">{{ termTitle }}</span>
             <span>{{ termTip }}</span>
           </div>
@@ -33,23 +34,23 @@
       </div>
 
       <!-- Hint description (human, concise <= 68 chars per line) -->
-      <div v-if="description" class="text-xs text-[var(--arc-text-hint,#909090)] leading-[1.50] mt-0.5 max-w-xl">
+      <div v-if="description" class="text-[12.5px] sm:text-[13px] text-[var(--arc-text-hint,#909090)] leading-[1.52] mt-1 max-w-[64ch]">
         {{ description }}
       </div>
 
       <!-- Cross link slot -->
-      <div v-if="$slots.link" class="mt-1.5">
+      <div v-if="$slots.link" class="mt-2">
         <slot name="link" />
       </div>
 
       <!-- Extra technical caption if provided -->
-      <div v-if="tech" class="text-xs font-mono tabular-nums text-[var(--arc-text-machine,#7A7A7A)] mt-1">
+      <div v-if="tech" class="text-xs font-mono tabular-nums text-[var(--arc-text-machine,#7A7A7A)] mt-1.5">
         {{ tech }}
       </div>
     </div>
 
     <!-- Control column on the right -->
-    <div class="shrink-0 flex items-center gap-2.5 sm:self-center">
+    <div class="shrink-0 flex items-center gap-3 sm:self-center">
       <slot />
     </div>
   </div>

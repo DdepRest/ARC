@@ -55,25 +55,22 @@
             :style="{ boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.6)' }"
           />
 
-          <div v-else-if="typeof prop === 'boolean'" class="flex items-center gap-2 mt-1">
-            <input 
-              type="checkbox" 
-              v-model="selectedNode.properties[key]" 
-              @change="$emit('updateProperty')"
-              class="rounded bg-[var(--arc-input)] border-[var(--arc-hairline)] accent-[var(--accent)] h-4 w-4 cursor-pointer" 
+          <div v-else-if="typeof prop === 'boolean'" class="mt-1 px-3 py-2 rounded-[10px] bg-[var(--arc-input)] border border-[var(--arc-hairline)]">
+            <ArcToggle
+              :model-value="Boolean(selectedNode.properties[key])"
+              size="sm"
+              label="Включено"
+              wrapper-class="w-full"
+              @update:model-value="val => { selectedNode.properties[key] = val; $emit('updateProperty'); }"
             />
-            <span class="text-xs text-[var(--arc-text-secondary)] font-sans">Включено</span>
           </div>
 
-          <select 
-            v-else-if="Array.isArray(prop)" 
-            v-model="selectedNode.properties[key]"
-            @change="$emit('updateProperty')"
-            class="w-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-2 text-xs font-sans text-[var(--arc-text-primary)] outline-none focus:border-[var(--accent)] transition"
-            :style="{ boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.6)' }"
-          >
-            <option v-for="opt in prop" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
+          <ArcSelect
+            v-else-if="Array.isArray(prop)"
+            :model-value="selectedNode.properties[key]"
+            :options="prop.map((opt: any) => ({ label: String(opt), value: opt }))"
+            @update:model-value="val => { selectedNode.properties[key] = val; $emit('updateProperty'); }"
+          />
         </div>
       </div>
       
@@ -99,6 +96,8 @@
 
 <script setup lang="ts">
 import { X, Trash2 } from 'lucide-vue-next';
+import ArcToggle from '../../../components/ui/ArcToggle.vue';
+import ArcSelect from '../../../components/ui/ArcSelect.vue';
 
 defineProps<{
   selectedNode: any;

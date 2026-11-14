@@ -102,7 +102,7 @@ const engineReadinessDisplay = computed(() => {
 </script>
 
 <template>
-  <section id="section-local" class="scroll-mt-14 flex flex-col gap-7 text-[var(--arc-text-primary)]">
+  <section id="section-local" class="scroll-mt-14 flex flex-col gap-10 text-[var(--arc-text-primary)]">
     <!-- Уровень 1: Workspace Header + Сводка локального контура -->
     <SettingsSectionHeader 
       variant="workspace"
@@ -116,29 +116,29 @@ const engineReadinessDisplay = computed(() => {
     >
       <template #summary>
         <div 
-          class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-[14px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] font-mono text-xs tabular-nums"
-          :style="{ background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)', boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' }"
+          class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-[12px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] font-mono text-xs tabular-nums"
+          :style="{ boxShadow: 'var(--arc-well-shadow)' }"
         >
-          <div class="flex flex-col gap-0.5 px-2">
-            <span class="text-[var(--arc-text-machine)] uppercase">Локальный контур</span>
+          <div class="flex flex-col gap-1 px-2.5">
+            <span class="text-[var(--arc-text-hint)]">Локальный контур</span>
             <span class="text-sm font-semibold" :class="settingsStore.useLocalLLM ? 'text-[var(--status-ok)]' : 'text-[var(--arc-text-muted)]'">
               {{ settingsStore.useLocalLLM ? 'АКТИВЕН' : 'ОТКЛЮЧЕН' }}
             </span>
           </div>
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Выбранный движок</span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Выбранный движок</span>
             <span class="text-sm font-semibold text-[var(--arc-text-primary)] truncate">
               {{ isBuiltinSelected ? 'Встроенный GGUF' : 'Внешний Ollama' }}
             </span>
           </div>
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Активная модель</span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Активная модель</span>
             <span class="text-sm font-semibold text-[var(--arc-text-primary)] truncate" :title="selectedModelDisplay">
               {{ selectedModelDisplay }}
             </span>
           </div>
-          <div class="flex flex-col gap-0.5 px-2 sm:border-l border-[var(--arc-hairline)]">
-            <span class="text-[var(--arc-text-machine)] uppercase">Готовность рантайма</span>
+          <div class="flex flex-col gap-1 px-2.5 sm:border-l border-[var(--arc-hairline)]">
+            <span class="text-[var(--arc-text-hint)]">Готовность рантайма</span>
             <span class="text-sm font-semibold truncate" :class="engineReadinessDisplay.cls">
               {{ engineReadinessDisplay.text }}
             </span>

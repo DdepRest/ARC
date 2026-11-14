@@ -26,7 +26,7 @@ const compatMeta = (minRamGb: number, targetMemoryGb: number | null) => {
       status,
       label: 'Совместимо',
       textCls: 'text-[var(--status-ok)]',
-      rowCls: 'bg-[var(--arc-plane)] border-[var(--arc-hairline)] hover:bg-[var(--arc-hover)]'
+      rowCls: 'bg-[var(--arc-well)] border-[var(--arc-hairline)] hover:bg-[var(--arc-hover)]'
     };
   }
   if (status === 'INCOMPATIBLE') {
@@ -34,14 +34,14 @@ const compatMeta = (minRamGb: number, targetMemoryGb: number | null) => {
       status,
       label: `Требует ${minRamGb} ГБ`,
       textCls: 'text-[var(--status-warn)]',
-      rowCls: 'bg-[var(--arc-plane)] border-[var(--status-warn)]/35'
+      rowCls: 'bg-[var(--arc-well)] border-[var(--status-warn)]/35'
     };
   }
   return {
     status,
     label: `Память не определена (~${minRamGb} ГБ)`,
     textCls: 'text-[var(--arc-text-muted)]',
-    rowCls: 'bg-[var(--arc-plane)] border-[var(--arc-hairline)] hover:bg-[var(--arc-hover)]'
+    rowCls: 'bg-[var(--arc-well)] border-[var(--arc-hairline)] hover:bg-[var(--arc-hover)]'
   };
 };
 </script>
@@ -50,8 +50,8 @@ const compatMeta = (minRamGb: number, targetMemoryGb: number | null) => {
   <div 
     class="flex flex-col bg-[var(--arc-block)] border border-[var(--arc-hairline)] rounded-[16px] overflow-hidden transition duration-200 hover:border-[var(--arc-border-focus,var(--arc-hairline))]"
     :style="{
-      background: 'linear-gradient(180deg, #121212 0%, #0D0D0D 100%)',
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 10px 28px rgba(0, 0, 0, 0.60)'
+      background: 'var(--arc-block-gradient, linear-gradient(180deg, #161616 0%, #0F0F0F 100%))',
+      boxShadow: 'var(--arc-block-elevation)'
     }"
   >
     <!-- Card Header -->
@@ -91,7 +91,7 @@ const compatMeta = (minRamGb: number, targetMemoryGb: number | null) => {
     <!-- Card Body / Quants -->
     <div class="p-4 flex flex-col gap-2.5">
       <div class="text-xs font-mono text-[var(--arc-text-hint)] uppercase tracking-wider">Доступные квантизации</div>
-      <div class="flex flex-col gap-2 max-h-[156px] overflow-y-auto pr-1">
+      <div class="flex flex-col gap-2 max-h-[164px] overflow-y-auto pr-1">
         <div 
           v-for="q in model.quants" 
           :key="q.id"

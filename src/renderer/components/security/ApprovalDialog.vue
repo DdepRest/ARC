@@ -69,18 +69,20 @@
         </p>
 
         <!-- Optional: Remember choice for macro -->
-        <label
+        <div
           v-if="currentRequest.metadata?.macroId"
-          class="flex items-center gap-2 pt-1 text-xs text-[var(--arc-text-secondary)] cursor-pointer select-none"
+          @click="rememberMacroChoice = !rememberMacroChoice"
+          class="flex items-center gap-2.5 pt-1 text-xs text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] cursor-pointer select-none transition-colors"
         >
-          <input
+          <ArcCheckbox
             id="approval-remember-checkbox"
-            type="checkbox"
-            v-model="rememberMacroChoice"
-            class="rounded border-[var(--arc-hairline)] bg-[var(--arc-input)] text-[var(--accent)]"
+            size="sm"
+            :model-value="rememberMacroChoice"
+            @click.stop
+            @update:model-value="val => { rememberMacroChoice = val; }"
           />
           <span class="font-sans">Запомнить выбор для этого макроса</span>
-        </label>
+        </div>
       </div>
 
       <!-- Actions -->
@@ -112,6 +114,7 @@
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useSecurityStore } from '../../stores/security.store';
+import ArcCheckbox from '../ui/ArcCheckbox.vue';
 
 const securityStore = useSecurityStore();
 const { currentRequest, isDialogOpen } = storeToRefs(securityStore);

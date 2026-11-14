@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
 import { useUIStore } from '../../../../../stores/ui.store';
+import ArcSelect from '../../../../../components/ui/ArcSelect.vue';
 import { RefreshCw } from 'lucide-vue-next';
 
 const settingsStore = useSettingsStore();
@@ -195,29 +196,30 @@ watch(() => settingsStore.sttProvider, (newProvider) => {
       <!-- Whisper Engine selector -->
       <div v-if="settingsStore.sttProvider === 'whisper'" class="flex flex-col gap-2">
         <span class="text-xs font-mono text-[var(--arc-text-muted)] uppercase tracking-wider">Модель Whisper</span>
-        <select 
-          v-model="settingsStore.sttModel" 
-          class="bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer hover:bg-[var(--arc-hover)] w-full"
-        >
-          <option value="tiny" class="bg-[var(--arc-block)] text-white">Ультрабыстрая (tiny, 70 МБ)</option>
-          <option value="base" class="bg-[var(--arc-block)] text-white">Сбалансированная (base, 140 МБ)</option>
-          <option value="small" class="bg-[var(--arc-block)] text-white">Высокая точность (small, 460 МБ)</option>
-          <option value="onnx-community/whisper-large-v3-turbo" class="bg-[var(--arc-block)] text-white">Максимальная точность (large-v3-turbo, 800 МБ)</option>
-        </select>
+        <ArcSelect
+          :model-value="settingsStore.sttModel"
+          :options="[
+            { label: 'Ультрабыстрая (tiny, 70 МБ)', value: 'tiny' },
+            { label: 'Сбалансированная (base, 140 МБ)', value: 'base' },
+            { label: 'Высокая точность (small, 460 МБ)', value: 'small' },
+            { label: 'Максимальная точность (large-v3-turbo, 800 МБ)', value: 'onnx-community/whisper-large-v3-turbo' }
+          ]"
+          @update:model-value="val => { settingsStore.sttModel = val; }"
+        />
       </div>
 
       <!-- Sherpa Engine selector -->
       <div v-if="settingsStore.sttProvider === 'sherpa'" class="flex flex-col gap-2 lg:col-span-2">
         <span class="text-xs font-mono text-[var(--arc-text-muted)] uppercase tracking-wider">Активная модель Sherpa</span>
-        <select 
-          v-model="settingsStore.sttModel" 
-          class="bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--arc-text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer hover:bg-[var(--arc-hover)] w-full"
-          @change="reloadSttAction"
-        >
-          <option value="gigaam-ctc" class="bg-[var(--arc-block)] text-white">Быстрая (GigaAM RU CTC 220M, 235 МБ)</option>
-          <option value="whisper-small" class="bg-[var(--arc-block)] text-white">Стандартная (Whisper Small, 375 МБ)</option>
-          <option value="zipformer-ru" class="bg-[var(--arc-block)] text-white">Потоковая (Zipformer RU, 95 МБ)</option>
-        </select>
+        <ArcSelect
+          :model-value="settingsStore.sttModel"
+          :options="[
+            { label: 'Быстрая (GigaAM RU CTC 220M, 235 МБ)', value: 'gigaam-ctc' },
+            { label: 'Стандартная (Whisper Small, 375 МБ)', value: 'whisper-small' },
+            { label: 'Потоковая (Zipformer RU, 95 МБ)', value: 'zipformer-ru' }
+          ]"
+          @update:model-value="val => { settingsStore.sttModel = val; reloadSttAction(); }"
+        />
       </div>
     </div>
   </div>

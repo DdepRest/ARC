@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Search, RefreshCw } from 'lucide-vue-next';
+import ArcCheckbox from '../../../../../components/ui/ArcCheckbox.vue';
 import { useAiConfigStore } from '../../../../../stores/aiConfig';
 
 const props = defineProps<{
@@ -176,47 +177,51 @@ const hasMoreModels = computed(() => !searchQuery.value.trim() && filteredModels
 </script>
 
 <template>
-  <div class="flex flex-col gap-2.5 pt-1">
+  <div class="flex flex-col gap-3" :style="{ fontFamily: 'var(--font-ui)' }">
     <!-- Single-row Header: Title + Counter on left, Refresh on right -->
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="text-xs font-mono font-bold text-[var(--arc-text-machine)] uppercase tracking-wider">
-          КАТАЛОГ МОДЕЛЕЙ
+        <span class="text-[13.5px] font-semibold text-[var(--arc-text-primary)] tracking-tight">
+          Каталог и ротация моделей
         </span>
         <span class="text-xs font-mono text-[var(--arc-text-muted)] tabular-nums">
-          {{ getCatalogModels().length }} доступно
+          · {{ getCatalogModels().length }} доступно
         </span>
       </div>
 
       <button 
         type="button"
         @click="emit('fetch-models')" 
-        class="px-2.5 py-1 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[8px] text-xs font-mono text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] flex items-center gap-1.5 uppercase transition-colors cursor-pointer shrink-0"
+        class="px-3 py-1 bg-[var(--arc-well)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] rounded-[8px] text-xs font-mono text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+        :style="{ boxShadow: 'var(--arc-well-shadow)' }"
         :disabled="isLoadingModels"
       >
-        <RefreshCw class="w-3 h-3" :class="{ 'animate-spin text-[var(--accent)]': isLoadingModels }" />
-        <span>ОБНОВИТЬ</span>
+        <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin text-[var(--accent)]': isLoadingModels }" />
+        <span>Обновить список</span>
       </button>
     </div>
 
-    <!-- Selected Models Compact Chips Strip -->
-    <div class="flex flex-wrap gap-1.5 items-center min-h-[30px] p-1.5 bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-[10px]">
+    <!-- Selected Models Compact Chips Strip (Recessed Well) -->
+    <div
+      class="flex flex-wrap gap-1.5 items-center min-h-[38px] p-2 bg-[var(--arc-well)] border border-[var(--arc-hairline)] rounded-[10px]"
+      :style="{ boxShadow: 'var(--arc-well-shadow)' }"
+    >
       <span 
         v-if="selectedList.length === 0" 
-        class="text-xs font-mono text-[var(--arc-text-hint)] px-1"
+        class="text-xs font-mono text-[var(--arc-text-hint)] px-1.5"
       >
-        Модели не выбраны
+        Модели не выбраны — выберите хотя бы одну модель ниже
       </span>
       <div 
         v-for="m in visibleSelectedChips" 
         :key="m"
-        class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--arc-block)] border border-[var(--arc-hairline)] rounded-[6px] text-xs font-mono text-[var(--arc-text-primary)]"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--arc-block)] border border-[var(--arc-edge-strong)] rounded-[7px] text-xs font-mono text-[var(--arc-text-primary)]"
       >
-        <span class="truncate max-w-[180px]">{{ m }}</span>
+        <span class="truncate max-w-[200px]">{{ m }}</span>
         <button 
           type="button"
           @click.stop="removeSelectedModel(m)" 
-          class="text-[var(--arc-text-muted)] hover:text-[var(--status-err)] transition-colors cursor-pointer leading-none"
+          class="text-[var(--arc-text-muted)] hover:text-[var(--status-err)] transition-colors cursor-pointer leading-none ml-0.5"
           title="Удалить из выбранных"
         >
           ×
@@ -227,7 +232,7 @@ const hasMoreModels = computed(() => !searchQuery.value.trim() && filteredModels
         type="button"
         @click="showAllSelected = !showAllSelected"
         :title="hiddenSelectedModels.join(', ')"
-        class="px-2 py-0.5 rounded-[6px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] text-xs font-mono text-[var(--accent)] hover:text-[var(--arc-text-primary)] transition-colors cursor-pointer tabular-nums"
+        class="px-2.5 py-1 rounded-[7px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] text-xs font-mono text-[var(--accent)] hover:text-[var(--arc-text-primary)] transition-colors cursor-pointer tabular-nums"
       >
         {{ showAllSelected ? 'Свернуть' : `+ ${hiddenSelectedModels.length} ещё` }}
       </button>
@@ -235,12 +240,13 @@ const hasMoreModels = computed(() => !searchQuery.value.trim() && filteredModels
 
     <!-- Search Input -->
     <div class="relative flex items-center">
-      <Search class="w-3.5 h-3.5 absolute left-3 text-[var(--arc-text-muted)] pointer-events-none" />
+      <Search class="w-3.5 h-3.5 absolute left-3.5 text-[var(--arc-text-muted)] pointer-events-none" />
       <input 
         v-model="searchQuery" 
         type="text"
         placeholder="Поиск модели (llama, gemini, qwen, deepseek, 70b)..."
-        class="w-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] focus:border-[var(--accent)] rounded-[10px] pl-9 pr-8 py-1.5 text-xs font-mono text-[var(--arc-text-primary)] placeholder-[var(--arc-text-hint)] focus:outline-none transition"
+        class="w-full bg-[var(--arc-well)] border border-[var(--arc-hairline)] focus:border-[var(--accent)] rounded-[10px] pl-9 pr-8 py-2 text-xs font-mono text-[var(--arc-text-primary)] placeholder-[var(--arc-text-hint)] focus:outline-none transition"
+        :style="{ boxShadow: 'var(--arc-well-shadow)' }"
       />
       <button 
         v-if="searchQuery" 
@@ -253,96 +259,105 @@ const hasMoreModels = computed(() => !searchQuery.value.trim() && filteredModels
     </div>
 
     <!-- Quick Add custom model -->
-    <div v-if="searchQuery.trim() && !filterModels().includes(searchQuery.trim())" class="px-2.5 py-1.5 flex items-center justify-between bg-[var(--arc-plane)] border border-dashed border-[var(--arc-hairline)] rounded-[8px]">
-      <span class="text-xs font-mono text-[var(--arc-text-primary)] truncate">Добавить «{{ searchQuery.trim() }}»</span>
+    <div v-if="searchQuery.trim() && !filterModels().includes(searchQuery.trim())" class="px-3 py-2 flex items-center justify-between bg-[var(--arc-well)] border border-dashed border-[var(--arc-hairline)] rounded-[8px]">
+      <span class="text-xs font-mono text-[var(--arc-text-primary)] truncate">Добавить модель вручную: «{{ searchQuery.trim() }}»</span>
       <button 
         type="button"
         @click="addCustomModel(searchQuery.trim())" 
-        class="px-2 py-0.5 bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--status-ok)] border border-[var(--status-ok)]/35 rounded-[6px] text-xs font-mono uppercase transition-colors cursor-pointer shrink-0"
+        class="px-2.5 py-1 bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--status-ok)] border border-[var(--status-ok)]/35 rounded-[6px] text-xs font-mono uppercase transition-colors cursor-pointer shrink-0"
       >
-        + ДОБАВИТЬ
+        + Добавить
       </button>
     </div>
 
     <!-- Category Filter Chips -->
-    <div class="flex items-center gap-1 overflow-x-auto pb-0.5">
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5">
       <button 
         v-for="cat in [
-          { id: 'all', label: 'ВСЕ' },
-          { id: 'llama', label: 'LLAMA' },
-          { id: 'gemini', label: 'GEMINI' },
-          { id: 'deepseek', label: 'DEEPSEEK' },
-          { id: 'qwen', label: 'QWEN' },
-          { id: 'claude', label: 'CLAUDE' },
+          { id: 'all', label: 'Все' },
+          { id: 'llama', label: 'Llama' },
+          { id: 'gemini', label: 'Gemini' },
+          { id: 'deepseek', label: 'DeepSeek' },
+          { id: 'qwen', label: 'Qwen' },
+          { id: 'claude', label: 'Claude' },
           { id: 'gpt', label: 'GPT' },
-          { id: 'reasoning', label: 'РАССУЖДЕНИЯ' }
+          { id: 'reasoning', label: 'Рассуждения' }
         ]"
         :key="cat.id"
         type="button"
         @click="activeCategoryFilter = cat.id"
-        class="px-2 py-0.5 rounded-[6px] text-xs font-mono tracking-wider uppercase transition shrink-0 cursor-pointer border"
+        class="px-2.5 py-1 rounded-[7px] text-xs font-mono transition shrink-0 cursor-pointer border"
         :class="activeCategoryFilter === cat.id 
-          ? 'bg-[var(--arc-selected)] text-[var(--accent)] border-[var(--accent)] font-bold' 
-          : 'bg-[var(--arc-plane)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
+          ? 'bg-[var(--arc-selected)] text-[var(--arc-text-primary)] border-[var(--accent)] font-semibold' 
+          : 'bg-[var(--arc-well)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)] hover:text-[var(--arc-text-primary)]'"
       >
         {{ cat.label }}
       </button>
 
-      <div class="ml-auto flex items-center gap-1 shrink-0 pl-2">
+      <div class="ml-auto flex items-center gap-1.5 shrink-0 pl-2">
         <button 
           type="button"
           @click="selectAllFilteredModels" 
-          class="text-xs font-mono text-[var(--status-ok)] hover:text-[var(--arc-text-primary)] bg-[var(--arc-plane)] border border-[var(--status-ok)]/30 px-2 py-0.5 rounded-[6px] uppercase cursor-pointer"
+          class="text-xs font-mono text-[var(--status-ok)] hover:text-[var(--arc-text-primary)] bg-[var(--arc-well)] border border-[var(--status-ok)]/30 px-2.5 py-1 rounded-[7px] cursor-pointer"
           title="Выбрать все отфильтрованные"
         >
-          ВСЕ
+          Выбрать все
         </button>
         <button 
           type="button"
           @click="clearSelectedModels" 
-          class="text-xs font-mono text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] px-2 py-0.5 rounded-[6px] uppercase cursor-pointer"
+          class="text-xs font-mono text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] bg-[var(--arc-well)] border border-[var(--arc-hairline)] px-2.5 py-1 rounded-[7px] cursor-pointer"
         >
-          СБРОС
+          Сброс
         </button>
       </div>
     </div>
 
-    <!-- Compact Checkbox List -->
-    <div class="max-h-64 overflow-y-auto flex flex-col gap-0.5 bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-[10px] p-1">
-      <div v-if="filteredModelsList.length === 0" class="py-2.5 px-3 text-center text-xs font-mono text-[var(--arc-text-hint)]">
-        {{ getCatalogModels().length === 0 ? 'Модели недоступны. Нажмите "ОБНОВИТЬ"' : 'Ничего не найдено' }}
+    <!-- Compact Checkbox List (Recessed Browser Well) -->
+    <div
+      class="max-h-60 overflow-y-auto flex flex-col gap-0.5 bg-[var(--arc-well)] border border-[var(--arc-hairline)] rounded-[10px] p-1.5"
+      :style="{ boxShadow: 'var(--arc-well-shadow)' }"
+    >
+      <div v-if="filteredModelsList.length === 0" class="py-4 px-3 text-center text-xs font-mono text-[var(--arc-text-hint)]">
+        {{ getCatalogModels().length === 0 ? 'Модели не загружены. Нажмите «Обновить список»' : 'По вашему запросу ничего не найдено' }}
       </div>
 
-      <label 
+      <div 
         v-for="modelName in displayedModels" 
         :key="modelName"
-        class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-[6px] hover:bg-[var(--arc-hover)] cursor-pointer text-xs font-mono transition-colors"
+        role="checkbox"
+        :aria-checked="isModelSelected(modelName)"
+        tabindex="0"
+        @click="toggleModelSelection(modelName)"
+        @keydown.space.prevent="toggleModelSelection(modelName)"
+        @keydown.enter.prevent="toggleModelSelection(modelName)"
+        class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-[7px] hover:bg-[var(--arc-hover)] cursor-pointer text-xs font-mono transition-colors select-none outline-none"
         :class="isModelSelected(modelName) ? 'bg-[var(--arc-block)] text-[var(--arc-text-primary)]' : 'text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)]'"
       >
-        <div class="flex items-center gap-2 min-w-0">
-          <input
-            type="checkbox"
-            :checked="isModelSelected(modelName)"
-            @change="toggleModelSelection(modelName)"
-            class="w-3.5 h-3.5 rounded border-[var(--arc-hairline)] bg-[var(--arc-input)] accent-[var(--accent)] cursor-pointer shrink-0"
+        <div class="flex items-center gap-2.5 min-w-0">
+          <ArcCheckbox
+            size="sm"
+            :model-value="isModelSelected(modelName)"
+            @click.stop
+            @update:model-value="toggleModelSelection(modelName)"
           />
           <span class="truncate">{{ modelName }}</span>
           <span v-if="getVirtualRouterSubtitle(modelName)" class="text-xs font-mono text-[var(--arc-text-hint)] truncate">
-            ({{ getVirtualRouterSubtitle(modelName) }})
+            · {{ getVirtualRouterSubtitle(modelName) }}
           </span>
         </div>
 
         <span 
           v-if="provider.model === modelName" 
-          class="text-xs font-mono px-1.5 py-0.5 rounded-[4px] bg-[var(--arc-plane)] text-[var(--status-ok)] border border-[var(--status-ok)]/30 uppercase font-semibold shrink-0"
+          class="text-xs font-mono text-[var(--status-ok)] font-semibold shrink-0"
         >
-          ОСНОВНАЯ
+          ● Основная
         </span>
-      </label>
+      </div>
 
-      <div v-if="hasMoreModels" class="py-1.5 px-2.5 text-center text-xs font-mono text-[var(--arc-text-muted)] border-t border-[var(--arc-hairline)] mt-0.5 flex items-center justify-center gap-1.5">
+      <div v-if="hasMoreModels" class="py-2 px-2.5 text-center text-xs font-mono text-[var(--arc-text-muted)] border-t border-[var(--arc-divider)] mt-1 flex items-center justify-center gap-1.5">
         <span>Показано 50 из {{ filteredModelsList.length }}</span>
-        <span class="text-[var(--accent)] font-bold tabular-nums">+{{ remainingCount }} ещё</span>
+        <span class="text-[var(--accent)] font-semibold tabular-nums">· +{{ remainingCount }} ещё (уточните поиск)</span>
       </div>
     </div>
   </div>

@@ -6,5 +6,6 @@
   "transparentSpaceRoots": 0,
   "capsStringsOver12": 0,
   "forbiddenSurfaceFills": 0,
-  "literalAccentClasses": 0
+  "literalAccentClasses": 0,
+  "onboardingMissingSurfaces": 0
 }

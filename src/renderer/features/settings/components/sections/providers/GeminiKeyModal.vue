@@ -5,6 +5,7 @@ import {
   ShieldCheck, AlertTriangle, RefreshCw, Key, CheckCircle2
 } from 'lucide-vue-next';
 import ArcModal from '../../../../../components/ui/ArcModal.vue';
+import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import { useAiConfigStore } from '../../../../../stores/aiConfig';
 
 const props = defineProps<{ show: boolean }>();
@@ -319,17 +320,16 @@ const handleSave = async () => {
 
       <!-- Priority Router Option -->
       <div 
-        class="p-3 rounded-[14px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] flex items-center justify-between gap-4"
+        class="p-3.5 rounded-[14px] bg-[var(--arc-block)] border transition-colors"
+        :class="makePrimaryInRouter ? 'border-[rgba(var(--accent-rgb),0.45)]' : 'border-[var(--arc-hairline)] hover:border-[var(--arc-edge-strong)]'"
         :style="{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' }"
       >
-        <div class="flex flex-col">
-          <span class="text-xs font-medium text-[var(--arc-text-primary)]">Приоритет в роутере</span>
-          <span class="text-xs text-[var(--arc-text-secondary)]">Назначить Gemini основным шлюзом и сбросить карантин ошибок 401.</span>
-        </div>
-        <input 
-          type="checkbox" 
-          v-model="makePrimaryInRouter" 
-          class="w-4 h-4 rounded accent-[var(--accent)] cursor-pointer"
+        <ArcToggle
+          v-model="makePrimaryInRouter"
+          size="sm"
+          label="Приоритет в роутере"
+          description="Назначить Gemini основным шлюзом и сбросить карантин ошибок 401."
+          wrapper-class="w-full"
         />
       </div>
 

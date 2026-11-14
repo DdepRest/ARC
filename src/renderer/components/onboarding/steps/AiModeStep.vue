@@ -8,6 +8,7 @@ import {
   normalizeGatewayEndpoint,
   type LocalRuntimeId
 } from '../utils/ai-mode-presets';
+import ArcSelect from '../../ui/ArcSelect.vue';
 
 const emit = defineEmits<{ (e: 'skip-step'): void }>();
 
@@ -262,15 +263,11 @@ defineExpose({
 
       <div v-if="selectedContour === 'openrouter'" class="space-y-1.5">
         <label class="font-mono text-xs text-[var(--arc-text-secondary)]">ОБЛАЧНЫЙ ПРОВАЙДЕР ({{ CLOUD_PRESET_OPTIONS.length }} В КАТАЛОГЕ)</label>
-        <select
-          v-model="selectedCloudPresetId"
-          @change="keyStatus = 'unverified'; statusMessage = ''"
-          class="w-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] rounded-[10px] px-3 py-2 font-mono text-xs text-[var(--arc-text-primary)] focus:border-[var(--accent)] outline-none cursor-pointer"
-        >
-          <option v-for="preset in CLOUD_PRESET_OPTIONS" :key="preset.id" :value="preset.id" class="bg-[var(--arc-popover)] text-[var(--arc-text-primary)]">
-            {{ preset.name }} — {{ preset.freeTierInfo }}
-          </option>
-        </select>
+        <ArcSelect
+          :model-value="selectedCloudPresetId"
+          :options="CLOUD_PRESET_OPTIONS.map(preset => ({ label: `${preset.name} — ${preset.freeTierInfo}`, value: preset.id }))"
+          @update:model-value="val => { selectedCloudPresetId = val; keyStatus = 'unverified'; statusMessage = ''; }"
+        />
       </div>
 
       <div class="space-y-1.5">
