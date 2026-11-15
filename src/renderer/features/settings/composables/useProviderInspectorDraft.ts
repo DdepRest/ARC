@@ -275,6 +275,21 @@ export function useProviderInspectorDraft(
     };
   };
 
+  let savingInitialEnabled: boolean | null = null;
+  let enabledChangedDuringSave: boolean | null = null;
+  watch(
+    () => {
+      const id = draftProvider.value?.id;
+      if (!id) return undefined;
+      return (store.providers.value || []).find((p) => p.id === id)?.enabled;
+    },
+    (newEnabled, oldEnabled) => {
+      if (isSaving.value && typeof newEnabled === 'boolean' && newEnabled !== oldEnabled && newEnabled !== savingInitialEnabled) {
+        enabledChangedDuringSave = newEnabled;
+      }
+    }
+  );
+
   const saveDraft = async (): Promise<{ success: boolean; skipped?: boolean; error?: string }> => {
     if (!draftProvider.value) return { success: false, error: 'Профиль не выбран' };
     if (isSaving.value) return { success: false, skipped: true };
@@ -292,12 +307,18 @@ export function useProviderInspectorDraft(
       draftProvider.value.noAuthHeader = Boolean(payload.noAuthHeader);
     }
 
+    savingInitialEnabled = Boolean(payload.enabled);
+    enabledChangedDuringSave = null;
     isSaving.value = true;
     try {
       const res = await store.saveProvider(payload);
       if (res && res.success === false) {
         saveError.value = res.error || 'Ошибка сохранения настроек провайдера';
         return { success: false, error: saveError.value };
+      }
+      if (enabledChangedDuringSave !== null && enabledChangedDuringSave !== payload.enabled) {
+        const reconciled = { ...payload, enabled: enabledChangedDuringSave };
+        await store.saveProvider(reconciled);
       }
       const reloaded = (store.providers.value || []).find((p) => p.id === payload.id);
       if (reloaded) {
@@ -316,6 +337,7 @@ export function useProviderInspectorDraft(
       return { success: false, error: saveError.value };
     } finally {
       isSaving.value = false;
+      enabledChangedDuringSave = null;
     }
   };
 

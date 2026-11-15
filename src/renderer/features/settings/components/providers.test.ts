@@ -10,6 +10,7 @@ import {
   useProviderInspectorDraft,
   useQuarantineWatch
 } from '../composables/useProviderInspectorDraft';
+import { getLocalContourStatus } from '../logic/ai-status';
 
 describe('Providers & Settings Vue Unit Tests', () => {
   let mockProvidersList: any[] = [];
@@ -267,7 +268,7 @@ describe('Providers & Settings Vue Unit Tests', () => {
       expect(inspector.saveError.value).toBe('DPAPI write failed');
     });
 
-    it('prevents enabled race condition: toggling enabled in list while draft is open is preserved upon draft Save', async () => {
+    it('prevents enabled race condition: toggling enabled in list while draft is open or during saving is preserved upon draft Save', async () => {
       const store = useAiConfigStore();
       await store.loadProviders();
 
@@ -281,11 +282,10 @@ describe('Providers & Settings Vue Unit Tests', () => {
       inspector.draftProvider.value!.temperature = 0.2;
       expect(inspector.isDirty.value).toBe(true);
 
-      // 2. Toggle provider enabled OFF in the Master list
+      // 2. Toggle provider enabled OFF in the Master list while draft is open
       store.providers[0].enabled = false;
       await store.saveProvider(store.providers[0]);
       expect(store.providers[0].enabled).toBe(false);
-      // Draft remains dirty with user's temperature edit
       expect(inspector.isDirty.value).toBe(true);
 
       // 3. Save draft -> enabled MUST stay false (not reverted to true)
@@ -293,6 +293,35 @@ describe('Providers & Settings Vue Unit Tests', () => {
       expect(res.success).toBe(true);
       expect(store.providers[0].enabled).toBe(false);
       expect(store.providers[0].temperature).toBe(0.2);
+
+      // 4. Now test toggling enabled WHILE saveDraft is in-flight (saving state)
+      inspector.draftProvider.value!.temperature = 0.5;
+      let resolveInFlightSave!: (val: any) => void;
+      const saveSpy = (window as any).api.saveAiProvider;
+      saveSpy.mockImplementationOnce(
+        (provider: any) =>
+          new Promise((resolve) => {
+            resolveInFlightSave = () => {
+              const idx = mockProvidersList.findIndex((p) => p.id === provider.id);
+              if (idx > -1) mockProvidersList[idx] = JSON.parse(JSON.stringify(provider));
+              resolve({ success: true });
+            };
+          })
+      );
+
+      const inFlightPromise = inspector.saveDraft();
+      expect(inspector.saveLifecycleState.value).toBe('saving');
+
+      // User toggles enabled back to TRUE in the list while saveDraft is still in-flight
+      store.providers[0].enabled = true;
+      await Promise.resolve();
+
+      // Finish the in-flight saveDraft
+      resolveInFlightSave({ success: true });
+      await inFlightPromise;
+
+      expect(store.providers[0].enabled).toBe(true);
+      expect(store.providers[0].temperature).toBe(0.5);
     });
 
     it('preserves untouched MASKED_SECRET_PLACEHOLDER on draft Save without wiping the key', async () => {
@@ -448,6 +477,72 @@ describe('Providers & Settings Vue Unit Tests', () => {
         state: 'verified',
         label: 'ПОДТВЕРЖДЁН'
       });
+    });
+  });
+
+  describe('P1 3.3 — Local Contour Statuses without Background Probing (getLocalContourStatus & RoutingSection)', () => {
+    it('reads session state via getLocalEngineSessionState without onMounted probing and distinguishes all local contour states', () => {
+      const routingSource = fs.readFileSync(path.resolve(__dirname, './sections/RoutingSection.vue'), 'utf-8');
+      expect(routingSource).toContain('getLocalEngineSessionState()');
+      expect(routingSource).not.toContain('useLocalAIEngine(');
+      expect(routingSource).not.toContain('onMounted');
+
+      const baseCtx = {
+        useLocalLLM: false,
+        localLLMModel: 'builtin',
+        builtinLLMModel: 'qwen-3b',
+        isBuiltinDownloaded: false,
+        builtinCheckError: null,
+        checkingBuiltin: false,
+        hasProbedBuiltin: false,
+        isOllamaOnline: false,
+        checkingOllama: false,
+        hasProbedOllama: false,
+        verifiedInference: null
+      };
+
+      expect(getLocalContourStatus(baseCtx)).toMatchObject({ label: 'ВЫКЛЮЧЕН', tone: 'off' });
+      expect(getLocalContourStatus({ ...baseCtx, useLocalLLM: true, hasProbedBuiltin: false })).toMatchObject({
+        label: 'ВКЛЮЧЕН В КОНФИГУРАЦИИ',
+        tone: 'warn'
+      });
+      expect(getLocalContourStatus({ ...baseCtx, useLocalLLM: true, hasProbedBuiltin: true, isBuiltinDownloaded: false })).toMatchObject({
+        label: 'НЕТ ВЕСОВ',
+        tone: 'err'
+      });
+      expect(getLocalContourStatus({ ...baseCtx, useLocalLLM: true, hasProbedBuiltin: true, isBuiltinDownloaded: true })).toMatchObject({
+        label: 'ВЕСА ГОТОВЫ',
+        tone: 'warn'
+      });
+      expect(
+        getLocalContourStatus({
+          ...baseCtx,
+          useLocalLLM: true,
+          hasProbedBuiltin: true,
+          isBuiltinDownloaded: true,
+          verifiedInference: { engine: 'builtin', model: 'qwen-3b', checkedAt: 1 }
+        })
+      ).toMatchObject({ label: 'ПРОВЕРЕН (GGUF)', tone: 'ok' });
+
+      expect(
+        getLocalContourStatus({ ...baseCtx, useLocalLLM: true, localLLMModel: 'llama3.2', hasProbedOllama: false })
+      ).toMatchObject({ label: 'ВКЛЮЧЕН В КОНФИГУРАЦИИ', tone: 'warn' });
+      expect(
+        getLocalContourStatus({ ...baseCtx, useLocalLLM: true, localLLMModel: 'llama3.2', hasProbedOllama: true, isOllamaOnline: false })
+      ).toMatchObject({ label: 'OLLAMA ОФЛАЙН', tone: 'err' });
+      expect(
+        getLocalContourStatus({ ...baseCtx, useLocalLLM: true, localLLMModel: 'llama3.2', hasProbedOllama: true, isOllamaOnline: true })
+      ).toMatchObject({ label: 'СЕРВЕР ОНЛАЙН', tone: 'warn' });
+      expect(
+        getLocalContourStatus({
+          ...baseCtx,
+          useLocalLLM: true,
+          localLLMModel: 'llama3.2',
+          hasProbedOllama: true,
+          isOllamaOnline: true,
+          verifiedInference: { engine: 'ollama', model: 'llama3.2', checkedAt: 1 }
+        })
+      ).toMatchObject({ label: 'ПРОВЕРЕН (OLLAMA)', tone: 'ok' });
     });
   });
 });

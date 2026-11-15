@@ -2,15 +2,18 @@
   <div 
     ref="rowRef"
     :id="id || computedId"
-    class="group/row flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-6 px-5 py-4 min-h-[58px] hover:bg-[var(--arc-hover)] transition-colors duration-200 relative"
-    :class="{ 'opacity-50 pointer-events-none': disabled }"
+    class="group/row flex flex-col justify-between gap-3.5 px-5 py-4 min-h-[58px] hover:bg-[var(--arc-hover)] transition-colors duration-200 relative"
+    :class="[
+      layout === 'stacked' ? 'items-stretch' : 'sm:flex-row sm:items-center sm:gap-6',
+      { 'opacity-50 pointer-events-none': disabled }
+    ]"
     :style="{ fontFamily: 'var(--font-ui)' }"
     :data-search="computedSearchData"
     :data-setting-id="id || computedId"
     :data-frequency="frequency"
   >
     <!-- Label, hint, help tooltip and crosslink column -->
-    <div class="flex-1 min-w-0 max-w-[68ch] pr-2">
+    <div :class="layout === 'stacked' ? 'w-full min-w-0' : 'flex-1 min-w-0 max-w-[68ch] pr-2'">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[14px] font-medium text-[var(--arc-text-primary,#E8E8E8)] group-hover/row:text-white leading-[1.40] transition-colors">
           {{ label }}
@@ -49,8 +52,8 @@
       </div>
     </div>
 
-    <!-- Control column on the right -->
-    <div class="shrink-0 flex items-center gap-3 sm:self-center">
+    <!-- Control column on the right (or full-width below when stacked) -->
+    <div :class="layout === 'stacked' ? 'w-full min-w-0 flex items-center' : 'shrink-0 flex items-center gap-3 sm:self-center'">
       <slot />
     </div>
   </div>
@@ -60,7 +63,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useSettingsStore } from '../../stores/settings.store';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   id?: string;
   label: string;
   description?: string;
@@ -70,7 +73,10 @@ const props = defineProps<{
   disabled?: boolean;
   searchKeywords?: string;
   frequency?: 'core' | 'standard' | 'advanced' | 'setup-once' | 'debug-only';
-}>();
+  layout?: 'row' | 'stacked';
+}>(), {
+  layout: 'row'
+});
 
 const rowRef = ref<HTMLElement | null>(null);
 const settingsStore = useSettingsStore();

@@ -69,7 +69,7 @@ describe('ArcSelect typed option values & -1 fallback (P1 3.2)', () => {
     expect(source).toContain("emit('update:modelValue', selected.value)");
     expect(source).toContain("emit('change', selected.value)");
 
-    const { code } = compile(templateMatch![1], { mode: 'function' });
+    const { code } = compile(templateMatch![1], { mode: 'function', prefixIdentifiers: true });
     const renderFn = new Function('Vue', code)({
       ... await import('vue')
     });
