@@ -11,8 +11,8 @@
         :description="isEn
           ? 'Complete architectural log of platform releases, voice pipeline upgrades, and core stability fixes.'
           : 'Полный журнал релизов платформы, улучшений голосового тракта Silero/GigaAM и исправлений стабильности ядра.'"
-        :statusLabel="`v${CURRENT_ARC_VERSION} · BUILD ${CURRENT_ARC_BUILD}`"
-        statusTone="ok"
+        :statusLabel="headerStatus.label"
+        :statusTone="headerStatus.tone"
         :blockCountText="isEn ? '2 functional groups' : '2 функциональные группы'"
         :icon="Sparkles"
       >
@@ -66,8 +66,8 @@
         >
           <div class="rounded-[12px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] p-4 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-[var(--arc-text-muted)]">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-[var(--status-ok)] shrink-0"></span>
-              <span class="text-[var(--status-ok)]">{{ checkStatusText }}</span>
+              <span class="w-2 h-2 rounded-full shrink-0" :class="presentation.dotClass"></span>
+              <span :class="presentation.textClass">{{ presentation.statusText }}</span>
               <span aria-hidden="true">·</span>
               <span>{{ isEn ? 'Releases logged:' : 'Версий в журнале:' }} {{ ARC_RELEASES.length }}</span>
               <span aria-hidden="true">·</span>
@@ -94,7 +94,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--arc-block)] border border-[var(--arc-hairline)] rounded-[12px] p-3">
               <div class="flex flex-wrap items-center gap-1 bg-[var(--arc-rail)] p-1 rounded-[10px] border border-[var(--arc-hairline)]">
                 <button
-                  v-for="tab in filterOptions"
+                  v-for="tab in UPDATE_FILTER_OPTIONS"
                   :key="tab.id"
                   type="button"
                   @click="activeFilter = tab.id"
@@ -172,16 +172,16 @@
                 <button
                   type="button"
                   class="p-1.5 rounded-[8px] bg-[var(--arc-rail)] border border-[var(--arc-hairline)] text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] shrink-0 mt-1 cursor-pointer"
-                  :aria-label="isExpanded(rel.version) ? 'Collapse' : 'Expand'"
+                  :aria-label="expandedVersions[rel.version] ? 'Collapse' : 'Expand'"
                 >
                   <ChevronDown
                     class="w-4 h-4 transition-transform duration-200"
-                    :class="isExpanded(rel.version) ? 'rotate-180 text-[var(--accent)]' : ''"
+                    :class="expandedVersions[rel.version] ? 'rotate-180 text-[var(--accent)]' : ''"
                   />
                 </button>
               </div>
 
-              <div v-if="isExpanded(rel.version)" class="p-5 flex flex-col gap-4 bg-[var(--arc-plane)]">
+              <div v-if="expandedVersions[rel.version]" class="p-5 flex flex-col gap-4 bg-[var(--arc-plane)]">
                 <div class="rounded-[12px] bg-[var(--arc-rail)] border border-[var(--arc-hairline)] p-4 flex flex-col gap-2">
                   <div class="text-xs font-mono text-[var(--arc-text-muted)]">
                     {{ isEn ? 'Key Highlights' : 'Ключевые изменения релиза' }}
@@ -205,8 +205,8 @@
                     class="p-3.5 flex flex-col gap-1"
                   >
                     <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
-                      <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="typeDotClass(item.type)"></span>
-                      <span :class="typeTextClass(item.type)">{{ typeLabel(item.type) }}</span>
+                      <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="CHANGE_TYPE_META[item.type].dotClass"></span>
+                      <span :class="CHANGE_TYPE_META[item.type].textClass">{{ isEn ? CHANGE_TYPE_META[item.type].labelEn : CHANGE_TYPE_META[item.type].labelRu }}</span>
                       <span class="text-[var(--arc-text-muted)]" aria-hidden="true">·</span>
                       <span class="text-[var(--arc-text-muted)]">{{ item.subsystem }}</span>
                     </div>
@@ -233,115 +233,85 @@ import { useSettingsStore } from '../stores/settings.store';
 import { useSettingsNav } from '../composables/useSettingsNav';
 import SettingsSectionHeader from './SettingsSectionHeader.vue';
 import SettingsGroup from './primitives/SettingsGroup.vue';
-import SettingsSummaryStrip, { type SummaryItem } from './primitives/SettingsSummaryStrip.vue';
+import SettingsSummaryStrip from './primitives/SettingsSummaryStrip.vue';
+import { ARC_RELEASES, CURRENT_ARC_VERSION, CURRENT_ARC_BUILD } from '../config/releases.registry';
 import {
-  ARC_RELEASES,
-  CURRENT_ARC_VERSION,
-  CURRENT_ARC_BUILD,
-  type ChangeType
-} from '../config/releases.registry';
+  UPDATE_FILTER_OPTIONS,
+  CHANGE_TYPE_META,
+  getUpdatesPresentation,
+  filterReleaseEntries,
+  type UpdatesFilterId,
+  type UpdateCheckState
+} from '../logic/updates-status';
 import { RefreshCw, Copy, Check, Search, X, ChevronDown, ClipboardList, Sparkles } from 'lucide-vue-next';
 
 const store = useSettingsStore();
 const { handleViewScroll } = useSettingsNav();
 const isEn = computed(() => store.language === 'EN');
 
-type FilterId = 'all' | ChangeType;
-const activeFilter = ref<FilterId>('all');
+const activeFilter = ref<UpdatesFilterId>('all');
 const filterQuery = ref('');
 const isChecking = ref(false);
 const copied = ref(false);
-const lastCheckedTime = ref<string>('');
-const expandedVersions = ref<Record<string, boolean>>({
-  [CURRENT_ARC_VERSION]: true,
-  '1.0.11': true
-});
+const lastCheckedTime = ref('');
+const checkState = ref<UpdateCheckState>('idle');
+const latestVersion = ref('');
+const updateError = ref('');
+const expandedVersions = ref<Record<string, boolean>>({ [CURRENT_ARC_VERSION]: true, '1.0.11': true });
 
-const filterOptions: { id: FilterId; labelRu: string; labelEn: string }[] = [
-  { id: 'all', labelRu: 'Все', labelEn: 'All' },
-  { id: 'feature', labelRu: 'Новое', labelEn: 'New' },
-  { id: 'improvement', labelRu: 'Улучшения', labelEn: 'Improvements' },
-  { id: 'fix', labelRu: 'Исправления', labelEn: 'Fixes' }
-];
+const totalChangesCount = computed(() => ARC_RELEASES.reduce((acc, r) => acc + r.changes.length, 0));
 
-const totalChangesCount = computed(() =>
-  ARC_RELEASES.reduce((acc, r) => acc + r.changes.length, 0)
-);
+const presentation = computed(() => getUpdatesPresentation({
+  isEn: isEn.value,
+  isChecking: isChecking.value,
+  checkState: checkState.value,
+  latestVersion: latestVersion.value,
+  lastCheckedTime: lastCheckedTime.value,
+  updateError: updateError.value,
+  currentVersion: CURRENT_ARC_VERSION,
+  currentBuild: CURRENT_ARC_BUILD,
+  releasesCount: ARC_RELEASES.length,
+  totalChangesCount: totalChangesCount.value
+}));
 
-const checkStatusText = computed(() => {
-  if (lastCheckedTime.value) {
-    return isEn.value
-      ? `Up to date (checked at ${lastCheckedTime.value})`
-      : `Установлена актуальная версия (проверено в ${lastCheckedTime.value})`;
-  }
-  return isEn.value ? 'Up to date · Local Core Ready' : 'Установлена актуальная версия';
-});
-
-const summaryItems = computed<SummaryItem[]>(() => [
-  { label: isEn.value ? 'Active Version' : 'Активная сборка', value: `v${CURRENT_ARC_VERSION}`, tone: 'ok', sublabel: `Build ${CURRENT_ARC_BUILD}` },
-  { label: isEn.value ? 'Update Channel' : 'Канал обновлений', value: 'Stable', tone: 'ok', sublabel: checkStatusText.value },
-  { label: isEn.value ? 'Releases Logged' : 'Версий в журнале', value: String(ARC_RELEASES.length), sublabel: `${totalChangesCount.value} изменений` },
-  { label: isEn.value ? 'Voice Engine' : 'Речевой тракт', value: 'Silero v5.6', sublabel: 'GigaAM CTC 220M' },
-]);
-
-const filteredReleases = computed(() => {
-  const q = filterQuery.value.trim().toLowerCase();
-  return ARC_RELEASES.map((rel) => {
-    const matchingChanges = rel.changes.filter((ch) => {
-      const matchesType = activeFilter.value === 'all' || ch.type === activeFilter.value;
-      if (!matchesType) return false;
-      if (!q) return true;
-      return (
-        rel.version.toLowerCase().includes(q) ||
-        rel.buildHash.toLowerCase().includes(q) ||
-        ch.subsystem.toLowerCase().includes(q) ||
-        ch.titleRu.toLowerCase().includes(q) ||
-        ch.titleEn.toLowerCase().includes(q) ||
-        ch.detailsRu.toLowerCase().includes(q) ||
-        ch.detailsEn.toLowerCase().includes(q)
-      );
-    });
-    return {
-      ...rel,
-      filteredChanges: matchingChanges
-    };
-  }).filter((rel) => rel.filteredChanges.length > 0);
-});
-
-function isExpanded(version: string): boolean {
-  return Boolean(expandedVersions.value[version]);
-}
+const headerStatus = computed(() => presentation.value.headerStatus);
+const summaryItems = computed(() => presentation.value.summaryItems);
+const filteredReleases = computed(() => filterReleaseEntries(ARC_RELEASES, activeFilter.value, filterQuery.value));
 
 function toggleExpand(version: string) {
   expandedVersions.value[version] = !expandedVersions.value[version];
 }
 
-function typeLabel(type: ChangeType): string {
-  if (isEn.value) {
-    return type === 'feature' ? 'NEW' : type === 'improvement' ? 'IMPROVED' : 'FIXED';
-  }
-  return type === 'feature' ? 'НОВОЕ' : type === 'improvement' ? 'УЛУЧШЕНИЕ' : 'ИСПРАВЛЕНИЕ';
-}
-
-function typeDotClass(type: ChangeType): string {
-  if (type === 'feature') return 'bg-[var(--accent)]';
-  if (type === 'improvement') return 'bg-[var(--status-ok)]';
-  return 'bg-[var(--status-warn)]';
-}
-
-function typeTextClass(type: ChangeType): string {
-  if (type === 'feature') return 'text-[var(--accent)]';
-  if (type === 'improvement') return 'text-[var(--status-ok)]';
-  return 'text-[var(--status-warn)]';
-}
-
-function checkForUpdates() {
+async function checkForUpdates() {
   if (isChecking.value) return;
+  const api = typeof window !== 'undefined' ? (window as any).api : null;
+  if (!api || typeof api.checkForUpdates !== 'function') {
+    checkState.value = 'no-ipc';
+    return;
+  }
+
   isChecking.value = true;
-  setTimeout(() => {
-    isChecking.value = false;
+  updateError.value = '';
+  try {
+    const res = await api.checkForUpdates();
     lastCheckedTime.value = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  }, 450);
+    if (res?.success) {
+      if (res.hasUpdate) {
+        checkState.value = 'update-available';
+        latestVersion.value = res.latestVersion || '';
+      } else {
+        checkState.value = 'up-to-date';
+      }
+    } else {
+      checkState.value = 'error';
+      updateError.value = res?.error || (isEn.value ? 'Update check failed' : 'Не удалось проверить обновления');
+    }
+  } catch (err: any) {
+    checkState.value = 'error';
+    updateError.value = err?.message || (isEn.value ? 'Update check failed' : 'Не удалось проверить обновления');
+  } finally {
+    isChecking.value = false;
+  }
 }
 
 async function copyLatestReleaseNotes() {
@@ -363,3 +333,4 @@ async function copyLatestReleaseNotes() {
   } catch {}
 }
 </script>
+

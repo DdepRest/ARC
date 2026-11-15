@@ -7,8 +7,8 @@
       :icon="Layout"
       title="Панели и виджеты"
       description="Пресеты раскладки, закрепление информационных приборов HUD и индивидуальные габариты виджетов."
-      :statusLabel="`АКТИВНО: ${enabledWidgetsCount}/5`"
-      :statusTone="enabledWidgetsCount > 0 ? 'ok' : 'off'"
+      :statusLabel="`ВКЛЮЧЕНО: ${enabledWidgetsCount}/5`"
+      :statusTone="enabledWidgetsCount > 0 ? 'accent' : 'off'"
       blockCountText="3 функциональные группы"
     >
       <template #summary>
@@ -321,19 +321,19 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Включено приборов',
     value: `${enabledWidgetsCount.value} из 5`,
     detail: 'Отображаются над ядром',
-    tone: enabledWidgetsCount.value > 0 ? 'ok' : 'off'
+    tone: enabledWidgetsCount.value > 0 ? 'default' : 'off'
   },
   {
     label: 'Фиксация координат',
     value: store.widgetsLocked ? 'Закреплены' : 'Свободное перетаскивание',
     detail: 'Защита от сдвига',
-    tone: store.widgetsLocked ? 'ok' : 'default'
+    tone: store.widgetsLocked ? 'accent' : 'default'
   },
   {
     label: 'Фоновое затухание',
     value: store.widgetsDim ? `${store.widgetDimOpacity}% яркости` : 'Без затухания (100%)',
     detail: 'В неактивном состоянии',
-    tone: store.widgetsDim ? 'ok' : 'off'
+    tone: store.widgetsDim ? 'default' : 'off'
   }
 ]);
 

@@ -27,7 +27,8 @@ vi.mock('../services/storage-manager.service', () => ({
   StorageManagerService: {
     getStorageInfo: vi.fn(),
     openDataFolder: vi.fn(),
-    resetSystemData: vi.fn()
+    resetSystemData: vi.fn(),
+    exportDataArchive: vi.fn()
   }
 }));
 
@@ -142,6 +143,37 @@ describe('app.ipc Channels', () => {
     expect(result).toEqual({
       success: false,
       error: 'Network error or rate limit exceeded'
+    });
+  });
+
+  it('system:export-archive delegates to StorageManagerService.exportDataArchive with sender window', async () => {
+    const { StorageManagerService } = await import('../services/storage-manager.service');
+    (StorageManagerService.exportDataArchive as any).mockResolvedValueOnce({
+      success: true,
+      filePath: '/tmp/arc-backup.zip',
+      sizeBytes: 4096,
+      entriesCount: 5
+    });
+
+    const handler = handlers.get('system:export-archive');
+    expect(handler).toBeDefined();
+    const res = await handler!({ sender: {} });
+    expect(StorageManagerService.exportDataArchive).toHaveBeenCalledTimes(1);
+    expect(res).toEqual({
+      success: true,
+      filePath: '/tmp/arc-backup.zip',
+      sizeBytes: 4096,
+      entriesCount: 5
+    });
+  });
+
+  it('system:get-db-status merges database health with secretVault security status', async () => {
+    const handler = handlers.get('system:get-db-status');
+    expect(handler).toBeDefined();
+    const res = await handler!();
+    expect(res).toEqual({
+      isConnected: true,
+      security: { available: true }
     });
   });
 });

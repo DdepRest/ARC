@@ -5,8 +5,8 @@
       categoryLabel="Система · Подсистема 03"
       title="Диагностика и логи"
       description="Тестирование пресетов графики (Низкий → Ультра), пошаговая изоляция узких мест конвейера рендера (CPU/GPU) и журнал событий."
-      :statusLabel="isSweepRunning ? 'ТЕСТ АКТИВЕН' : 'ТЕЛЕМЕТРИЯ ГОТОВА'"
-      :statusTone="isSweepRunning ? 'warn' : 'ok'"
+      :statusLabel="headerStatus.label"
+      :statusTone="headerStatus.tone"
       blockCountText="3 функциональные группы"
       :icon="Activity"
     >
@@ -87,7 +87,7 @@
                   <tr v-for="pId in presetIds" :key="pId" class="transition-colors cursor-pointer" :class="store.graphicsPreset === pId ? 'bg-[var(--arc-selected)]' : 'hover:bg-[var(--arc-hover)]'" @click="!isSweepRunning && store.applyGraphicsPreset(pId)">
                     <td class="py-2 px-3 font-semibold text-[var(--arc-text-primary)] flex items-center gap-2">
                       <span>{{ report.presets[pId].labelRu }}</span>
-                      <span v-if="report.recommendedPreset === pId" class="px-1.5 py-0.5 rounded-[5px] text-[10px] font-mono bg-[var(--arc-block)] text-[var(--status-ok)] border border-[var(--arc-hairline)]">ОПТИМУМ GPU</span>
+                      <span v-if="report.recommendedPreset === pId" class="px-1.5 py-0.5 rounded-[5px] text-xs font-mono bg-[var(--arc-block)] text-[var(--status-ok)] border border-[var(--arc-hairline)]">ОПТИМУМ GPU</span>
                     </td>
                     <td class="py-2 px-3 font-sans text-xs text-[var(--arc-text-secondary)]">{{ report.presets[pId].configSummary }}</td>
                     <td class="py-2 px-3 text-right font-semibold" :class="report.presets[pId].avgFps >= 45 ? 'text-[var(--status-ok)]' : report.presets[pId].avgFps >= 28 ? 'text-[var(--arc-text-primary)]' : 'text-[var(--status-warn)]'">{{ report.presets[pId].avgFps }} fps</td>
@@ -149,7 +149,7 @@
         indexLabel="02"
         title="Мониторинг вычислительных ресурсов"
         description="Живая телеметрия нагрузки процессора, оперативной памяти и процесса приложения"
-        :badgeText="`CPU ${cpuPercent}% · RAM ${ramPercent}%`"
+        :badgeText="hasLiveMetrics ? `CPU ${cpuPercent}% · RAM ${ramPercent}%` : 'Ожидание замера'"
       >
         <SettingsBlock title="Текущее состояние системы" subtitle="Живая телеметрия ресурсов">
           <SettingsRow
@@ -159,9 +159,9 @@
             :tech="telemetryTechText"
             data-search="текущее состояние системы cpu ram память нагрузка процесс rss"
           >
-            <div class="flex items-center gap-2 shrink-0 font-mono text-xs tabular-nums">
-              <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-[var(--arc-text-primary)]">CPU {{ cpuPercent }}%</span>
-              <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-[var(--arc-text-primary)]">RAM {{ ramPercent }}%</span>
+            <div class="flex flex-wrap items-center gap-2 shrink-0 font-mono text-xs tabular-nums">
+              <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-[var(--arc-text-primary)]">CPU {{ hasLiveMetrics ? `${cpuPercent}%` : '—' }}</span>
+              <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-[var(--arc-text-primary)]">RAM {{ hasLiveMetrics ? `${ramPercent}%` : '—' }}</span>
               <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-[var(--arc-text-secondary)]">RSS {{ processRssText }}</span>
             </div>
           </SettingsRow>
@@ -232,7 +232,7 @@ import { usePerformanceTest } from '../../../composables/usePerformanceTest';
 import { useRenderBottleneckDiag, type DiagnosticStageMode, type BenchmarkedPresetId } from '../../../composables/useRenderBottleneckDiag';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsGroup from '../../primitives/SettingsGroup.vue';
-import SettingsSummaryStrip, { type SummaryItem } from '../../primitives/SettingsSummaryStrip.vue';
+import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
@@ -277,21 +277,54 @@ function handleCopyDiagJson() {
   setTimeout(() => { isDiagJsonCopied.value = false; }, 2000);
 }
 
-const cpuPercent = computed(() => Math.round(systemStore.metrics?.cpuLoad || 0));
-const ramPercent = computed(() => Math.round(systemStore.metrics?.memoryUsage || 0));
+const hasLiveMetrics = computed(() => Boolean(systemStore.metrics));
+const cpuPercent = computed<number | null>(() =>
+  hasLiveMetrics.value ? Math.round(systemStore.metrics?.cpuLoad ?? 0) : null
+);
+const ramPercent = computed<number | null>(() =>
+  hasLiveMetrics.value ? Math.round(systemStore.metrics?.memoryUsage ?? 0) : null
+);
 const processRssText = computed(() => {
   const usedMb = systemStore.metrics?.memoryUsedMb;
-  return usedMb && usedMb > 0 ? `${(usedMb / 1024).toFixed(1)} ГБ` : `${((systemStore.metrics?.memoryUsage || 0) * 0.08).toFixed(1)} ГБ`;
+  return typeof usedMb === 'number' && usedMb > 0 ? `${(usedMb / 1024).toFixed(1)} ГБ` : 'Н/Д';
 });
 const telemetryTechText = computed(() =>
-  systemStore.metrics ? `CPU: ${cpuPercent.value}% · RAM: ${ramPercent.value}% · Process RSS: ${processRssText.value}` : 'Метрики недоступны'
+  hasLiveMetrics.value
+    ? `CPU: ${cpuPercent.value}% · RAM: ${ramPercent.value}% · Process RSS: ${processRssText.value}`
+    : 'Ожидание живых метрик от systemStore'
 );
 
-const summaryItems = computed<SummaryItem[]>(() => [
-  { label: 'Нагрузка CPU', value: `${cpuPercent.value}%`, tone: cpuPercent.value < 80 ? 'ok' : 'warn', sublabel: 'Вычислительный контур' },
-  { label: 'Память RAM', value: `${ramPercent.value}%`, tone: ramPercent.value < 85 ? 'ok' : 'warn', sublabel: `RSS: ${processRssText.value}` },
-  { label: 'Режим бенчмарка', value: benchmarkTab.value === 'presets' ? '5 пресетов' : 'Узлы 1–4', sublabel: isSweepRunning.value ? 'Идёт замер...' : 'Готов к запуску' },
-  { label: 'Логирование FPS', value: store.logFpsToConsole ? 'Включено' : 'Отключено', sublabel: 'Консоль DevTools' },
+const headerStatus = computed(() => {
+  if (isSweepRunning.value) return { label: 'ТЕСТ АКТИВЕН', tone: 'warn' as const };
+  if (hasLiveMetrics.value) return { label: 'ТЕЛЕМЕТРИЯ АКТИВНА', tone: 'ok' as const };
+  return { label: 'ОЖИДАНИЕ ЗАМЕРА', tone: 'off' as const };
+});
+
+const summaryItems = computed<SummaryStripItem[]>(() => [
+  {
+    label: 'Нагрузка CPU',
+    value: cpuPercent.value !== null ? `${cpuPercent.value}%` : '—',
+    tone: cpuPercent.value === null ? 'off' : cpuPercent.value < 80 ? 'ok' : 'warn',
+    detail: hasLiveMetrics.value ? 'Вычислительный контур' : 'Ожидание замера'
+  },
+  {
+    label: 'Память RAM',
+    value: ramPercent.value !== null ? `${ramPercent.value}%` : '—',
+    tone: ramPercent.value === null ? 'off' : ramPercent.value < 85 ? 'ok' : 'warn',
+    detail: `RSS: ${processRssText.value}`
+  },
+  {
+    label: 'Режим бенчмарка',
+    value: benchmarkTab.value === 'presets' ? '5 пресетов' : 'Узлы 1–4',
+    tone: isSweepRunning.value ? 'warn' : 'default',
+    detail: isSweepRunning.value ? 'Идёт замер...' : 'Готов к запуску'
+  },
+  {
+    label: 'Логирование FPS',
+    value: store.logFpsToConsole ? 'Включено' : 'Отключено',
+    tone: store.logFpsToConsole ? 'accent' : 'off',
+    detail: 'Консоль DevTools'
+  },
 ]);
 
 onMounted(() => {

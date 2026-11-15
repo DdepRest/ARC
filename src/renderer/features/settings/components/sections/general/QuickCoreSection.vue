@@ -6,8 +6,8 @@
       categoryLabel="Общие · Подсистема 01"
       title="Быстрые настройки"
       description="Ключевые операционные параметры системы, фонового режима и звука для оперативного доступа."
-      :statusLabel="activeCount > 0 ? `АКТИВНО: ${activeCount}/4` : 'БАЗОВЫЙ ПРОФИЛЬ'"
-      :statusTone="activeCount > 0 ? 'ok' : 'off'"
+      :statusLabel="activeCount > 0 ? `ПРОФИЛЬ: ${activeCount}/4` : 'БАЗОВЫЙ ПРОФИЛЬ'"
+      :statusTone="activeCount > 0 ? 'accent' : 'off'"
       blockCountText="2 функциональные группы"
       :icon="Zap"
     >
@@ -146,25 +146,25 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Авто-озвучка TTS',
     value: settingsStore.autoSpeak ? 'Включена' : 'Отключена',
     detail: settingsStore.autoSpeak ? 'Озвучивание ответов в чате' : 'Только текстовый вывод',
-    tone: settingsStore.autoSpeak ? 'ok' : 'off'
+    tone: settingsStore.autoSpeak ? 'accent' : 'off'
   },
   {
     label: 'Старт с ОС',
     value: settingsStore.autoStart ? 'Автозапуск' : 'Вручную',
     detail: 'Реестр HKCU\\Run',
-    tone: settingsStore.autoStart ? 'ok' : 'default'
+    tone: settingsStore.autoStart ? 'accent' : 'default'
   },
   {
     label: 'Энергопрофиль',
     value: isEcoActive.value ? 'Эко (30 FPS)' : 'Полный (60 FPS)',
     detail: isEcoActive.value ? 'Снижение нагрузки GPU' : 'Штатная частота ядра',
-    tone: isEcoActive.value ? 'warn' : 'ok'
+    tone: isEcoActive.value ? 'warn' : 'default'
   },
   {
     label: 'Фоновый контур',
     value: settingsStore.runInBackground ? 'В системном трее' : 'Выход при закрытии',
     detail: settingsStore.runInBackground ? 'Хоткеи и голос активны' : 'Полная выгрузка процесса',
-    tone: settingsStore.runInBackground ? 'ok' : 'off'
+    tone: settingsStore.runInBackground ? 'accent' : 'off'
   }
 ]);
 </script>

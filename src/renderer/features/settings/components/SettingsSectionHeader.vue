@@ -55,12 +55,12 @@
             <!-- Honest Subsystem Status Pill -->
             <span
               v-if="statusLabel"
-              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[7px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] text-xs font-mono font-semibold tracking-wider tabular-nums"
+              class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[7px] bg-[var(--arc-well)] border border-[var(--arc-hairline)] text-xs font-mono font-semibold tracking-wider tabular-nums max-w-full"
               :class="statusTextClasses"
               :style="{ boxShadow: 'var(--arc-well-shadow)' }"
             >
               <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="statusDotClasses"></span>
-              <span>{{ statusLabel }}</span>
+              <span class="truncate">{{ statusLabel }}</span>
             </span>
 
             <!-- Standard Section Meta Text (unboxed) -->
@@ -106,7 +106,7 @@ const props = withDefaults(defineProps<{
   description?: string;
   blockCountText?: string;
   statusLabel?: string;
-  statusTone?: 'ok' | 'warn' | 'err' | 'off';
+  statusTone?: 'ok' | 'warn' | 'err' | 'off' | 'accent' | 'default';
   variant?: 'section' | 'workspace';
   iconColor?: string;
   isCollapsed?: boolean;
@@ -131,6 +131,10 @@ const statusTextClasses = computed(() => {
       return 'text-[var(--status-warn)]';
     case 'err':
       return 'text-[var(--status-err)]';
+    case 'accent':
+      return 'text-[var(--accent)]';
+    case 'default':
+      return 'text-[var(--arc-text-secondary)]';
     default:
       return 'text-[var(--arc-text-muted)]';
   }
@@ -144,6 +148,10 @@ const statusDotClasses = computed(() => {
       return 'bg-[var(--status-warn)]';
     case 'err':
       return 'bg-[var(--status-err)]';
+    case 'accent':
+      return 'bg-[var(--accent)]';
+    case 'default':
+      return 'bg-[var(--arc-text-secondary)]';
     default:
       return 'bg-[var(--arc-text-muted)]';
   }

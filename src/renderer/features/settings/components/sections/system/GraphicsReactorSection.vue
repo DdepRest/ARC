@@ -6,7 +6,7 @@
       title="Графика и 3D-Ядро"
       description="Детальная конфигурация конвейера рендеринга WebGL2, сглаживания (MSAA/FXAA/SSAA), фильтрации текстур, шейдеров и физики реактора."
       :statusLabel="`ПРЕСЕТ: ${presetLabel}`"
-      statusTone="ok"
+      statusTone="accent"
       blockCountText="5 функциональных групп"
       :icon="Layers"
     >
@@ -266,7 +266,7 @@ import { computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsGroup from '../../primitives/SettingsGroup.vue';
-import SettingsSummaryStrip, { type SummaryItem } from '../../primitives/SettingsSummaryStrip.vue';
+import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
@@ -282,11 +282,11 @@ const presetLabel = computed(() => {
   return p === 'Low' ? 'НИЗКИЙ' : p === 'Medium' ? 'СРЕДНИЙ' : p === 'High' ? 'ВЫСОКИЙ' : p === 'Ultra' ? 'УЛЬТРА' : p === 'UltraPlus' ? 'УЛЬТРА+' : 'СВОЙ';
 });
 
-const summaryItems = computed<SummaryItem[]>(() => [
-  { label: 'Профиль рендера', value: presetLabel.value, tone: 'ok', sublabel: `Масштаб ${Math.round(cfg.value.renderScale * 100)}%` },
-  { label: 'Сглаживание', value: cfg.value.msaaSamples > 0 ? `MSAA ${cfg.value.msaaSamples}x` : 'Выкл', tone: cfg.value.msaaSamples > 0 ? 'ok' : 'neutral', sublabel: cfg.value.fxaaEnabled ? 'FXAA активен' : 'Без FXAA' },
-  { label: 'Освещение и HDR', value: cfg.value.bloomEnabled ? `Bloom ${cfg.value.bloomStrength}%` : 'Без Bloom', tone: cfg.value.bloomEnabled ? 'ok' : 'neutral', sublabel: cfg.value.colorBufferPrecision === 'halfFloat' ? '16-bit HDR' : '8-bit буфер' },
-  { label: 'Частицы и шейдеры', value: `${cfg.value.particleDensity}%`, sublabel: cfg.value.glslPlasmaShader ? 'GLSL плазма вкл' : 'Базовый шейдер' },
+const summaryItems = computed<SummaryStripItem[]>(() => [
+  { label: 'Профиль рендера', value: presetLabel.value, tone: 'accent', detail: `Масштаб ${Math.round(cfg.value.renderScale * 100)}%` },
+  { label: 'Сглаживание', value: cfg.value.msaaSamples > 0 ? `MSAA ${cfg.value.msaaSamples}x` : 'Выкл', tone: cfg.value.msaaSamples > 0 ? 'accent' : 'off', detail: cfg.value.fxaaEnabled ? 'FXAA активен' : 'Без FXAA' },
+  { label: 'Освещение и HDR', value: cfg.value.bloomEnabled ? `Bloom ${cfg.value.bloomStrength}%` : 'Без Bloom', tone: cfg.value.bloomEnabled ? 'default' : 'off', detail: cfg.value.colorBufferPrecision === 'halfFloat' ? '16-bit HDR' : '8-bit буфер' },
+  { label: 'Частицы и шейдеры', value: `${cfg.value.particleDensity}%`, tone: cfg.value.particleDensity > 0 ? 'default' : 'off', detail: cfg.value.glslPlasmaShader ? 'GLSL плазма вкл' : 'Базовый шейдер' },
 ]);
 
 const btnClass = (active: boolean) =>

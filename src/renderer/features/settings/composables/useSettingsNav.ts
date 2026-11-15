@@ -234,6 +234,9 @@ const searchQuery = ref('');
 const isSidebarCollapsed = ref<boolean>(false);
 const isProgrammaticScroll = ref<boolean>(false);
 const sectionScrollPositions = ref<Record<string, number>>({});
+const tabScrollPositions = ref<Partial<Record<SettingsTab, number>>>({});
+const tabLastSections = ref<Partial<Record<SettingsTab, string>>>({});
+const skipNextTabScrollRestore = ref<boolean>(false);
 
 export function isSplitNavigationTab(tab: SettingsTab): boolean {
   return tab === 'intelligence';
@@ -358,6 +361,29 @@ export function useSettingsNav() {
   function getSectionScroll(sectionId: string): number {
     if (!sectionId) return 0;
     return sectionScrollPositions.value[sectionId] ?? 0;
+  }
+
+  function saveTabScroll(tab: SettingsTab, scrollTop: number) {
+    tabScrollPositions.value[tab] = Math.max(0, Math.round(scrollTop));
+  }
+
+  function getTabScroll(tab: SettingsTab): number {
+    return tabScrollPositions.value[tab] ?? 0;
+  }
+
+  function saveTabSection(tab: SettingsTab, sectionId: string | null) {
+    if (!sectionId) return;
+    tabLastSections.value[tab] = sectionId;
+  }
+
+  function getTabSection(tab: SettingsTab): string | null {
+    return tabLastSections.value[tab] ?? null;
+  }
+
+  function consumeSkipTabScrollRestore(): boolean {
+    const val = skipNextTabScrollRestore.value;
+    skipNextTabScrollRestore.value = false;
+    return val;
   }
 
   function resolveTabAndSection(tab: SettingsTab, sectionId: string): { tab: SettingsTab; sectionId: string } {
@@ -546,10 +572,24 @@ export function useSettingsNav() {
   }
 
   async function navigateToSection(tab: SettingsTab, sectionId: string, customQuery?: string, targetId?: string) {
+    if (!isSplitNavigationTab(activeTab.value) && typeof document !== 'undefined') {
+      const prevContainer = document.querySelector('.settings-scroll-container') as HTMLElement | null;
+      if (prevContainer) {
+        saveTabScroll(activeTab.value, prevContainer.scrollTop);
+      }
+      if (activeSection.value) {
+        saveTabSection(activeTab.value, activeSection.value);
+      }
+    }
+
     setProgrammaticScroll(true);
     const resolved = resolveTabAndSection(tab, sectionId);
+    if (!isSplitNavigationTab(resolved.tab)) {
+      skipNextTabScrollRestore.value = true;
+    }
     activeTab.value = resolved.tab;
     activeSection.value = resolved.sectionId;
+    saveTabSection(resolved.tab, resolved.sectionId);
     const query = customQuery || searchQuery.value;
 
     try {
@@ -564,10 +604,28 @@ export function useSettingsNav() {
   function selectTab(tab: SettingsTab) {
     const validCat = SETTINGS_MENU.find(c => c.id === tab) || SETTINGS_MENU[0];
     if (activeTab.value === validCat.id && activeSection.value) return;
+
+    if (!isSplitNavigationTab(activeTab.value)) {
+      if (typeof document !== 'undefined') {
+        const currentContainer = document.querySelector('.settings-scroll-container') as HTMLElement | null;
+        if (currentContainer) {
+          saveTabScroll(activeTab.value, currentContainer.scrollTop);
+        }
+      }
+      if (activeSection.value) {
+        saveTabSection(activeTab.value, activeSection.value);
+      }
+    }
+
+    skipNextTabScrollRestore.value = false;
     setProgrammaticScroll(true);
     activeTab.value = validCat.id;
+    const rememberedSec = getTabSection(validCat.id);
     const firstSec = validCat.sections[0]?.id ?? null;
-    activeSection.value = firstSec;
+    activeSection.value =
+      rememberedSec && validCat.sections.some(s => s.id === rememberedSec)
+        ? rememberedSec
+        : firstSec;
   }
 
   function handleViewScroll(tab: SettingsTab, evt: Event) {
@@ -583,6 +641,8 @@ export function useSettingsNav() {
 
     if (isProgrammaticScroll.value) return;
 
+    saveTabScroll(tab, container.scrollTop);
+
     const cat = SETTINGS_MENU.find(c => c.id === tab);
     if (!cat) return;
 
@@ -591,6 +651,9 @@ export function useSettingsNav() {
       const lastSec = cat.sections[cat.sections.length - 1];
       if (lastSec && activeSection.value !== lastSec.id) {
         activeSection.value = lastSec.id;
+      }
+      if (lastSec) {
+        saveTabSection(tab, lastSec.id);
       }
       return;
     }
@@ -610,8 +673,11 @@ export function useSettingsNav() {
       }
     }
 
-    if (current && current !== activeSection.value) {
-      activeSection.value = current;
+    if (current) {
+      saveTabSection(tab, current);
+      if (current !== activeSection.value) {
+        activeSection.value = current;
+      }
     }
   }
 
@@ -671,9 +737,16 @@ export function useSettingsNav() {
     activeTab,
     activeSection,
     sectionScrollPositions,
+    tabScrollPositions,
+    tabLastSections,
     isSplitNavigationTab,
     saveSectionScroll,
     getSectionScroll,
+    saveTabScroll,
+    getTabScroll,
+    saveTabSection,
+    getTabSection,
+    consumeSkipTabScrollRestore,
     aiSectionStatuses,
     isProgrammaticScroll,
     setProgrammaticScroll,

@@ -6,8 +6,8 @@
       categoryLabel="Общие · Подсистема 07"
       title="Системная диагностика"
       description="Экспорт полного обезличенного отчёта о конфигурации, статусах сервисов, БД и аппаратных метриках."
-      :statusLabel="isExporting ? 'ВЫГРУЗКА...' : 'ГОТОВ К СБОРУ'"
-      :statusTone="isExporting ? 'warn' : 'ok'"
+      :statusLabel="headerStatus.label"
+      :statusTone="headerStatus.tone"
       blockCountText="1 функциональная группа"
       :icon="Activity"
     >
@@ -65,6 +65,13 @@ import { useUIStore } from '../../../../../stores/ui.store';
 
 const uiStore = useUIStore();
 const isExporting = ref(false);
+const hasExportApi = computed(() => typeof window !== 'undefined' && typeof (window as any).api?.exportDiagnostics === 'function');
+
+const headerStatus = computed(() => {
+  if (!hasExportApi.value) return { label: 'БЕЗ IPC', tone: 'off' as const };
+  if (isExporting.value) return { label: 'ВЫГРУЗКА...', tone: 'warn' as const };
+  return { label: 'ЭКСПОРТ JSON', tone: 'accent' as const };
+});
 
 const summaryItems = computed<SummaryStripItem[]>(() => [
   {
@@ -77,7 +84,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Защита секретов',
     value: 'Маскирование ВКЛ',
     detail: 'API-ключи исключены',
-    tone: 'ok'
+    tone: 'default'
   },
   {
     label: 'Состав отчёта',
@@ -87,9 +94,9 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
   },
   {
     label: 'Статус канала',
-    value: isExporting.value ? 'Сборка...' : 'Готов',
-    detail: 'Локальная выгрузка на диск',
-    tone: isExporting.value ? 'warn' : 'ok'
+    value: !hasExportApi.value ? 'Недоступен' : isExporting.value ? 'Сборка...' : 'Доступен',
+    detail: !hasExportApi.value ? 'Требуется Electron IPC' : 'Локальная выгрузка на диск',
+    tone: !hasExportApi.value ? 'off' : isExporting.value ? 'warn' : 'accent'
   }
 ]);
 

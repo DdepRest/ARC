@@ -163,9 +163,11 @@ interface Window {
 
     // Storage Management & Reset
     getStorageInfo: () => Promise<{ dataDir: string; isPortable: boolean; folders: Record<string, { path: string; sizeBytes: number; exists: boolean }>; appDataLegacyPath: string }>;
+    getDbStatus: () => Promise<{ mode?: string; engine?: string; storageStatus?: string; isSafeMode?: boolean; security?: { available?: boolean; backend?: string } }>;
     openDataFolder: () => Promise<{ success: boolean; error?: string }>;
     resetSystem: (options?: { clearModels?: boolean }) => Promise<{ success: boolean; error?: string }>;
     exportDiagnostics: () => Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
+    exportDataArchive: () => Promise<{ success: boolean; filePath?: string; sizeBytes?: number; entriesCount?: number; canceled?: boolean; error?: string }>;
     getAppVersion: () => Promise<string>;
     checkForUpdates: () => Promise<{
       success: boolean;

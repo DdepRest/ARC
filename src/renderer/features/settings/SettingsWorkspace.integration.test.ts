@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { createSSRApp, compile, ref, computed, watch, nextTick, defineComponent, h } from 'vue';
+import * as VueRuntime from 'vue';
+import { createSSRApp, ref, computed, watch, nextTick, defineComponent, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import { parse as parseSfc } from '@vue/compiler-sfc';
+import { parse as parseSfc, compileTemplate } from '@vue/compiler-sfc';
+import * as ts from 'typescript';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSettingsNav, type SettingsTab } from './composables/useSettingsNav';
 import {
@@ -28,7 +30,26 @@ function compileSfcTemplate(relativeVuePath: string) {
   if (!descriptor.template) {
     throw new Error(`No <template> found in ${relativeVuePath}`);
   }
-  return compile(descriptor.template.content);
+  const compiled = compileTemplate({
+    source: descriptor.template.content,
+    filename: fullPath,
+    id: fullPath,
+    compilerOptions: {
+      mode: 'function',
+      isTS: true,
+      expressionPlugins: ['typescript']
+    }
+  });
+  if (compiled.errors?.length) {
+    throw new Error(`Template compile error in ${relativeVuePath}: ${compiled.errors.map(String).join('; ')}`);
+  }
+  const transpiled = ts.transpileModule(compiled.code, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.None
+    }
+  });
+  return new Function('Vue', transpiled.outputText)(VueRuntime);
 }
 
 const StubIcon = defineComponent({
@@ -714,5 +735,152 @@ describe('SettingsWorkspace Integration Tests (Split Navigation, Telemetry, IPC 
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it('compiles all unified Settings sections and enforces absence of legacy fake placeholders or sublabel bugs', async () => {
+    const sectionsToCompile = [
+      './components/sections/STTSection.vue',
+      './components/sections/TTSSection.vue',
+      './components/sections/voice/VoiceAudioSection.vue',
+      './components/sections/general/QuickCoreSection.vue',
+      './components/sections/general/AppearanceSection.vue',
+      './components/sections/general/TabNavigationSection.vue',
+      './components/sections/general/WidgetControlsSection.vue',
+      './components/sections/general/HotkeysSection.vue',
+      './components/sections/general/VkIntegrationsSection.vue',
+      './components/sections/general/DiagnosticsExportSection.vue',
+      './components/sections/general/AppUpdatesSection.vue',
+      './components/sections/system/GraphicsReactorSection.vue',
+      './components/sections/system/PerformanceOptionsSection.vue',
+      './components/sections/system/DiagnosticsSection.vue',
+      './components/sections/system/SafetySecuritySection.vue',
+      './components/sections/system/StorageDataSection.vue',
+      './components/UpdatesHistorySection.vue',
+      './components/primitives/SettingsSummaryStrip.vue'
+    ];
+
+    for (const relPath of sectionsToCompile) {
+      const renderFn = compileSfcTemplate(relPath);
+      expect(renderFn).toBeTypeOf('function');
+
+      const src = fs.readFileSync(path.resolve(__dirname, relPath), 'utf8');
+      expect(src).not.toContain('14.2');
+      expect(src).not.toContain('sublabel:');
+      expect(src).not.toContain("'neutral'");
+    }
+
+    const updatesSrc = fs.readFileSync(
+      path.resolve(__dirname, './components/UpdatesHistorySection.vue'),
+      'utf8'
+    );
+    expect(updatesSrc).toContain('checkForUpdates');
+    expect(updatesSrc).not.toContain('setTimeout(() => {\n    isChecking.value = false');
+
+    const ttsSrc = fs.readFileSync(
+      path.resolve(__dirname, './components/sections/TTSSection.vue'),
+      'utf8'
+    );
+    expect(ttsSrc).toContain('computeTtsSubsystemStatus');
+    expect(ttsSrc).toContain('confirmedActiveEngine');
+    expect(ttsSrc).not.toContain("activeTtsEngine.value = state.provider");
+
+    const summarySrc = fs.readFileSync(
+      path.resolve(__dirname, './components/primitives/SettingsSummaryStrip.vue'),
+      'utf8'
+    );
+    expect(summarySrc).toContain('grid-cols-2 lg:grid-cols-4');
+  });
+
+  it('renders HotkeysSection collision banner and row conflict badges when bindings collide', async () => {
+    const hotkeysRender = compileSfcTemplate('./components/sections/general/HotkeysSection.vue');
+    const { detectHotkeyConflicts, normalizeHotkeyCombo } = await import('../../services/hotkeys-conflicts');
+
+    const mockHotkeys = [
+      { id: 'voice-ptt', label: 'Push-to-Talk', category: 'global', keys: ['Ctrl+Space'] },
+      { id: 'focus-input', label: 'Focus Command Bar', category: 'navigation', keys: ['control+ '] },
+      { id: 'clear-chat', label: 'Clear Chat', category: 'chat', keys: ['Ctrl+L'] }
+    ];
+    const report = detectHotkeyConflicts(mockHotkeys);
+
+    const HotkeysHarness = defineComponent({
+      components: {
+        Keyboard: StubIcon,
+        AlertTriangle: StubIcon,
+        SettingsSectionHeader: defineComponent({
+          props: ['title', 'statusLabel', 'statusTone'],
+          setup(props, { slots }) {
+            return () =>
+              h('header', { 'data-status': props.statusLabel, 'data-tone': props.statusTone }, [
+                slots.summary ? slots.summary() : null
+              ]);
+          }
+        }),
+        SettingsSummaryStrip: defineComponent({
+          props: ['items'],
+          setup(props) {
+            return () =>
+              h(
+                'div',
+                { 'data-summary': 'true' },
+                (props.items || []).map((it: any) => h('span', `${it.label}:${it.value}`))
+              );
+          }
+        }),
+        SettingsGroup: defineComponent({
+          setup(_, { slots }) {
+            return () => h('div', slots.default ? slots.default() : []);
+          }
+        }),
+        SettingsBlock: defineComponent({
+          setup(_, { slots }) {
+            return () => h('div', slots.default ? slots.default() : []);
+          }
+        }),
+        SettingsRow: defineComponent({
+          props: ['label'],
+          setup(props, { slots }) {
+            return () =>
+              h('div', { 'data-row': props.label }, [
+                slots.badge ? slots.badge() : null,
+                slots.default ? slots.default() : null
+              ]);
+          }
+        })
+      },
+      setup() {
+        return {
+          categories: [
+            { id: 'global', name: 'Глобальные', desc: '' },
+            { id: 'navigation', name: 'Навигация', desc: '' },
+            { id: 'chat', name: 'Чат', desc: '' }
+          ],
+          hotkeys: mockHotkeys,
+          conflictReport: report,
+          headerStatus: { label: 'НАЙДЕНО 1 КОНФЛ.', tone: 'warn' },
+          summaryItems: [
+            { label: 'Конфликты клавиш', value: '1 обнаружено', tone: 'warn' }
+          ],
+          getHotkeysByCategory: (cat: string) => mockHotkeys.filter((m) => m.category === cat),
+          hasCommandConflict: (id: string) => Boolean(report.conflictsByCommandId[id]?.length),
+          isComboConflicting: (id: string, combo: string) => {
+            const norm = normalizeHotkeyCombo(combo);
+            return Boolean(norm && report.conflictsByCommandId[id]?.includes(norm));
+          },
+          formatSingleCombo: (combo: string) => combo.split('+').join(' + '),
+          Keyboard: StubIcon
+        };
+      },
+      render: hotkeysRender
+    });
+
+    const app = createSSRApp(HotkeysHarness);
+    app.use(pinia);
+    const html = await renderToString(app);
+
+    expect(html).toContain('data-status="НАЙДЕНО 1 КОНФЛ."');
+    expect(html).toContain('Обнаружены пересечения горячих клавиш (1)');
+    expect(html).toContain('КОНФЛИКТ');
+    expect(html).toContain('Push-to-Talk (voice-ptt)');
+    expect(html).toContain('Focus Command Bar (focus-input)');
   });
 });

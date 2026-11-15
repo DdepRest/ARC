@@ -130,6 +130,46 @@ describe('useSettingsNav Infrastructure & Intelligence Telemetry Tests', () => {
     expect(getSectionScroll('section-local')).toBe(0);
   });
 
+  it('persists and restores non-split tab scroll positions and last active section across tab switches', async () => {
+    const {
+      activeTab,
+      activeSection,
+      selectTab,
+      navigateToSection,
+      saveTabScroll,
+      getTabScroll,
+      saveTabSection,
+      getTabSection,
+      consumeSkipTabScrollRestore
+    } = useSettingsNav();
+
+    selectTab('core');
+    saveTabScroll('system', 680);
+    saveTabSection('system', 'section-storage');
+    saveTabScroll('voice', 190);
+    saveTabSection('voice', 'section-tts');
+
+    selectTab('voice');
+    expect(activeTab.value).toBe('voice');
+    expect(activeSection.value).toBe('section-tts');
+    expect(getTabScroll('voice')).toBe(190);
+    expect(consumeSkipTabScrollRestore()).toBe(false);
+
+    selectTab('system');
+    expect(activeTab.value).toBe('system');
+    expect(activeSection.value).toBe('section-storage');
+    expect(getTabScroll('system')).toBe(680);
+    expect(getTabSection('system')).toBe('section-storage');
+    expect(consumeSkipTabScrollRestore()).toBe(false);
+
+    // Explicit deep-link navigation (search / CrossLink) skips saved scroll restoration
+    await navigateToSection('voice', 'section-audio');
+    expect(activeTab.value).toBe('voice');
+    expect(activeSection.value).toBe('section-audio');
+    expect(consumeSkipTabScrollRestore()).toBe(true);
+    expect(consumeSkipTabScrollRestore()).toBe(false);
+  });
+
   it('should return UNKNOWN memory compatibility when RAM/VRAM is not detected', () => {
     expect(getQuantCompatibility(2.0, null)).toBe('UNKNOWN');
     expect(getQuantCompatibility(2.0, 0)).toBe('UNKNOWN');

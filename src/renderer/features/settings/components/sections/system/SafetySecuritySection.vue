@@ -5,8 +5,8 @@
       categoryLabel="Система · Подсистема 04"
       title="Безопасность"
       description="Правила контроля над операциями ассистента. Защита файлов, системных процессов и сетевых вызовов."
-      :statusLabel="store.requireConfirm ? 'ЗАЩИТА АКТИВНА' : 'БАЗОВЫЙ КОНТРОЛЬ'"
-      :statusTone="store.requireConfirm ? 'ok' : 'warn'"
+      :statusLabel="store.requireConfirm ? 'ПОДТВЕРЖДЕНИЕ ВКЛ' : 'БЕЗ ЗАПРОСА'"
+      :statusTone="store.requireConfirm ? 'accent' : 'warn'"
       blockCountText="1 функциональная группа"
       :icon="Shield"
     >
@@ -59,11 +59,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsGroup from '../../primitives/SettingsGroup.vue';
-import SettingsSummaryStrip, { type SummaryItem } from '../../primitives/SettingsSummaryStrip.vue';
+import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import CrossLink from '../../primitives/CrossLink.vue';
@@ -71,11 +71,65 @@ import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import { Shield } from 'lucide-vue-next';
 
 const store = useSettingsStore();
+const vaultState = ref<'checking' | 'dpapi' | 'memory-only' | 'unavailable'>('checking');
+const vaultBackend = ref<string>('');
 
-const summaryItems = computed<SummaryItem[]>(() => [
-  { label: 'Деструктивные операции', value: store.requireConfirm ? 'Запрос согласия' : 'Автоматически', tone: store.requireConfirm ? 'ok' : 'warn', sublabel: 'Удаление и перезапись' },
-  { label: 'Политика Shell / CLI', value: 'Ручной шлюз', tone: 'warn', sublabel: 'Блокировка скрытого запуска' },
-  { label: 'Хранилище секретов', value: 'SecretVault', tone: 'ok', sublabel: 'Маскирование API-ключей' },
-  { label: 'Сетевой контур', value: 'Локальный приоритет', tone: 'ok', sublabel: 'Изоляция данных A.R.C.' },
+onMounted(async () => {
+  const api = typeof window !== 'undefined' ? (window as any).api : null;
+  if (typeof api?.getDbStatus !== 'function') {
+    vaultState.value = 'unavailable';
+    return;
+  }
+  try {
+    const status = await api.getDbStatus();
+    if (status?.security?.available === true) {
+      vaultState.value = 'dpapi';
+      vaultBackend.value = status.security.backend || 'safeStorage';
+    } else if (status?.security?.available === false) {
+      vaultState.value = 'memory-only';
+      vaultBackend.value = status.security.backend || 'session_memory_only';
+    } else {
+      vaultState.value = 'unavailable';
+    }
+  } catch {
+    vaultState.value = 'unavailable';
+  }
+});
+
+const summaryItems = computed<SummaryStripItem[]>(() => [
+  {
+    label: 'Деструктивные операции',
+    value: store.requireConfirm ? 'Запрос согласия' : 'Автоматически',
+    tone: store.requireConfirm ? 'accent' : 'warn',
+    detail: 'Удаление и перезапись'
+  },
+  {
+    label: 'Политика Shell / CLI',
+    value: 'Ручной шлюз',
+    tone: 'warn',
+    detail: 'Блокировка скрытого запуска'
+  },
+  {
+    label: 'Хранилище секретов',
+    value: vaultState.value === 'dpapi'
+      ? 'DPAPI · Зашифровано'
+      : vaultState.value === 'memory-only'
+      ? 'Только в памяти'
+      : vaultState.value === 'checking'
+      ? 'Проверка...'
+      : 'Не проверено',
+    tone: vaultState.value === 'dpapi'
+      ? 'ok'
+      : vaultState.value === 'memory-only' || vaultState.value === 'checking'
+      ? 'warn'
+      : 'off',
+    detail: vaultBackend.value ? `Контур: ${vaultBackend.value}` : 'Требуется IPC getDbStatus'
+  },
+  {
+    label: 'Сетевой контур',
+    value: store.forcedOfflineMode ? 'Строгий офлайн' : 'Гибридный режим',
+    tone: store.forcedOfflineMode ? 'warn' : 'default',
+    detail: store.forcedOfflineMode ? 'Внешние вызовы заблокированы' : 'Локальный приоритет роутера'
+  },
 ]);
 </script>

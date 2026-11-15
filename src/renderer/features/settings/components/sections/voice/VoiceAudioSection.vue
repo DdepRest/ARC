@@ -112,7 +112,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Диалоговый микшер',
     value: store.autoDuckMusic ? `Ducking -${store.audioDuckingPercentage}%` : 'Без приглушения',
     detail: store.autoSpeak ? 'Авто-озвучка ВКЛ' : 'Авто-озвучка ВЫКЛ',
-    tone: store.autoDuckMusic ? 'ok' : 'default'
+    tone: store.autoDuckMusic ? 'accent' : 'default'
   }
 ]);
 

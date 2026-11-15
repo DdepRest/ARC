@@ -109,8 +109,9 @@ const errorMessage = ref('');
 const headerStatus = computed(() => {
   if (isChecking.value) return { label: 'ПРОВЕРКА...', tone: 'warn' as const };
   if (checkState.value === 'update-available') return { label: `ДОСТУПНО v${latestVersion.value}`, tone: 'warn' as const };
+  if (checkState.value === 'up-to-date') return { label: `АКТУАЛЬНО · v${currentVersion.value}`, tone: 'ok' as const };
   if (checkState.value === 'error') return { label: 'ОШИБКА СЕТИ', tone: 'err' as const };
-  return { label: `v${currentVersion.value}`, tone: 'ok' as const };
+  return { label: `v${currentVersion.value}`, tone: 'accent' as const };
 });
 
 const summaryItems = computed<SummaryStripItem[]>(() => [
@@ -118,25 +119,27 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Текущая версия',
     value: `v${currentVersion.value}`,
     detail: 'Установленная сборка ядра',
-    tone: 'ok'
+    tone: 'accent'
   },
   {
     label: 'Канал релизов',
     value: 'GitHub Releases',
     detail: 'Стабильная ветка DdepRest/ARC',
-    tone: 'accent'
+    tone: 'default'
   },
   {
     label: 'Статус проверки',
-    value: checkState.value === 'up-to-date'
+    value: isChecking.value
+      ? 'Проверка...'
+      : checkState.value === 'up-to-date'
       ? 'Актуально'
       : checkState.value === 'update-available'
       ? `Доступна v${latestVersion.value}`
       : checkState.value === 'error'
       ? 'Сбой проверки'
-      : 'Ожидание запроса',
+      : 'Не проверялось',
     detail: isChecking.value ? 'Опрос сервера...' : 'Проверка вручную по кнопке',
-    tone: checkState.value === 'up-to-date' ? 'ok' : checkState.value === 'error' ? 'err' : checkState.value === 'update-available' ? 'warn' : 'default'
+    tone: isChecking.value ? 'warn' : checkState.value === 'up-to-date' ? 'ok' : checkState.value === 'error' ? 'err' : checkState.value === 'update-available' ? 'warn' : 'off'
   },
   {
     label: 'Журнал изменений',

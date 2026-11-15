@@ -1,51 +1,63 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
 import { useUIStore } from '../../../../../stores/ui.store';
+import { useSttStatus } from '../../../composables/useSttStatus';
+import { computeSttSubsystemStatus } from '../../../logic/voice-status';
 import ArcSelect from '../../../../../components/ui/ArcSelect.vue';
 import { RefreshCw } from 'lucide-vue-next';
 
 const settingsStore = useSettingsStore();
 const uiStore = useUIStore();
-
-const sttEngineReady = ref(false);
-const activeEngineName = ref('');
-let unsubscribeEngineReady: (() => void) | null = null;
 const isElectronMode = typeof window !== 'undefined' && Boolean((window as any).api);
 
-onMounted(() => {
-  if ((window as any).api?.getSttStatus) {
-    (window as any).api.getSttStatus().then((s: any) => {
-      if (s?.ready) {
-        sttEngineReady.value = true;
-        if (s.activeEngine) {
-          activeEngineName.value = s.activeEngine;
-          if (s.activeEngine === 'gigaam') {
-            settingsStore.sttEngine = 'gigaam';
-            settingsStore.sttModel = 'gigaam-ctc';
-          }
-        }
-      }
-    }).catch(() => {});
-  }
-  if ((window as any).api?.onSttEngineReady) {
-    unsubscribeEngineReady = (window as any).api.onSttEngineReady((data: any) => {
-      sttEngineReady.value = true;
-      if (data?.engine) {
-        activeEngineName.value = data.engine;
-        if (data.engine === 'gigaam') {
-          settingsStore.sttEngine = 'gigaam';
-          settingsStore.sttModel = 'gigaam-ctc';
-        }
-      }
-    });
-  }
-});
+const {
+  sttEngineReady,
+  activeEngineName,
+  sttStatusChecked,
+  sttStatusChecking,
+  sttLastError,
+  refreshSttStatus,
+  applyEnginePayload
+} = useSttStatus();
 
-onUnmounted(() => {
-  if (unsubscribeEngineReady) {
-    unsubscribeEngineReady();
-    unsubscribeEngineReady = null;
+const sttStatus = computed(() =>
+  computeSttSubsystemStatus({
+    sttProvider: settingsStore.sttProvider,
+    sttEngine: settingsStore.sttEngine,
+    sttModel: settingsStore.sttModel,
+    isElectronAvailable: isElectronMode,
+    sttStatusChecked: sttStatusChecked.value,
+    sttStatusChecking: sttStatusChecking.value,
+    sttEngineReady: sttEngineReady.value,
+    activeEngineName: activeEngineName.value,
+    loadingProgress: uiStore.sttLoadingProgress,
+    lastError: sttLastError.value
+  })
+);
+
+const badgeClasses = computed(() => {
+  switch (sttStatus.value.badgeTone) {
+    case 'ok':
+      return {
+        pill: 'bg-[var(--arc-plane)] text-[var(--status-ok)] border-[var(--status-ok)]/30',
+        dot: 'bg-[var(--status-ok)]'
+      };
+    case 'err':
+      return {
+        pill: 'bg-[var(--arc-plane)] text-[var(--status-err)] border-[var(--status-err)]/30',
+        dot: 'bg-[var(--status-err)]'
+      };
+    case 'off':
+      return {
+        pill: 'bg-[var(--arc-plane)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)]',
+        dot: 'bg-[var(--arc-text-muted)]'
+      };
+    default:
+      return {
+        pill: 'bg-[var(--arc-plane)] text-[var(--status-warn)] border-[var(--status-warn)]/30',
+        dot: 'bg-[var(--status-warn)]'
+      };
   }
 });
 
@@ -56,34 +68,47 @@ const setSttEngineAction = async (engine: 'gigaam' | 'legacy') => {
   } else if (settingsStore.sttModel === 'gigaam-ctc') {
     settingsStore.sttModel = 'zipformer-ru';
   }
+  applyEnginePayload({ ready: false, activeEngine: engine });
   if ((window as any).api?.setSttEngine) {
     try { await (window as any).api.setSttEngine(engine); } catch (err) {
       console.error('Failed to update STT engine mode:', err);
     }
   }
   if ((window as any).api?.switchSttModel) {
-    try { await (window as any).api.switchSttModel(settingsStore.sttModel); } catch (err) {
+    try {
+      const res = await (window as any).api.switchSttModel(settingsStore.sttModel);
+      applyEnginePayload(res);
+    } catch (err) {
       console.error('Failed to switch STT model:', err);
     }
   }
+  await refreshSttStatus();
 };
 
 const reloadSttAction = async () => {
   const isGiga = settingsStore.sttModel === 'gigaam-ctc';
   const nextEngine = isGiga ? 'gigaam' : 'legacy';
   settingsStore.sttEngine = nextEngine;
+  applyEnginePayload({ ready: false, activeEngine: nextEngine });
   if ((window as any).api?.setSttEngine) {
     try { await (window as any).api.setSttEngine(nextEngine); } catch {}
   }
   if ((window as any).api?.switchSttModel) {
-    try { await (window as any).api.switchSttModel(settingsStore.sttModel); } catch (err) {
+    try {
+      const res = await (window as any).api.switchSttModel(settingsStore.sttModel);
+      applyEnginePayload(res);
+    } catch (err) {
       console.error('Failed to switch STT model:', err);
     }
   } else if ((window as any).api?.reloadStt) {
-    try { await (window as any).api.reloadStt(settingsStore.sttModel); } catch (err) {
+    try {
+      const res = await (window as any).api.reloadStt(settingsStore.sttModel);
+      applyEnginePayload(res);
+    } catch (err) {
       console.error('Failed to reload STT:', err);
     }
   }
+  await refreshSttStatus();
 };
 
 watch(() => settingsStore.sttProvider, (newProvider) => {
@@ -159,16 +184,14 @@ watch(() => settingsStore.sttProvider, (newProvider) => {
 
       <!-- STT Pipeline Architecture Mode -->
       <div v-if="settingsStore.sttProvider === 'sherpa'" class="flex flex-col gap-2">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
           <span class="text-xs font-mono text-[var(--arc-text-muted)] uppercase tracking-wider">Архитектура конвейера</span>
           <span 
             class="text-xs font-mono px-2 py-0.5 rounded border flex items-center gap-1.5"
-            :class="sttEngineReady 
-              ? 'bg-[var(--arc-plane)] text-[var(--status-ok)] border-[var(--status-ok)]/30' 
-              : 'bg-[var(--arc-plane)] text-[var(--status-warn)] border-[var(--status-warn)]/30'"
+            :class="badgeClasses.pill"
           >
-            <span class="w-1.5 h-1.5 rounded-full" :class="sttEngineReady ? 'bg-[var(--status-ok)]' : 'bg-[var(--status-warn)]'"></span>
-            <span>{{ sttEngineReady ? `Активен (${activeEngineName.toUpperCase() || 'GIGAAM'})` : 'Инициализация...' }}</span>
+            <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="badgeClasses.dot"></span>
+            <span>{{ sttStatus.badgeLabel }}</span>
           </span>
         </div>
         <div class="flex p-1 bg-[var(--arc-plane)] rounded-xl border border-[var(--arc-hairline)] gap-1">

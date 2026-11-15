@@ -142,4 +142,9 @@ export function registerAppIpc() {
     const win = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow();
     return await DiagnosticsService.exportDiagnostics(win);
   });
+
+  ipcMain.handle('system:export-archive', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow();
+    return await StorageManagerService.exportDataArchive(win);
+  });
 }

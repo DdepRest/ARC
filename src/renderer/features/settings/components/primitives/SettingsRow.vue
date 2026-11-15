@@ -2,7 +2,7 @@
   <div 
     ref="rowRef"
     :id="id || computedId"
-    class="group/row flex flex-col justify-between gap-3.5 px-5 py-4 min-h-[58px] hover:bg-[var(--arc-hover)] transition-colors duration-200 relative"
+    class="group/row flex flex-col justify-between gap-3.5 px-3.5 sm:px-5 py-3.5 sm:py-4 min-h-[58px] hover:bg-[var(--arc-hover)] transition-colors duration-200 relative"
     :class="[
       layout === 'stacked' ? 'items-stretch' : 'sm:flex-row sm:items-center sm:gap-6',
       { 'opacity-50 pointer-events-none': disabled }
@@ -13,7 +13,7 @@
     :data-frequency="frequency"
   >
     <!-- Label, hint, help tooltip and crosslink column -->
-    <div :class="layout === 'stacked' ? 'w-full min-w-0' : 'flex-1 min-w-0 max-w-[68ch] pr-2'">
+    <div :class="layout === 'stacked' ? 'w-full min-w-0' : 'flex-1 min-w-0 max-w-[68ch] sm:pr-2'">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[14px] font-medium text-[var(--arc-text-primary,#E8E8E8)] group-hover/row:text-white leading-[1.40] transition-colors">
           {{ label }}
@@ -53,7 +53,7 @@
     </div>
 
     <!-- Control column on the right (or full-width below when stacked) -->
-    <div :class="layout === 'stacked' ? 'w-full min-w-0 flex items-center' : 'shrink-0 flex items-center gap-3 sm:self-center'">
+    <div :class="layout === 'stacked' ? 'w-full min-w-0 flex flex-wrap items-center gap-2' : 'w-full sm:w-auto sm:shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 sm:self-center min-w-0'">
       <slot />
     </div>
   </div>

@@ -7,8 +7,8 @@
       :icon="Globe"
       title="Интеграции и веб-поиск"
       description="Поисковый контур для проверки актуальных фактов в сети и внешние медиа-интеграции."
-      :statusLabel="store.enableWebSearch && !store.forcedOfflineMode ? 'ПОИСК ВКЛЮЧЕН' : 'ПОИСК ОТКЛЮЧЕН'"
-      :statusTone="store.enableWebSearch && !store.forcedOfflineMode ? 'ok' : 'off'"
+      :statusLabel="store.forcedOfflineMode ? 'ОФЛАЙН-ЛИМИТ' : store.enableWebSearch ? 'ПОИСК ВКЛЮЧЁН' : 'ПОИСК ОТКЛЮЧЁН'"
+      :statusTone="store.forcedOfflineMode ? 'warn' : store.enableWebSearch ? 'accent' : 'off'"
       blockCountText="1 функциональная группа"
     >
       <template #summary>
@@ -97,9 +97,9 @@ const providerLabel = computed(() => {
 const summaryItems = computed<SummaryStripItem[]>(() => [
   {
     label: 'Контур веб-поиска',
-    value: store.enableWebSearch ? 'Включён' : 'Отключён',
-    detail: store.forcedOfflineMode ? 'Заблокирован офлайн-режимом' : 'Доступ к актуальным фактам',
-    tone: store.enableWebSearch && !store.forcedOfflineMode ? 'ok' : store.forcedOfflineMode ? 'warn' : 'off'
+    value: store.forcedOfflineMode ? 'Заблокирован' : store.enableWebSearch ? 'Включён' : 'Отключён',
+    detail: store.forcedOfflineMode ? 'Активен строгий офлайн-режим' : 'Настройка доступа в сеть',
+    tone: store.forcedOfflineMode ? 'warn' : store.enableWebSearch ? 'accent' : 'off'
   },
   {
     label: 'Поисковый движок',
@@ -111,13 +111,13 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Медиа-поток VK',
     value: store.vkAudioUrl ? 'Настроен URL' : 'По умолчанию',
     detail: 'В разделе Панели и виджеты',
-    tone: store.vkAudioUrl ? 'ok' : 'default'
+    tone: 'default'
   },
   {
     label: 'Сетевой периметр',
     value: store.forcedOfflineMode ? 'Строгий офлайн' : 'Онлайн разрешён',
     detail: 'Глобальная политика роутера',
-    tone: store.forcedOfflineMode ? 'warn' : 'ok'
+    tone: store.forcedOfflineMode ? 'warn' : 'default'
   }
 ]);
 </script>

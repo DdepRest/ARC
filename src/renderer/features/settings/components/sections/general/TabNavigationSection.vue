@@ -8,7 +8,7 @@
       title="Навигация"
       description="Расположение главной панели вкладок, режим отображения и закреплённые рабочие пространства."
       :statusLabel="`ЗАКРЕПЛЕНО: ${store.pinnedTabs.length}`"
-      statusTone="ok"
+      statusTone="accent"
       blockCountText="2 функциональные группы"
     >
       <template #summary>
@@ -195,7 +195,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Позиция дока',
     value: store.tabBarPosition === 'top' ? 'Верхний рельс' : 'Нижний док',
     detail: 'Главная панель навигации',
-    tone: 'ok'
+    tone: 'default'
   },
   {
     label: 'Закреплено вкладок',
@@ -213,7 +213,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Режим редактора',
     value: isManagingTabs.value ? 'Редактирование' : 'Просмотр',
     detail: 'Конфигурация списка',
-    tone: isManagingTabs.value ? 'warn' : 'ok'
+    tone: isManagingTabs.value ? 'warn' : 'default'
   }
 ]);
 </script>

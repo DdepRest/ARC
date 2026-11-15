@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSettingsStore } from '../../stores/settings.store';
+import { useUIStore } from '../../../../stores/ui.store';
+import { useSttStatus } from '../../composables/useSttStatus';
+import { computeSttSubsystemStatus } from '../../logic/voice-status';
 import SettingsSectionHeader from '../SettingsSectionHeader.vue';
 import SettingsGroup from '../primitives/SettingsGroup.vue';
 import SettingsBlock from '../primitives/SettingsBlock.vue';
@@ -12,31 +15,50 @@ import SttCorrectionsManager from './SttCorrectionsManager.vue';
 import { Mic } from 'lucide-vue-next';
 
 const settingsStore = useSettingsStore();
+const uiStore = useUIStore();
+const isElectronMode = typeof window !== 'undefined' && Boolean((window as any).api);
 
-const providerDisplay = computed(() => {
-  if (settingsStore.sttProvider === 'sherpa') return 'Sherpa ONNX (Локальный)';
-  if (settingsStore.sttProvider === 'whisper') return 'OpenAI Whisper';
-  return 'Native Web Speech';
-});
+const {
+  sttEngineReady,
+  activeEngineName,
+  sttStatusChecked,
+  sttStatusChecking,
+  sttLastError
+} = useSttStatus();
+
+const sttStatus = computed(() =>
+  computeSttSubsystemStatus({
+    sttProvider: settingsStore.sttProvider,
+    sttEngine: settingsStore.sttEngine,
+    sttModel: settingsStore.sttModel,
+    isElectronAvailable: isElectronMode,
+    sttStatusChecked: sttStatusChecked.value,
+    sttStatusChecking: sttStatusChecking.value,
+    sttEngineReady: sttEngineReady.value,
+    activeEngineName: activeEngineName.value,
+    loadingProgress: uiStore.sttLoadingProgress,
+    lastError: sttLastError.value
+  })
+);
 
 const summaryItems = computed<SummaryStripItem[]>(() => [
   {
-    label: 'Движок STT',
-    value: providerDisplay.value,
-    detail: settingsStore.sttProvider === 'sherpa' ? `Контур: ${settingsStore.sttEngine === 'gigaam' ? 'GigaAM CTC' : 'Legacy'}` : 'Системный / Web',
-    tone: 'ok'
+    label: 'Выбранный движок',
+    value: sttStatus.value.providerDisplay,
+    detail: sttStatus.value.providerDetail,
+    tone: settingsStore.sttProvider ? 'accent' : 'off'
   },
   {
-    label: 'Активная модель',
-    value: settingsStore.sttModel || 'gigaam-ctc',
-    detail: 'Веса нейросети распознавания',
-    tone: 'accent'
+    label: 'Готовность STT',
+    value: sttStatus.value.readinessLabel,
+    detail: `${settingsStore.sttModel || 'gigaam-ctc'} · ${sttStatus.value.readinessDetail}`,
+    tone: sttStatus.value.readinessTone
   },
   {
     label: 'AI-постобработка',
     value: settingsStore.aiPreprocessEnabled ? 'Включена' : 'Отключена',
     detail: 'Пунктуация и автокоррекция',
-    tone: settingsStore.aiPreprocessEnabled ? 'ok' : 'off'
+    tone: settingsStore.aiPreprocessEnabled ? 'accent' : 'off'
   },
   {
     label: 'Словарь автозамен',
@@ -55,8 +77,8 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
       categoryLabel="Голос · Подсистема 01"
       title="Распознавание речи (STT)"
       description="Нейросетевой конвейер преобразования голоса в текст (Sherpa / GigaAM / Whisper), постобработка и словарь автозамен."
-      :statusLabel="settingsStore.sttProvider === 'sherpa' ? 'ЛОКАЛЬНЫЙ КОНТУР' : 'ВНЕШНИЙ КОНТУР'"
-      statusTone="ok"
+      :statusLabel="sttStatus.headerLabel"
+      :statusTone="sttStatus.headerTone"
       blockCountText="3 функциональные группы"
       :icon="Mic"
     >

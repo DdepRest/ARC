@@ -6,7 +6,7 @@
       title="Производительность"
       description="Параметры графического рендеринга, ограничение частоты кадров (FPS) и оптимизация под оборудование."
       :statusLabel="store.targetFps === 'auto' ? 'FPS: АВТО' : `ЛИМИТ: ${store.targetFps} FPS`"
-      statusTone="ok"
+      statusTone="accent"
       blockCountText="1 функциональная группа"
       :icon="Gauge"
     >
@@ -105,7 +105,7 @@ import { computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsGroup from '../../primitives/SettingsGroup.vue';
-import SettingsSummaryStrip, { type SummaryItem } from '../../primitives/SettingsSummaryStrip.vue';
+import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import CrossLink from '../../primitives/CrossLink.vue';
@@ -114,10 +114,10 @@ import { Gauge } from 'lucide-vue-next';
 
 const store = useSettingsStore();
 
-const summaryItems = computed<SummaryItem[]>(() => [
-  { label: 'Целевой FPS', value: store.targetFps === 'auto' ? 'Авто (60)' : `${store.targetFps} FPS`, tone: 'ok', sublabel: 'Лимит планировщика RAF' },
-  { label: 'Шаблон графики', value: store.graphicsPreset, sublabel: 'Активный профиль 3D' },
-  { label: 'Синхронизация VSync', value: store.disableVsync ? 'Отключена' : 'Включена', tone: store.disableVsync ? 'warn' : 'ok', sublabel: 'Кадровый буфер GPU' },
-  { label: 'Оверлей телеметрии', value: store.showWidgetFps ? 'Видим' : 'Скрыт', sublabel: 'Прибор ЯДРО в доке' },
+const summaryItems = computed<SummaryStripItem[]>(() => [
+  { label: 'Целевой FPS', value: store.targetFps === 'auto' ? 'Авто (60)' : `${store.targetFps} FPS`, tone: 'accent', detail: 'Лимит планировщика RAF' },
+  { label: 'Шаблон графики', value: store.graphicsPreset, tone: 'default', detail: 'Активный профиль 3D' },
+  { label: 'Синхронизация VSync', value: store.disableVsync ? 'Отключена' : 'Включена', tone: store.disableVsync ? 'warn' : 'default', detail: 'Кадровый буфер GPU' },
+  { label: 'Оверлей телеметрии', value: store.showWidgetFps ? 'Видим' : 'Скрыт', tone: store.showWidgetFps ? 'default' : 'off', detail: 'Прибор ЯДРО в доке' },
 ]);
 </script>

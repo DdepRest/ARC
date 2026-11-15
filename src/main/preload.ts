@@ -384,6 +384,7 @@ contextBridge.exposeInMainWorld('api', {
   openDataFolder: () => ipcRenderer.invoke('system:open-data-folder'),
   resetSystem: (options?: { clearModels?: boolean }) => ipcRenderer.invoke('system:reset-data', options),
   exportDiagnostics: () => ipcRenderer.invoke('system:export-diagnostics'),
+  exportDataArchive: () => ipcRenderer.invoke('system:export-archive'),
   getAppVersion: () => ipcRenderer.invoke('app:version'),
   checkForUpdates: () => ipcRenderer.invoke('app:check-updates')
 });

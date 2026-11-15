@@ -2,6 +2,11 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../../../stores/ui.store';
+import {
+  computeTtsSubsystemStatus,
+  type TtsEngineKind,
+  type TtsServerStatusKind
+} from '../../logic/voice-status';
 import ArcToggle from '../../../../components/ui/ArcToggle.vue';
 import ArcSlider from '../../../../components/ui/ArcSlider.vue';
 import ArcSelect from '../../../../components/ui/ArcSelect.vue';
@@ -15,22 +20,32 @@ import { Volume2, Square } from 'lucide-vue-next';
 
 const settingsStore = useSettingsStore();
 const uiStore = useUIStore();
-const presets = ref<{id: string, name: string}[]>([]);
-const currentTier = ref('Base');
-const activeEngineLabel = ref<string>('не выбран (ожидание)');
+const presets = ref<{ id: string; name: string }[]>([]);
+const currentTier = ref('Не проверен');
+const confirmedActiveEngine = ref<TtsEngineKind | null>(null);
+const sileroServerStatus = ref<TtsServerStatusKind>('unknown');
+const isElectronMode = typeof window !== 'undefined' && Boolean((window as any).api);
 
-const formatEngineName = (e: string | null | undefined): string => {
-  if (!e) return 'не выбран (ожидание)';
-  return ({ silero: 'Silero', edge: 'Edge', system: 'Native SAPI' } as const)[e as 'silero' | 'edge' | 'system'] ?? e;
+const applyTtsEngineState = (state?: { provider?: string; activeEngine?: string | null } | null) => {
+  if (!state) return;
+  const eng = state.activeEngine;
+  confirmedActiveEngine.value =
+    eng === 'silero' || eng === 'edge' || eng === 'system' ? eng : null;
 };
 
-const updateBadge = (state?: { provider?: string; activeEngine?: string | null } | null) => {
-  if (!state) return;
-  if (state.activeEngine) activeEngineLabel.value = formatEngineName(state.activeEngine);
-  else if (state.provider === 'edge') activeEngineLabel.value = 'Edge';
-  else if (state.provider === 'native') activeEngineLabel.value = 'Native SAPI';
-  else if (state.provider === 'silero') activeEngineLabel.value = 'Silero';
-  else activeEngineLabel.value = formatEngineName(null);
+const checkSileroServer = async () => {
+  const api = typeof window !== 'undefined' ? (window as any).api : null;
+  if (!api?.getTtsServerStatus) {
+    sileroServerStatus.value = 'unknown';
+    return;
+  }
+  sileroServerStatus.value = 'checking';
+  try {
+    const status = await api.getTtsServerStatus();
+    sileroServerStatus.value = status?.online || status?.status === 'ready' ? 'online' : 'offline';
+  } catch {
+    sileroServerStatus.value = 'offline';
+  }
 };
 
 const fetchTtsPresets = async () => {
@@ -51,9 +66,11 @@ const onProviderValueChange = async (raw: string | number | boolean) => {
   const str = String(raw);
   const v = (!['auto', 'silero', 'edge', 'native'].includes(str) ? 'auto' : str) as 'auto' | 'silero' | 'edge' | 'native';
   settingsStore.ttsProvider = v;
+  confirmedActiveEngine.value = null;
   if (typeof window !== 'undefined' && window.api?.setTtsProvider) {
     const state = await window.api.setTtsProvider(v);
-    updateBadge(state);
+    applyTtsEngineState(state);
+    void checkSileroServer();
     if (v === 'silero' || v === 'auto') {
       setTimeout(() => { void fetchTtsPresets(); }, 1800);
     }
@@ -66,7 +83,14 @@ const onSampleRateChange = (val: number | string | boolean) => {
 
 const restartServer = async () => {
   if (typeof window !== 'undefined' && window.api?.restartTtsServer) {
+    sileroServerStatus.value = 'checking';
+    confirmedActiveEngine.value = null;
     await window.api.restartTtsServer();
+    await checkSileroServer();
+    if (typeof window.api.getTtsActiveEngine === 'function') {
+      const state = await window.api.getTtsActiveEngine();
+      applyTtsEngineState(state);
+    }
     await fetchTtsPresets();
   }
 };
@@ -76,30 +100,46 @@ const voiceVolumePercent = computed({
   set: (val: number) => { settingsStore.voiceVolume = val / 100; }
 });
 
+const ttsStatus = computed(() =>
+  computeTtsSubsystemStatus({
+    configuredProvider: settingsStore.ttsProvider,
+    sileroServerStatus: sileroServerStatus.value,
+    confirmedActiveEngine: confirmedActiveEngine.value,
+    isElectronAvailable: isElectronMode
+  })
+);
+
+const serverDotClass = computed(() => {
+  if (sileroServerStatus.value === 'online') return 'bg-[var(--status-ok)]';
+  if (sileroServerStatus.value === 'offline') return 'bg-[var(--status-err)]';
+  if (sileroServerStatus.value === 'checking') return 'bg-[var(--status-warn)]';
+  return 'bg-[var(--arc-text-muted)]';
+});
+
 const summaryItems = computed<SummaryStripItem[]>(() => [
   {
-    label: 'Движок синтеза',
-    value: activeEngineLabel.value,
-    detail: `Режим: ${settingsStore.ttsProvider.toUpperCase()}`,
-    tone: activeEngineLabel.value.includes('ожидание') ? 'warn' : 'ok'
+    label: 'Выбранный режим',
+    value: ttsStatus.value.configuredDisplay,
+    detail: ttsStatus.value.serverStatusLabel,
+    tone: 'accent'
+  },
+  {
+    label: 'Активный движок',
+    value: ttsStatus.value.activeEngineLabel,
+    detail: ttsStatus.value.activeEngineDetail,
+    tone: ttsStatus.value.activeEngineTone
   },
   {
     label: 'Голосовой профиль',
     value: settingsStore.voicePresetId || 'aidar',
     detail: `${settingsStore.ttsSampleRate} Гц · ${currentTier.value}`,
-    tone: 'accent'
+    tone: 'default'
   },
   {
     label: 'Акустика тракта',
     value: `${voiceVolumePercent.value}% · ${settingsStore.ttsSpeed}x`,
     detail: `Тон: ${settingsStore.ttsPitch > 0 ? '+' : ''}${settingsStore.ttsPitch}%`,
-    tone: voiceVolumePercent.value > 0 ? 'ok' : 'off'
-  },
-  {
-    label: 'Нормализация RU',
-    value: settingsStore.ttsPutAccent && settingsStore.ttsPutYo ? 'Ударения + Ё' : 'Базовая',
-    detail: settingsStore.voiceRuITN ? 'ITN числительных ВКЛ' : 'ITN ВЫКЛ',
-    tone: 'default'
+    tone: voiceVolumePercent.value > 0 ? 'accent' : 'off'
   }
 ]);
 
@@ -109,20 +149,17 @@ let unsubscribeEngineChanged: (() => void) | null = null;
 onMounted(async () => {
   if ((window as any).api) {
     try {
+      await checkSileroServer();
       if (typeof window.api.getTtsActiveEngine === 'function') {
         const state = await window.api.getTtsActiveEngine();
-        updateBadge(state);
-        if (!state?.activeEngine && (!state?.provider || state.provider === 'auto' || state.provider === 'silero') && typeof (window as any).api.getTtsServerStatus === 'function') {
-          const status = await (window as any).api.getTtsServerStatus();
-          if (status?.online) activeEngineLabel.value = 'Silero';
-        }
+        applyTtsEngineState(state);
       }
       if (typeof window.api.onTtsEngineChanged === 'function') {
         unsubscribeEngineChanged = window.api.onTtsEngineChanged((state) => {
           if (state?.provider && ['auto', 'silero', 'edge', 'native'].includes(state.provider)) {
             settingsStore.ttsProvider = state.provider;
           }
-          updateBadge(state);
+          applyTtsEngineState(state);
         });
       }
     } catch (e) { console.warn('Ignored TTS engine state error', e); }
@@ -159,8 +196,8 @@ const stopVoice = () => {
       categoryLabel="Голос · Подсистема 02"
       title="Синтез речи (TTS)"
       description="Локальный движок генерации голоса Silero TTS v5.6, тембр звучания, правила произношения и профиль нагрузки."
-      :statusLabel="activeEngineLabel.includes('ожидание') ? 'ОЖИДАНИЕ СЕРВЕРА' : `АКТИВЕН: ${activeEngineLabel.toUpperCase()}`"
-      :statusTone="activeEngineLabel.includes('ожидание') ? 'warn' : 'ok'"
+      :statusLabel="ttsStatus.headerLabel"
+      :statusTone="ttsStatus.headerTone"
       blockCountText="3 функциональные группы"
       :icon="Volume2"
     >
@@ -188,7 +225,7 @@ const stopVoice = () => {
             >
               <div class="flex flex-wrap items-center gap-2 shrink-0">
                 <span class="px-2.5 py-1.5 rounded-[8px] border border-[var(--arc-hairline)] bg-[var(--arc-well)] text-xs font-mono text-[var(--arc-text-muted)]">
-                  Активный: <strong class="text-[var(--arc-text-primary)]">{{ activeEngineLabel }}</strong>
+                  Подтверждён: <strong class="text-[var(--arc-text-primary)]">{{ ttsStatus.activeEngineLabel }}</strong>
                 </span>
                 <div class="w-56 shrink-0">
                   <ArcSelect
@@ -289,9 +326,9 @@ const stopVoice = () => {
 
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full" :class="currentTier !== 'SAPI' ? 'bg-[var(--status-ok)]' : 'bg-[var(--status-warn)]'"></span>
+                  <span class="w-2 h-2 rounded-full" :class="serverDotClass"></span>
                   <span class="text-xs font-mono text-[var(--arc-text-muted)]">
-                    Активный уровень: <strong class="text-[var(--arc-text-primary)]">{{ currentTier }}</strong>
+                    {{ ttsStatus.serverStatusLabel }} · Уровень: <strong class="text-[var(--arc-text-primary)]">{{ currentTier }}</strong>
                   </span>
                 </div>
                 <button

@@ -133,6 +133,10 @@ const {
   searchQuery, 
   SETTINGS_MENU, 
   isSplitNavigationTab,
+  saveTabScroll,
+  getTabScroll,
+  saveTabSection,
+  consumeSkipTabScrollRestore,
   isProgrammaticScroll, 
   setProgrammaticScroll 
 } = useSettingsNav();
@@ -187,8 +191,11 @@ function setupIntersectionObserver() {
     if (visibleEntries.length > 0) {
       visibleEntries.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
       const topEntry = visibleEntries[0];
-      if (topEntry.target.id && topEntry.target.id !== activeSection.value) {
-        activeSection.value = topEntry.target.id;
+      if (topEntry.target.id) {
+        saveTabSection(activeTab.value, topEntry.target.id);
+        if (topEntry.target.id !== activeSection.value) {
+          activeSection.value = topEntry.target.id;
+        }
       }
     }
   }, {
@@ -223,6 +230,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
+  if (!isSplitNavigationTab(activeTab.value) && currentScrollContainer) {
+    saveTabScroll(activeTab.value, currentScrollContainer.scrollTop);
+    if (activeSection.value) {
+      saveTabSection(activeTab.value, activeSection.value);
+    }
+  }
   if (sectionObserver) {
     sectionObserver.disconnect();
     sectionObserver = null;
@@ -269,7 +282,14 @@ const activeConflicts = computed<ActiveConflict[]>(() => {
 
 const firstSectionOf = (tab: string) => SETTINGS_MENU.find((c) => c.id === tab)?.sections[0]?.id ?? null;
 
-watch(activeTab, async (tab) => {
+watch(activeTab, async (tab, oldTab) => {
+  if (oldTab && oldTab !== tab && !isSplitNavigationTab(oldTab) && currentScrollContainer) {
+    saveTabScroll(oldTab, currentScrollContainer.scrollTop);
+    if (activeSection.value) {
+      saveTabSection(oldTab, activeSection.value);
+    }
+  }
+
   const cat = SETTINGS_MENU.find((c) => c.id === tab);
   if (!cat) {
     activeTab.value = 'core';
@@ -278,13 +298,20 @@ watch(activeTab, async (tab) => {
   if (!cat.sections.some((s) => s.id === activeSection.value)) {
     activeSection.value = firstSectionOf(tab);
   }
+  const skipRestore = consumeSkipTabScrollRestore();
   await nextTick();
   const container = document.querySelector('.settings-scroll-container') as HTMLElement | null;
-  if (container && !isProgrammaticScroll.value && !store.pendingHighlightId && (!activeSection.value || activeSection.value === firstSectionOf(tab))) {
-    container.scrollTop = 0;
+  if (container && !isSplitNavigationTab(tab) && !skipRestore && !store.pendingHighlightId && !store.pendingHighlightQuery) {
+    const savedScroll = getTabScroll(tab);
+    setProgrammaticScroll(true);
+    container.scrollTop = savedScroll;
+    if (typeof container.scrollTo === 'function') {
+      container.scrollTo({ top: savedScroll, behavior: 'auto' });
+    }
+    setTimeout(() => setProgrammaticScroll(false), 120);
   }
   setupIntersectionObserver();
-});
+}, { flush: 'pre' });
 </script>
 
 <style scoped>

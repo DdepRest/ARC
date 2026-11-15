@@ -7,7 +7,7 @@
       title="Внешний вид"
       description="Спектральный акцент светового ядра, кинетика вращения колец и аудио-реактивность визуальной среды."
       :statusLabel="activeTheme.name"
-      statusTone="ok"
+      statusTone="accent"
       blockCountText="2 функциональные группы"
       :icon="Palette"
     >
@@ -178,7 +178,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Мощность свечения',
     value: `${reactorPowerPercent.value}%`,
     detail: 'Яркость эмиссии ядра',
-    tone: reactorPowerPercent.value > 0 ? 'ok' : 'off'
+    tone: reactorPowerPercent.value > 0 ? 'default' : 'off'
   },
   {
     label: 'Кинетика вращения',
@@ -190,7 +190,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
     label: 'Аудио-реактивность',
     value: store.isAudioReactive ? 'Активна' : 'Отключена',
     detail: store.isAudioReactive ? 'Синхронизация с голосом' : 'Статический контур',
-    tone: store.isAudioReactive ? 'ok' : 'off'
+    tone: store.isAudioReactive ? 'accent' : 'off'
   }
 ]);
 </script>

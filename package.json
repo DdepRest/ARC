@@ -177,6 +177,7 @@
     "vitest": "^4.1.9"
   },
   "optionalDependencies": {
-    "@esbuild/win32-x64": "^0.25.0"
+    "@esbuild/win32-x64": "^0.25.0",
+    "@rollup/rollup-win32-x64-msvc": "4.62.5"
   }
 }

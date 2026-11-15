@@ -1,8 +1,9 @@
-import { app, shell, session } from 'electron';
+import { app, shell, session, dialog, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { DatabaseService } from './database';
+import { buildDataBackupZipBuffer } from '../utils/zip-writer';
 
 export interface StorageFolderInfo {
   path: string;
@@ -27,8 +28,22 @@ export interface ResetOptions {
   clearModels?: boolean;
 }
 
+export interface DataArchiveExportResult {
+  success: boolean;
+  filePath?: string;
+  sizeBytes?: number;
+  entriesCount?: number;
+  canceled?: boolean;
+  error?: string;
+}
+
 export class StorageManagerService {
   private static dataDir: string = '';
+  private static isExportingArchive = false;
+
+  public static setDataDirForTests(dir: string): void {
+    StorageManagerService.dataDir = dir;
+  }
 
   public static getAppRoot(): string {
     if (app && typeof app.isPackaged === 'boolean') {
@@ -96,6 +111,46 @@ export class StorageManagerService {
     return size;
   }
 
+  private static collectExternalDatabaseFilePaths(dataDir: string): string[] {
+    const dbFolderResolved = path.resolve(path.join(dataDir, 'database'));
+    const candidates = new Set<string>([
+      path.join(dataDir, 'arc.db'),
+      path.join(dataDir, 'arc.db-wal'),
+      path.join(dataDir, 'arc.db-shm'),
+      path.join(dataDir, 'arc.db_fallback.json')
+    ]);
+
+    try {
+      const health = DatabaseService.getHealthStatus?.();
+      const activePath = health?.dbPath;
+      if (activePath && activePath !== ':memory:' && !activePath.startsWith('test_')) {
+        const resolvedActive = path.resolve(activePath);
+        candidates.add(resolvedActive);
+        candidates.add(`${resolvedActive}-wal`);
+        candidates.add(`${resolvedActive}-shm`);
+        candidates.add(`${resolvedActive}_fallback.json`);
+      }
+    } catch {
+      // ignore if database not initialized yet
+    }
+
+    const externalFiles: string[] = [];
+    for (const candidate of candidates) {
+      const resolved = path.resolve(candidate);
+      if (resolved.startsWith(dbFolderResolved + path.sep) || resolved === dbFolderResolved) {
+        continue;
+      }
+      try {
+        if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+          externalFiles.push(resolved);
+        }
+      } catch {
+        // ignore unreadable paths
+      }
+    }
+    return externalFiles;
+  }
+
   public static getStorageInfo(): StorageInfo {
     const dataDir = StorageManagerService.getDataDir();
     const appData = process.env.APPDATA || (process.platform === 'darwin'
@@ -112,11 +167,26 @@ export class StorageManagerService {
       };
     };
 
+    const dbFolder = getFolderInfo('database');
+    const externalDbFiles = StorageManagerService.collectExternalDatabaseFilePaths(dataDir);
+    let externalDbBytes = 0;
+    for (const f of externalDbFiles) {
+      try {
+        externalDbBytes += fs.statSync(f).size;
+      } catch {
+        // ignore
+      }
+    }
+
     return {
       dataDir,
       isPortable: true,
       folders: {
-        database: getFolderInfo('database'),
+        database: {
+          path: dbFolder.path,
+          sizeBytes: dbFolder.sizeBytes + externalDbBytes,
+          exists: dbFolder.exists || externalDbFiles.length > 0
+        },
         config: getFolderInfo('config'),
         models: getFolderInfo('models'),
         macros: getFolderInfo('macros'),
@@ -124,6 +194,76 @@ export class StorageManagerService {
       },
       appDataLegacyPath: path.join(appData, 'a.r.c')
     };
+  }
+
+  public static async exportDataArchive(parentWindow?: BrowserWindow | null): Promise<DataArchiveExportResult> {
+    if (StorageManagerService.isExportingArchive) {
+      return { success: false, error: 'Экспорт архива уже выполняется' };
+    }
+    StorageManagerService.isExportingArchive = true;
+    let tmpPath: string | null = null;
+
+    try {
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const defaultFilename = `arc-backup-${dateStr}.zip`;
+      let baseSaveDir = StorageManagerService.getDataDir();
+      try {
+        if (app && typeof app.getPath === 'function') {
+          baseSaveDir = app.getPath('documents') || baseSaveDir;
+        }
+      } catch {
+        // fallback to dataDir
+      }
+
+      const options = {
+        title: 'Экспорт архива данных A.R.C.',
+        defaultPath: path.join(baseSaveDir, defaultFilename),
+        filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
+      };
+
+      const dialogRes = parentWindow && !parentWindow.isDestroyed()
+        ? await dialog.showSaveDialog(parentWindow, options)
+        : await dialog.showSaveDialog(options);
+
+      if (dialogRes.canceled || !dialogRes.filePath) {
+        return { success: false, canceled: true };
+      }
+
+      const targetPath = dialogRes.filePath.toLowerCase().endsWith('.zip')
+        ? dialogRes.filePath
+        : `${dialogRes.filePath}.zip`;
+
+      const dataDir = StorageManagerService.getDataDir();
+      const appVersion = app && typeof app.getVersion === 'function' ? app.getVersion() : 'unknown';
+      const { buffer: archiveBuf, entriesCount } = await buildDataBackupZipBuffer({
+        dataDir,
+        externalDbPaths: StorageManagerService.collectExternalDatabaseFilePaths(dataDir),
+        appVersion
+      });
+      await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+      tmpPath = `${targetPath}.tmp-${Date.now()}`;
+      await fs.promises.writeFile(tmpPath, archiveBuf);
+      await fs.promises.rename(tmpPath, targetPath);
+      tmpPath = null;
+
+      return {
+        success: true,
+        filePath: targetPath,
+        sizeBytes: archiveBuf.length,
+        entriesCount
+      };
+    } catch (err: any) {
+      if (tmpPath && fs.existsSync(tmpPath)) {
+        try {
+          await fs.promises.unlink(tmpPath);
+        } catch {
+          // ignore cleanup failure
+        }
+      }
+      return { success: false, error: err?.message || String(err) };
+    } finally {
+      StorageManagerService.isExportingArchive = false;
+    }
   }
 
   public static async openDataFolder(): Promise<{ success: boolean; error?: string }> {

@@ -2,6 +2,14 @@ import { useSettingsStore } from '../features/settings/stores/settings.store';
 import { useUIStore } from '../stores/ui.store';
 import { useChatStore } from '../features/chat/stores/chat.store';
 import { useSessionsStore } from '../features/chat/stores/sessions.store';
+import {
+  detectHotkeyConflicts,
+  normalizeHotkeyCombo,
+  type HotkeyConflict,
+  type HotkeyConflictReport
+} from './hotkeys-conflicts';
+
+export { detectHotkeyConflicts, normalizeHotkeyCombo, type HotkeyConflict, type HotkeyConflictReport };
 
 export interface Hotkey {
   id: string;
@@ -156,6 +164,10 @@ class HotkeysService {
 
   public getAll(): Hotkey[] {
     return Array.from(this.hotkeys.values());
+  }
+
+  public detectConflicts(): HotkeyConflictReport {
+    return detectHotkeyConflicts(this.getAll());
   }
 
   public update(id: string, newKeys: string[]) {
