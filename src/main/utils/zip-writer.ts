@@ -113,6 +113,54 @@ export function createZipArchiveBuffer(entries: ZipInputEntry[]): Buffer {
   return Buffer.concat([...localChunks, centralDirBuf, eocd]);
 }
 
+const EXCLUDED_SECRET_FILES = new Set([
+  'secrets.json',
+  'secure-keys.json'
+]);
+
+export const SECRETS_EXCLUDED_REASON =
+  'Secret Vault (secrets.json, secure-keys.json) and API keys encrypted via OS DPAPI/safeStorage are excluded for security and cross-device portability; re-enter API keys after restore.';
+
+export function isExcludedBackupEntry(relPath: string): boolean {
+  const normalized = relPath.replace(/\\/g, '/').toLowerCase();
+  const baseName = path.posix.basename(normalized);
+  if (EXCLUDED_SECRET_FILES.has(baseName)) return true;
+  if (
+    baseName.endsWith('.tmp') ||
+    baseName.includes('.quarantine-staging') ||
+    baseName === '.env' ||
+    baseName.startsWith('.env.') ||
+    baseName.endsWith('.key') ||
+    baseName.endsWith('.pem') ||
+    baseName.endsWith('.p12') ||
+    baseName.endsWith('.pfx')
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function sanitizeExportConfigBuffer(entryName: string, data: Buffer): Buffer {
+  if (entryName.replace(/\\/g, '/').toLowerCase() !== 'config/ai-providers.json') {
+    return data;
+  }
+  try {
+    const parsed = JSON.parse(data.toString('utf8'));
+    const scrubProvider = (item: any) => {
+      if (!item || typeof item !== 'object') return item;
+      const copy = { ...item };
+      if ('apiKey' in copy) copy.apiKey = '';
+      if ('secret' in copy) delete copy.secret;
+      if ('token' in copy) delete copy.token;
+      return copy;
+    };
+    const sanitized = Array.isArray(parsed) ? parsed.map(scrubProvider) : scrubProvider(parsed);
+    return Buffer.from(JSON.stringify(sanitized, null, 2), 'utf8');
+  } catch {
+    return data;
+  }
+}
+
 export async function collectDirectoryZipEntries(
   rootDir: string,
   zipPrefix: string,
@@ -124,46 +172,79 @@ export async function collectDirectoryZipEntries(
     if (item.isSymbolicLink()) continue;
     const fullPath = path.join(rootDir, item.name);
     const entryName = zipPrefix ? `${zipPrefix}/${item.name}` : item.name;
+    if (isExcludedBackupEntry(entryName)) continue;
     if (item.isDirectory()) {
       await collectDirectoryZipEntries(fullPath, entryName, out);
     } else if (item.isFile()) {
-      if (item.name.endsWith('.tmp')) continue;
       const stat = await fs.promises.stat(fullPath);
-      const data = await fs.promises.readFile(fullPath);
+      const rawData = await fs.promises.readFile(fullPath);
+      const data = sanitizeExportConfigBuffer(entryName, rawData);
       out.push({ name: entryName, data, mtime: stat.mtime });
     }
   }
   return out;
 }
 
+export function readZipArchiveEntries(zipBuffer: Buffer): Record<string, Buffer> {
+  const result: Record<string, Buffer> = {};
+  let offset = 0;
+  while (offset + 30 <= zipBuffer.length) {
+    const sig = zipBuffer.readUInt32LE(offset);
+    if (sig !== 0x04034b50) break;
+    const method = zipBuffer.readUInt16LE(offset + 8);
+    const compSize = zipBuffer.readUInt32LE(offset + 18);
+    const nameLen = zipBuffer.readUInt16LE(offset + 26);
+    const extraLen = zipBuffer.readUInt16LE(offset + 28);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLen + extraLen;
+    const dataEnd = dataStart + compSize;
+    if (dataEnd > zipBuffer.length) break;
+    const fileName = zipBuffer.subarray(nameStart, nameStart + nameLen).toString('utf8');
+    const payload = zipBuffer.subarray(dataStart, dataEnd);
+    result[fileName] = method === 8 ? zlib.inflateRawSync(payload) : Buffer.from(payload);
+    offset = dataEnd;
+  }
+  return result;
+}
+
+export interface BackupDatabaseManifestMeta {
+  engine: string;
+  mode: string;
+  storageStatus: string;
+  isSafeMode: boolean;
+  format: 'sqlite' | 'json';
+  snapshotEntry: string;
+  integrityVerified: boolean;
+}
+
 export async function buildDataBackupZipBuffer(params: {
   dataDir: string;
-  externalDbPaths: string[];
   appVersion: string;
+  dbSnapshot: {
+    snapshotFilePath: string;
+    zipEntryName: string;
+    metadata: BackupDatabaseManifestMeta;
+  };
 }): Promise<{ buffer: Buffer; entriesCount: number }> {
-  const { dataDir, externalDbPaths, appVersion } = params;
+  const { dataDir, appVersion, dbSnapshot } = params;
   const entries: ZipInputEntry[] = [];
   const seenNames = new Set<string>();
   const pushUnique = (entry: ZipInputEntry) => {
+    if (isExcludedBackupEntry(entry.name)) return;
     if (!seenNames.has(entry.name)) {
       seenNames.add(entry.name);
       entries.push(entry);
     }
   };
 
-  for (const folder of ['database', 'config', 'macros'] as const) {
+  // Add verified consistent database snapshot (never live open .db/-wal/-shm files)
+  const snapStat = await fs.promises.stat(dbSnapshot.snapshotFilePath);
+  const snapData = await fs.promises.readFile(dbSnapshot.snapshotFilePath);
+  pushUnique({ name: dbSnapshot.zipEntryName, data: snapData, mtime: snapStat.mtime });
+
+  for (const folder of ['config', 'macros'] as const) {
     const collected = await collectDirectoryZipEntries(path.join(dataDir, folder), folder);
     collected.forEach(pushUnique);
-  }
-
-  for (const extraPath of externalDbPaths) {
-    try {
-      const stat = await fs.promises.stat(extraPath);
-      const data = await fs.promises.readFile(extraPath);
-      pushUnique({ name: `database/root/${path.basename(extraPath)}`, data, mtime: stat.mtime });
-    } catch {
-      // ignore unreadable optional file
-    }
   }
 
   const perfCfgPath = path.join(dataDir, 'arc-performance-settings.json');
@@ -182,9 +263,12 @@ export async function buildDataBackupZipBuffer(params: {
     data: Buffer.from(
       JSON.stringify(
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           exportedAt: new Date().toISOString(),
           appVersion,
+          database: dbSnapshot.metadata,
+          secretsIncluded: false,
+          secretsExcludedReason: SECRETS_EXCLUDED_REASON,
           includedEntries: entries.map((e) => e.name)
         },
         null,
@@ -199,4 +283,5 @@ export async function buildDataBackupZipBuffer(params: {
     entriesCount: entries.length
   };
 }
+
 

@@ -1,7 +1,7 @@
 # A.R.C. — Текущее состояние системы (Current State)
 **Версия:** v3.4-g8-release (1.0.12)  
 **Дата обновления:** 15.11.2026  
-**Статус:** Выполнены все этапы дорожной карты `docs/PROJECT_RELEASE_ROADMAP.md`, закрыт **Release Gate G8** и завершён аудит/стабилизация унифицированных настроек A.R.C. (после коммита `cbaa8039b4879b363cd01d975421d96b8fa48fa1`): `npm run gate` полностью зелёный в Linux-контейнере (106 тестовых файлов / 657 unit- и интеграционных тестов пройдены, 0 ошибок TypeScript, 0 нарушений визуальной конституции в 369 незащищённых файлах, строгие лимиты размеров файлов), добавлен `@rollup/rollup-win32-x64-msvc` для Windows CI (`NOT RUN` в Linux-контейнере).
+**Статус:** Выполнены все этапы дорожной карты `docs/PROJECT_RELEASE_ROADMAP.md`, закрыт **Release Gate G8** и завершены пост-унификационные исправления Settings UX/UI и целостности ZIP-бэкапа (`2725ad9601aea337a80e49a5ec4d526c8d5ac77d`+): `npm run gate` полностью зелёный в Linux-контейнере (106 тестовых файлов / 664 unit- и интеграционных теста пройдены, 0 ошибок TypeScript, 0 нарушений визуальной конституции в 369 незащищённых файлах, строгие лимиты размеров файлов); в `package.json` и `package-lock.json` добавлены `@rollup/rollup-win32-x64-msvc`, `lightningcss-win32-x64-msvc@1.32.0` и `@tailwindcss/oxide-win32-x64-msvc@4.3.3` для Windows CI (`NOT RUN` на реальном раннере в рамках Linux-контейнера).
 **Время на прочтение:** ~2 минуты
 
 
@@ -1171,6 +1171,21 @@
 - **P1 — Разблокировка Windows CI (`package.json`, `package-lock.json`)**:
   - В `optionalDependencies` `package.json` и в дерево зависимостей `package-lock.json` добавлен `@rollup/rollup-win32-x64-msvc@4.62.5` для корректного `npm ci` на `windows-latest`.
 - **Границы верификации в Linux-контейнере**:
-  - Выполнены и пройдены в контейнере: `npm run lint`, `npm run check-visual-constitution` (369 файлов, 0 долга), `npm run test` (106 файлов / 657 тестов), `npm run build`, `npm run check-sizes`.
+  - Выполнены и пройдены в контейнере: `npm run lint`, `npm run check-visual-constitution` (369 файлов, 0 долга), `npm run test` (106 файлов / 657 тестов), `npm run build`, `check-sizes`.
   - `NOT RUN` в текущем Linux-контейнере: джоба `windows-latest` GitHub Actions (`npm ci` и `vitest` на Windows) и интерактивный рантайм Electron с нативным диалогом `dialog.showSaveDialog` (проверено unit/IPC-тестами со stub-диалогом).
+
+### 38. P1/P2 Исправление целостности ZIP-снимка БД, Secret Vault, `CmdOrCtrl` и Windows CI (15.11.2026)
+- **P1 — Согласованный снимок SQLite / JSON fallback (`database-snapshot.service.ts`, `database.ts`, `storage-manager.service.ts`, `zip-writer.ts`)**:
+  - Архивация более не читает открытые рабочие файлы `arc.db`, `arc.db-wal` и `arc.db-shm` напрямую: перед сборкой ZIP вызывается `createVerifiedDatabaseSnapshot()`.
+  - Для активного SQLite (`better-sqlite3`) выполняется горячее копирование через Online Backup API (`await db.backup(snapshotDbPath)`) без закрытия рабочей БД, после чего снимок открывается отдельным read-only соединением и проверяется через `PRAGMA integrity_check === 'ok'`.
+  - Для `JSONDatabase` добавлены атомарная запись (`tmp` → `renameSync`) и `getSnapshotData()`; в режимах JSON fallback и `DB_SAFE_MODE` создаётся верифицированный JSON-снимок `database/arc_fallback.json` (никогда не маскируется под `.db`), а при отсутствии достоверного источника данных в `DB_SAFE_MODE` экспорт завершается ошибкой без записи неполного архива. Временная папка снимка удаляется в `finally` при любом исходе.
+- **P1 — Нативные CSS-модули Windows CI (`package.json`, `package-lock.json`)**:
+  - В `optionalDependencies` и дерево `package-lock.json` добавлены `lightningcss-win32-x64-msvc@1.32.0` (точно для `lightningcss@1.32.0`) и `@tailwindcss/oxide-win32-x64-msvc@4.3.3` (точно для `@tailwindcss/oxide@4.3.3`), отсутствовавшие в lockfile при генерации на Linux. Проверка `npm ci --dry-run --ignore-scripts` пройдена; запуск на реальном `windows-latest` CI runner в Linux-контейнере невозможен (`NOT RUN`).
+- **P2 — Политика Secret Vault (`zip-writer.ts`, `StorageDataSection.vue`)**:
+  - Гарантировано исключение `secrets.json`, `secure-keys.json`, `.env*`, ключевых файлов и очистка поля `apiKey` при экспорте `config/ai-providers.json`.
+  - В `manifest.json` (`schemaVersion: 2`) добавлены объект `database` (фактический `engine`, `mode`, `storageStatus`, `format`, `integrityVerified`) и явные поля `secretsIncluded: false` + `secretsExcludedReason`; описание в `StorageDataSection.vue` прямо уведомляет о необходимости повторного ввода API-ключей после переноса.
+- **P2 — Платформенная нормализация `CmdOrCtrl` (`hotkeys-conflicts.ts`)**:
+  - Поддержаны логические модификаторы `CmdOrCtrl` и `CommandOrControl`: разрешение в `Meta` на macOS (`darwin`) и в `Control` на Windows/Linux с сохранением канонического порядка модификаторов и покрытием unit-тестами (`hotkeys-conflicts.test.ts`).
+- **Верификация**: `npm run gate` пройден в Linux-контейнере (**106 файлов / 664 теста**).
+
 

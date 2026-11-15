@@ -789,6 +789,16 @@ describe('SettingsWorkspace Integration Tests (Split Navigation, Telemetry, IPC 
       'utf8'
     );
     expect(summarySrc).toContain('grid-cols-2 lg:grid-cols-4');
+
+    const storageSrc = fs.readFileSync(
+      path.resolve(__dirname, './components/sections/system/StorageDataSection.vue'),
+      'utf8'
+    );
+    expect(storageSrc).toContain('Secret Vault');
+    expect(storageSrc).toContain('не включаются');
+    expect(storageSrc).toContain('повторно');
+    expect(storageSrc).not.toContain('полного архива данных');
+    expect(storageSrc).not.toContain('полной резервной копии профиля');
   });
 
   it('renders HotkeysSection collision banner and row conflict badges when bindings collide', async () => {

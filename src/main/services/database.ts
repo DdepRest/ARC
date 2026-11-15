@@ -373,6 +373,7 @@ export class JSONStatement {
 }
 
 export class JSONDatabase {
+    public readonly isJsonDatabase = true;
     private data: { [table: string]: any[] } = {};
     private dbFilePath: string;
     private inMemoryOnly: boolean;
@@ -387,6 +388,18 @@ export class JSONDatabase {
         if (options?.safeModeReadOnly) {
             this.safeModeWriteLocked = true;
         }
+    }
+
+    public getDbFilePath(): string {
+        return this.dbFilePath;
+    }
+
+    public isInMemoryOnly(): boolean {
+        return this.inMemoryOnly;
+    }
+
+    public getSnapshotData(): Record<string, any[]> {
+        return JSON.parse(JSON.stringify(this.data));
     }
 
     public enableSafeModeWriteLock() {
@@ -417,9 +430,18 @@ export class JSONDatabase {
 
     private save() {
         if (this.inMemoryOnly) return;
+        const tmpPath = `${this.dbFilePath}.tmp-${process.pid}`;
         try {
-            fs.writeFileSync(this.dbFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+            const dir = path.dirname(this.dbFilePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(tmpPath, JSON.stringify(this.data, null, 2), 'utf8');
+            fs.renameSync(tmpPath, this.dbFilePath);
         } catch (e) {
+            try {
+                if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+            } catch { /* ignore */ }
             console.error('[FallbackDB] Failed to save JSON database file:', e);
         }
     }

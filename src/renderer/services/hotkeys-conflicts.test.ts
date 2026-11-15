@@ -73,4 +73,35 @@ describe('detectHotkeyConflicts', () => {
     expect(report.conflictsByCommandId['cmd-beta']).toEqual(['Control+Shift+space']);
     expect(report.conflictsByCommandId['cmd-gamma']).toBeUndefined();
   });
+
+  it('normalizes CmdOrCtrl and CommandOrControl based on target OS platform', () => {
+    expect(normalizeHotkeyCombo('CmdOrCtrl+K', 'win32')).toBe('Control+k');
+    expect(normalizeHotkeyCombo('CmdOrCtrl+K', 'linux')).toBe('Control+k');
+    expect(normalizeHotkeyCombo('CmdOrCtrl+K', 'darwin')).toBe('Meta+k');
+
+    expect(normalizeHotkeyCombo('Shift+CommandOrControl+P', 'win32')).toBe('Control+Shift+p');
+    expect(normalizeHotkeyCombo('Shift+CommandOrControl+P', 'darwin')).toBe('Meta+Shift+p');
+    expect(normalizeHotkeyCombo('CmdOrCtrl+Ctrl+K', 'win32')).toBe('Control+k');
+    expect(normalizeHotkeyCombo('CmdOrCtrl+Ctrl+K', 'darwin')).toBe('Control+Meta+k');
+  });
+
+  it('detects CmdOrCtrl collisions against Ctrl on Windows/Linux and against Cmd on macOS', () => {
+    const candidates = [
+      { id: 'portable', label: 'Portable Action', keys: ['CmdOrCtrl+K'] },
+      { id: 'win-ctrl', label: 'Windows Control Action', keys: ['Ctrl+K'] },
+      { id: 'mac-cmd', label: 'macOS Command Action', keys: ['Cmd+K'] }
+    ];
+
+    const winReport = detectHotkeyConflicts(candidates, 'win32');
+    expect(winReport.conflicts).toHaveLength(1);
+    expect(winReport.conflicts[0].normalizedCombo).toBe('Control+k');
+    expect(winReport.conflicts[0].commands.map((c) => c.id)).toEqual(['portable', 'win-ctrl']);
+    expect(winReport.conflictsByCommandId['mac-cmd']).toBeUndefined();
+
+    const macReport = detectHotkeyConflicts(candidates, 'darwin');
+    expect(macReport.conflicts).toHaveLength(1);
+    expect(macReport.conflicts[0].normalizedCombo).toBe('Meta+k');
+    expect(macReport.conflicts[0].commands.map((c) => c.id)).toEqual(['portable', 'mac-cmd']);
+    expect(macReport.conflictsByCommandId['win-ctrl']).toBeUndefined();
+  });
 });

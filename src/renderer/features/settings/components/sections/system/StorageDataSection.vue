@@ -28,7 +28,7 @@
       <SettingsGroup
         indexLabel="02"
         title="Локальная база данных и резервный архив"
-        description="Статистика дискового пространства SQLite и создание полной резервной копии профиля"
+        description="Статистика дискового пространства SQLite и создание согласованного архива без секретов Vault"
         :badgeText="dbSizeDisplay"
       >
         <SettingsBlock title="Объём используемой памяти" subtitle="Дисковое пространство">
@@ -58,9 +58,9 @@
 
           <SettingsRow
             id="system.storage.export"
-            label="Экспорт полного архива данных"
-            description="Создать zip-архив с базами данных, конфигурацией и макросами для переноса на другое устройство."
-            data-search="экспорт полного архива данных zip бэкап перенос export backup"
+            label="Экспорт архива данных (без секретов)"
+            description="Создать zip-архив со снимком базы данных, конфигурацией и макросами. API-ключи и Secret Vault (DPAPI) в архив не включаются и после переноса вводятся повторно."
+            data-search="экспорт архива данных zip бэкап перенос секреты ключи export backup"
           >
             <button
               type="button"
@@ -227,7 +227,7 @@ const summaryItems = computed<SummaryStripItem[]>(() => {
     {
       label: 'Резервный архив',
       value: isExporting.value ? 'Сборка...' : canExportArchive.value ? 'ZIP Бэкап' : 'Без IPC',
-      detail: 'База, конфиги и макросы',
+      detail: 'Снимок БД (без секретов)',
       tone: canExportArchive.value ? 'default' : 'off'
     },
     {

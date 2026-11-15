@@ -3,6 +3,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { DatabaseService } from './database';
+import {
+  cleanupDatabaseSnapshotTemp,
+  createVerifiedDatabaseSnapshot,
+  type DatabaseSnapshotResult
+} from './database-snapshot.service';
 import { buildDataBackupZipBuffer } from '../utils/zip-writer';
 
 export interface StorageFolderInfo {
@@ -202,6 +207,7 @@ export class StorageManagerService {
     }
     StorageManagerService.isExportingArchive = true;
     let tmpPath: string | null = null;
+    let snapshot: DatabaseSnapshotResult | null = null;
 
     try {
       const dateStr = new Date().toISOString().slice(0, 10);
@@ -235,10 +241,14 @@ export class StorageManagerService {
 
       const dataDir = StorageManagerService.getDataDir();
       const appVersion = app && typeof app.getVersion === 'function' ? app.getVersion() : 'unknown';
+
+      // Create & verify consistent database snapshot BEFORE ZIP assembly
+      snapshot = await createVerifiedDatabaseSnapshot();
+
       const { buffer: archiveBuf, entriesCount } = await buildDataBackupZipBuffer({
         dataDir,
-        externalDbPaths: StorageManagerService.collectExternalDatabaseFilePaths(dataDir),
-        appVersion
+        appVersion,
+        dbSnapshot: snapshot
       });
       await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
       tmpPath = `${targetPath}.tmp-${Date.now()}`;
@@ -262,6 +272,7 @@ export class StorageManagerService {
       }
       return { success: false, error: err?.message || String(err) };
     } finally {
+      await cleanupDatabaseSnapshotTemp(snapshot);
       StorageManagerService.isExportingArchive = false;
     }
   }

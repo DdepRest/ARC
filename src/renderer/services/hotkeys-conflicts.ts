@@ -24,6 +24,23 @@ export interface HotkeyConflictReport {
   conflictsByCommandId: Record<string, string[]>;
 }
 
+export function detectDefaultHotkeyPlatform(): string {
+  if (typeof process !== 'undefined' && typeof process.platform === 'string') {
+    return process.platform;
+  }
+  if (typeof navigator !== 'undefined') {
+    const navPlat = ((navigator as any).userAgentData?.platform || navigator.platform || '').toLowerCase();
+    if (navPlat.includes('mac')) return 'darwin';
+    if (navPlat.includes('win')) return 'win32';
+  }
+  return 'win32';
+}
+
+export function isMacHotkeyPlatform(platform: string = detectDefaultHotkeyPlatform()): boolean {
+  const lower = platform.toLowerCase();
+  return lower === 'darwin' || lower.includes('mac');
+}
+
 const MODIFIER_ORDER = ['Control', 'Meta', 'Shift', 'Alt'] as const;
 type CanonicalModifier = (typeof MODIFIER_ORDER)[number];
 
@@ -42,6 +59,8 @@ const MODIFIER_ALIASES: Record<string, CanonicalModifier> = {
   opt: 'Alt'
 };
 
+const PLATFORM_LOGICAL_MODIFIERS = new Set(['cmdorctrl', 'commandorcontrol']);
+
 const KEY_ALIASES: Record<string, string> = {
   ' ': 'space',
   spacebar: 'space',
@@ -51,7 +70,10 @@ const KEY_ALIASES: Record<string, string> = {
   del: 'delete'
 };
 
-export function normalizeHotkeyCombo(combo: string): string | null {
+export function normalizeHotkeyCombo(
+  combo: string,
+  platform: string = detectDefaultHotkeyPlatform()
+): string | null {
   if (typeof combo !== 'string') return null;
   if (!combo.trim()) return null;
 
@@ -66,6 +88,10 @@ export function normalizeHotkeyCombo(combo: string): string | null {
 
   for (const part of rawParts) {
     const lower = part.toLowerCase();
+    if (PLATFORM_LOGICAL_MODIFIERS.has(lower)) {
+      modifiers.add(isMacHotkeyPlatform(platform) ? 'Meta' : 'Control');
+      continue;
+    }
     const mappedModifier = MODIFIER_ALIASES[lower];
     if (mappedModifier) {
       modifiers.add(mappedModifier);
@@ -95,7 +121,10 @@ export function formatNormalizedComboDisplay(normalizedCombo: string): string {
     .join(' + ');
 }
 
-export function detectHotkeyConflicts(hotkeys: HotkeyCandidate[]): HotkeyConflictReport {
+export function detectHotkeyConflicts(
+  hotkeys: HotkeyCandidate[],
+  platform: string = detectDefaultHotkeyPlatform()
+): HotkeyConflictReport {
   const byNormalizedCombo = new Map<string, Map<string, HotkeyConflictCommand>>();
 
   for (const hk of hotkeys || []) {
@@ -105,7 +134,7 @@ export function detectHotkeyConflicts(hotkeys: HotkeyCandidate[]): HotkeyConflic
     // combos on the same command never cause a false self-conflict.
     const uniqueCombosForCommand = new Map<string, Set<string>>();
     for (const rawKey of hk.keys) {
-      const normalized = normalizeHotkeyCombo(rawKey);
+      const normalized = normalizeHotkeyCombo(rawKey, platform);
       if (!normalized) continue;
       if (!uniqueCombosForCommand.has(normalized)) {
         uniqueCombosForCommand.set(normalized, new Set());
