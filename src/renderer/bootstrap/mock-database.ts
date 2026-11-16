@@ -1,5 +1,6 @@
 import { getMockTranscriptionHandlers } from './mock-transcription';
 import { getMockObjectiveHandlers } from './mock-objectives';
+import { createMockDialogTrashHandlers, purgeExpiredMockSessions } from './mock-dialog-trash';
 import { synthesizeMockWorkflowChunks } from '../../shared/utils/auto-workflow';
 
 export function getMockSessions(): any[] {
@@ -565,13 +566,16 @@ export function setupElectronApiMock() {
         return allMsgs[id] ? [...allMsgs[id]] : [];
       },
       dialogListSessions: async (limit?: number, offset?: number, filter?: any) => {
+        purgeExpiredMockSessions(getMockSessions(), getMockMessages(), saveMockSessions, saveMockMessages);
         let list = [...getMockSessions()];
-        if (filter) {
-          if (filter.archived !== undefined) {
-            list = list.filter((s: any) => (s.is_archived === 1) === filter.archived);
-          } else if (filter.date !== 'archived') {
-            list = list.filter((s: any) => s.is_archived !== 1);
-          }
+        const isTrash = Boolean(filter?.trash || filter?.date === 'trash');
+        const isArchived = !isTrash && Boolean(filter?.archived || filter?.date === 'archived');
+        if (isTrash) {
+          list = list.filter((s: any) => Number(s.is_deleted || 0) === 1);
+        } else if (isArchived) {
+          list = list.filter((s: any) => Number(s.is_deleted || 0) === 0 && Number(s.is_archived || 0) === 1);
+        } else {
+          list = list.filter((s: any) => Number(s.is_deleted || 0) === 0 && Number(s.is_archived || 0) === 0);
         }
         return list;
       },
@@ -637,30 +641,12 @@ export function setupElectronApiMock() {
         }
         return { success: true };
       },
-      dialogSearch: async (query: string, limit?: number) => {
-        const q = (query || '').toLowerCase().trim();
-        if (!q) return [];
-        const allMsgs = getMockMessages();
-        const results: any[] = [];
-        for (const sessionIdStr of Object.keys(allMsgs)) {
-          const sId = Number(sessionIdStr);
-          const msgs = allMsgs[sId] || [];
-          for (const m of msgs) {
-            if (m.content && m.content.toLowerCase().includes(q)) {
-              results.push({
-                id: m.id,
-                session_id: sId,
-                content: m.content,
-                role: m.role,
-                created_at: m.created_at
-              });
-              if (limit && results.length >= limit) break;
-            }
-          }
-          if (limit && results.length >= limit) break;
-        }
-        return results;
-      },
+      ...createMockDialogTrashHandlers({
+        getSessions: getMockSessions,
+        saveSessions: saveMockSessions,
+        getMessages: getMockMessages,
+        saveMessages: saveMockMessages
+      }),
       dialogExportSession: async (sessionId: number) => ({ success: true, filePath: '/mock/path/to/session.md' }),
       dialogGenerateSummary: async (sessionId: number) => {
         const sessions = getMockSessions();

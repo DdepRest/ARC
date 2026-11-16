@@ -7,7 +7,7 @@
       description="Локальная база данных SQLite, кэш моделей и управление памятью. Все ваши данные хранятся изолированно на вашем компьютере."
       :statusLabel="headerStatus.label"
       :statusTone="headerStatus.tone"
-      blockCountText="3 функциональные группы"
+      blockCountText="4 функциональные группы"
       :icon="Database"
     >
       <template #summary>
@@ -86,6 +86,15 @@
 
       <SettingsGroup
         indexLabel="03"
+        title="Корзина диалогов и автоочистка"
+        description="Срок хранения удалённых диалогов перед их автоматическим безвозвратным удалением"
+        badgeText="История диалогов"
+      >
+        <DialogTrashRetentionBlock />
+      </SettingsGroup>
+
+      <SettingsGroup
+        indexLabel="04"
         title="Сброс к заводским параметрам"
         description="Полная очистка пользовательских настроек и возврат конфигурации A.R.C. к исходному состоянию"
         badgeText="Опасная зона"
@@ -114,6 +123,7 @@ import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import DangerZone from '../../primitives/DangerZone.vue';
 import CacheSettingsBlock from './CacheSettingsBlock.vue';
+import DialogTrashRetentionBlock from './DialogTrashRetentionBlock.vue';
 import { Database, Download, RefreshCw } from 'lucide-vue-next';
 
 const store = useSettingsStore();

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { VkCommandAction, VkConnectionStatusPayload, VkStatusPayload, VkControlPayload } from '../shared/types/ipc';
 import { createTtsPreloadApi } from './preload-tts';
+import { createDialogPreloadApi } from './preload-dialog';
 
 const plain = <T>(v: T): T => {
   if (!v || typeof v !== 'object') return v;
@@ -11,6 +12,7 @@ const plain = <T>(v: T): T => {
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('api', {
   ...createTtsPreloadApi(ipcRenderer),
+  ...createDialogPreloadApi(ipcRenderer, plain),
   dialogCreateSession: (name?: string) => ipcRenderer.invoke('dialog:create-session', name),
   dialogGetSession: (id: number) => ipcRenderer.invoke('dialog:get-session', id),
   dialogGetMessages: (id: number) => ipcRenderer.invoke('dialog:get-messages', id),
@@ -19,7 +21,6 @@ contextBridge.exposeInMainWorld('api', {
   dialogUpdateSession: (id: number, data: any) => ipcRenderer.invoke('dialog:update-session', id, plain(data)),
   dialogDeleteSession: (id: number) => ipcRenderer.invoke('dialog:delete-session', id),
   dialogDeleteMessage: (id: number) => ipcRenderer.invoke('dialog:delete-message', id),
-  dialogSearch: (query: string, limit?: number) => ipcRenderer.invoke('dialog:search', query, limit),
   dialogGenerateSummary: (sessionId: number) => ipcRenderer.invoke('dialog:generate-summary', sessionId),
   dialogExportSession: (sessionId: number) => ipcRenderer.invoke('dialog:export-session', sessionId),
 

@@ -115,7 +115,6 @@
       }
     ],
     "win": {
-      "artifactName": "ARC-Setup-${version}.${ext}",
       "target": [
         {
           "target": "nsis",
@@ -132,12 +131,16 @@
       ]
     },
     "nsis": {
+      "artifactName": "ARC-Setup-${version}-${arch}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "ARC-Portable-${version}-${arch}.${ext}"
     }
   },
   "dependencies": {

@@ -188,7 +188,7 @@ onMounted(async () => {
   }
   if (sessionsStore.sessions.length === 0) {
     await sessionsStore.loadSessions();
-    if (sessionsStore.sessions.length === 0) {
+    if (sessionsStore.sessions.length === 0 && sessionsStore.dateFilter === 'all' && !sessionsStore.searchQuery.trim()) {
       await sessionsStore.createSession('Новый диалог');
     }
   }
@@ -274,7 +274,7 @@ const onDrop = (e: DragEvent) => {
   }
 };
 
-const handleSend = () => {
+const handleSend = async () => {
   const text = input.value;
   const files = [...attachedFiles.value];
 
@@ -282,6 +282,19 @@ const handleSend = () => {
 
   input.value = '';
   attachedFiles.value = [];
+
+  if (!sessionsStore.activeSessionId) {
+    if (sessionsStore.dateFilter !== 'all') {
+      await sessionsStore.setViewFilter('all');
+    }
+    const title = text.trim()
+      ? text.trim().substring(0, 50)
+      : (files[0]?.name ? `Файл: ${files[0].name}` : 'Новый диалог');
+    const created = await sessionsStore.createSession(title);
+    chatStore.setActiveSessionId(created.id);
+    await nextTick();
+  }
+
   sendMessage(text, files.length > 0 ? files : undefined);
 };
 

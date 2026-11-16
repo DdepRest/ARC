@@ -1,5 +1,11 @@
 import { ipcMain } from 'electron';
 import { DialogService } from '../services/dialog.service';
+import {
+    DialogTrashService,
+    dialogTrashScheduler,
+    getTrashConfig,
+    setTrashConfig
+} from '../services/dialog-trash.service';
 
 export function registerDialogIPC() {
     ipcMain.handle('dialog:create-session', async (event, name) => {
@@ -37,8 +43,8 @@ export function registerDialogIPC() {
         return true;
     });
 
-    ipcMain.handle('dialog:search', async (event, query, limit) => {
-        return DialogService.searchMessages(query, limit);
+    ipcMain.handle('dialog:search', async (event, query, limit, filter) => {
+        return DialogService.searchMessages(query, limit, filter);
     });
 
     ipcMain.handle('dialog:generate-summary', async (event, sessionId) => {
@@ -47,5 +53,37 @@ export function registerDialogIPC() {
 
     ipcMain.handle('dialog:export-session', async (event, sessionId) => {
         return DialogService.exportSessionToMarkdown(sessionId);
+    });
+
+    ipcMain.handle('dialog:bulk-archive', async (_event, ids, archived) => {
+        return DialogTrashService.archiveSessions(ids, Boolean(archived));
+    });
+
+    ipcMain.handle('dialog:move-to-trash', async (_event, ids) => {
+        return DialogTrashService.moveSessionsToTrash(ids);
+    });
+
+    ipcMain.handle('dialog:restore-from-trash', async (_event, ids) => {
+        return DialogTrashService.restoreSessionsFromTrash(ids);
+    });
+
+    ipcMain.handle('dialog:permanent-delete', async (_event, ids) => {
+        return DialogTrashService.permanentlyDeleteSessions(ids);
+    });
+
+    ipcMain.handle('dialog:get-trash-config', async () => {
+        return getTrashConfig();
+    });
+
+    ipcMain.handle('dialog:set-trash-config', async (_event, retentionDays) => {
+        const res = setTrashConfig(retentionDays);
+        if (res.success && res.config?.retentionDays !== null) {
+            dialogTrashScheduler.scheduleDeferredCleanup();
+        }
+        return res;
+    });
+
+    ipcMain.handle('dialog:run-trash-cleanup', async () => {
+        return dialogTrashScheduler.runCleanupSafely();
     });
 }

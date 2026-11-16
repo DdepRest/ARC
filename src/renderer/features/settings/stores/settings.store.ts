@@ -49,6 +49,7 @@ export const useSettingsStore = defineStore('settings', () => {
   
   const voiceFeedback = ref(true);
   const requireConfirm = ref(true);
+  const dialogTrashRetentionDays = ref<number | null>(null);
 
   // New Performance & STT parameters for Phase 4
   const forcedOfflineMode = ref(false);
@@ -540,6 +541,40 @@ export const useSettingsStore = defineStore('settings', () => {
     }).catch((e: any) => console.error('[Store] Failed to load initial performance config:', e));
   }
 
+  async function syncTrashConfigFromMain() {
+    const api = typeof window !== 'undefined' ? (window as any).api : null;
+    if (!api?.dialogGetTrashConfig) return;
+    try {
+      const cfg = await api.dialogGetTrashConfig();
+      if (cfg && (cfg.retentionDays === null || (Number.isInteger(cfg.retentionDays) && cfg.retentionDays >= 1))) {
+        dialogTrashRetentionDays.value = cfg.retentionDays;
+      }
+    } catch (e) {
+      console.error('[Store] Failed to load dialog trash config:', e);
+    }
+  }
+
+  async function setDialogTrashRetentionDays(
+    days: number | null
+  ): Promise<{ success: boolean; retentionDays?: number | null; error?: string }> {
+    if (days !== null && (!Number.isFinite(days) || !Number.isInteger(days) || days < 1)) {
+      return { success: false, error: 'Укажите целое положительное число дней (не менее 1)' };
+    }
+    const api = typeof window !== 'undefined' ? (window as any).api : null;
+    if (api?.dialogSetTrashConfig) {
+      const res = await api.dialogSetTrashConfig(days);
+      if (!res?.success) {
+        return { success: false, error: res?.error || 'Не удалось сохранить срок хранения корзины' };
+      }
+      dialogTrashRetentionDays.value = res.config?.retentionDays ?? days;
+      return { success: true, retentionDays: dialogTrashRetentionDays.value };
+    }
+    dialogTrashRetentionDays.value = days;
+    return { success: true, retentionDays: days };
+  }
+
+  void syncTrashConfigFromMain();
+
   const addWakeWord = (word: string) => {
     if (word && word.trim() && !wakeWords.value.includes(word.trim())) {
       wakeWords.value.push(word.trim());
@@ -610,6 +645,7 @@ export const useSettingsStore = defineStore('settings', () => {
       autoAdjustGraphics: autoAdjustGraphics.value,
       voiceFeedback: voiceFeedback.value,
       requireConfirm: requireConfirm.value,
+      dialogTrashRetentionDays: dialogTrashRetentionDays.value,
       forcedOfflineMode: forcedOfflineMode.value,
       useLocalLLM: useLocalLLM.value,
       cloudLlmInGameMode: cloudLlmInGameMode.value,
@@ -697,6 +733,8 @@ export const useSettingsStore = defineStore('settings', () => {
     autoAdjustGraphics.value = true;
     voiceFeedback.value = true;
     requireConfirm.value = true;
+    dialogTrashRetentionDays.value = null;
+    void setDialogTrashRetentionDays(null);
     forcedOfflineMode.value = false;
     useLocalLLM.value = false;
     cloudLlmInGameMode.value = true;
@@ -813,6 +851,8 @@ export const useSettingsStore = defineStore('settings', () => {
         autoAdjustGraphics.value = previous.autoAdjustGraphics;
         voiceFeedback.value = previous.voiceFeedback;
         requireConfirm.value = previous.requireConfirm;
+        dialogTrashRetentionDays.value = previous.dialogTrashRetentionDays ?? null;
+        void setDialogTrashRetentionDays(previous.dialogTrashRetentionDays ?? null);
         forcedOfflineMode.value = previous.forcedOfflineMode;
         useLocalLLM.value = previous.useLocalLLM; 
         cloudLlmInGameMode.value = previous.cloudLlmInBackgroundEco ?? previous.cloudLlmInGameMode ?? true;
@@ -906,6 +946,9 @@ export const useSettingsStore = defineStore('settings', () => {
     autoAdjustGraphics,
     voiceFeedback,
     requireConfirm,
+    dialogTrashRetentionDays,
+    syncTrashConfigFromMain,
+    setDialogTrashRetentionDays,
     forcedOfflineMode,
     useLocalLLM,
     cloudLlmInGameMode,

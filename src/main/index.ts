@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { registerIpcHandlers } from './ipc';
 import { macroScheduler } from './services/macro-scheduler.service';
+import { dialogTrashScheduler } from './services/dialog-trash.service';
 import { DatabaseService } from './services/database';
 import { initMemory } from './services/memory/memory-manager';
 import { objectiveEngine } from './services/objective/ObjectiveEngine';
@@ -292,6 +293,7 @@ app.whenReady().then(async () => {
   initMemory();
   registerIpcHandlers();
   macroScheduler.start();
+  dialogTrashScheduler.start();
   powerMonitor.on('resume', () => macroScheduler.checkNow());
   powerMonitor.on('unlock-screen', () => macroScheduler.checkNow());
   vkWebSocketServer.start();
@@ -354,11 +356,15 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => macroScheduler.stop());
+app.on('before-quit', () => {
+  macroScheduler.stop();
+  dialogTrashScheduler.stop();
+});
 
 let isQuitting = false;
 app.on('before-quit', (e) => {
   macroScheduler.stop();
+  dialogTrashScheduler.stop();
   if (isQuitting) return;
   e.preventDefault();
   isQuitting = true;

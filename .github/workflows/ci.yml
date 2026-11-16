@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Lint, Architecture, Test & Build Validation
@@ -59,44 +62,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Print Toolchain Versions
+        shell: pwsh
+        run: |
+          Write-Host "Node: $(node -v)"
+          Write-Host "npm: $(npm -v)"
+          Write-Host "Electron: $(node -p "require('./node_modules/electron/package.json').version")"
+          Write-Host "electron-builder: $(npx --no-install electron-builder --version)"
+
       - name: Type Check (TypeScript)
         run: npm run lint
 
       - name: Run Vitest Unit Tests on Windows
         run: npm test
 
+      - name: Run Windows Artifact Verifier Self-Tests
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-win-artifacts.ps1 -SelfTest
+
+      - name: Clean Previous Dist Directory
+        shell: pwsh
+        run: |
+          if (Test-Path -Path "dist") {
+            Remove-Item -Path "dist" -Recurse -Force
+          }
+
       - name: Build & Package Windows x64 Installer
         run: npm run pack:win
 
       - name: Verify Artifacts & Generate SHA-256 Checksums
+        id: verify
         shell: pwsh
-        run: |
-          $exeFiles = Get-ChildItem -Path dist -Filter "*.exe" -File
-          if (-not $exeFiles -or $exeFiles.Count -eq 0) {
-            Write-Error "No Windows .exe artifacts found in dist/"
-            exit 1
-          }
-          $hashes = @()
-          foreach ($file in $exeFiles) {
-            if ($file.Length -le 0) {
-              Write-Error "Artifact $($file.Name) has zero size!"
-              exit 1
-            }
-            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash.ToLower()
-            $line = "$hash  $($file.Name) ($ ([math]::Round($file.Length / 1MB, 2)) MB)"
-            Write-Host $line
-            $hashes += "$hash  $($file.Name)"
-          }
-          $hashes | Set-Content -Path "dist/SHA256SUMS.txt" -Encoding UTF8
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-win-artifacts.ps1
 
       - name: Upload Windows Release Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: arc-windows-x64-${{ github.sha }}
           path: |
-            dist/*.exe
-            dist/*.blockmap
+            ${{ steps.verify.outputs.nsis_path }}
+            ${{ steps.verify.outputs.portable_path }}
+            ${{ steps.verify.outputs.nsis_blockmap_path }}
             dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
-

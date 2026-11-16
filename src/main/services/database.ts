@@ -61,6 +61,8 @@ export class JSONStatement {
                     if (!newRow.updated_at) newRow.updated_at = new Date().toISOString();
                     if (newRow.is_pinned === undefined) newRow.is_pinned = 0;
                     if (newRow.is_archived === undefined) newRow.is_archived = 0;
+                    if (newRow.is_deleted === undefined) newRow.is_deleted = 0;
+                    if (newRow.deleted_at === undefined) newRow.deleted_at = null;
                     if (newRow.message_count === undefined) newRow.message_count = 0;
 
                     const idIndex = cols.findIndex(c => c.toLowerCase() === 'id');
@@ -255,7 +257,7 @@ export class JSONStatement {
                             if (valA === undefined || valA === null) return 1;
                             if (valB === undefined || valB === null) return -1;
 
-                            if (col === 'updated_at' || col === 'created_at') {
+                            if (col === 'updated_at' || col === 'created_at' || col === 'deleted_at') {
                                 const timeA = new Date(valA).getTime();
                                 const timeB = new Date(valB).getTime();
                                 if (!isNaN(timeA) && !isNaN(timeB)) {
@@ -788,6 +790,8 @@ export class DatabaseService {
                 message_count INTEGER DEFAULT 0,
                 is_pinned INTEGER DEFAULT 0,
                 is_archived INTEGER DEFAULT 0,
+                is_deleted INTEGER DEFAULT 0,
+                deleted_at DATETIME DEFAULT NULL,
                 tags TEXT
             );
 
@@ -1001,8 +1005,16 @@ export class DatabaseService {
             if (!cols.some(c => c.name === 'summary')) {
                 this.db.exec(`ALTER TABLE sessions ADD COLUMN summary TEXT`);
             }
+            if (!cols.some(c => c.name === 'is_deleted')) {
+                this.db.exec(`ALTER TABLE sessions ADD COLUMN is_deleted INTEGER DEFAULT 0`);
+            }
+            this.db.prepare(`UPDATE sessions SET is_deleted = 0 WHERE is_deleted IS NULL`).run();
+            if (!cols.some(c => c.name === 'deleted_at')) {
+                this.db.exec(`ALTER TABLE sessions ADD COLUMN deleted_at DATETIME DEFAULT NULL`);
+            }
+            this.db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_deleted ON sessions(is_deleted, deleted_at)`);
         } catch (e) {
-            console.error('Failed to migrate sessions.summary:', e);
+            console.error('Failed to migrate sessions columns:', e);
         }
         try {
             const cols = this.db.prepare(`PRAGMA table_info(arc_decisions)`).all() as any[];

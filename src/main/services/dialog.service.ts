@@ -14,6 +14,8 @@ export interface Session {
     message_count: number;
     is_pinned: number;
     is_archived: number;
+    is_deleted?: number;
+    deleted_at?: string | null;
     tags: string | null;
 }
 
@@ -38,17 +40,22 @@ export class DialogService {
         return DatabaseService.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as Session;
     }
 
-    static listSessions(limit: number = 50, offset: number = 0, filter?: { date?: string, archived?: boolean }): Session[] {
+    static listSessions(limit: number = 50, offset: number = 0, filter?: { date?: string, archived?: boolean, trash?: boolean }): Session[] {
+        const isTrash = Boolean(filter?.trash || filter?.date === 'trash');
+        const isArchived = !isTrash && Boolean(filter?.archived || filter?.date === 'archived');
+
         let query = 'SELECT * FROM sessions WHERE 1=1';
         const params: any[] = [];
 
-        if (filter?.archived !== undefined && filter.archived) {
-            query += ' AND is_archived = 1';
-        } else if (filter?.date === 'archived') {
-            query += ' AND is_archived = 1';
+        if (isTrash) {
+            query += ' AND is_deleted = 1';
+            query += ' ORDER BY deleted_at DESC, updated_at DESC LIMIT ? OFFSET ?';
+        } else if (isArchived) {
+            query += ' AND is_archived = 1 AND is_deleted = 0';
+            query += ' ORDER BY is_pinned DESC, updated_at DESC LIMIT ? OFFSET ?';
         } else {
-            query += ' AND is_archived = 0'; // default hide archived
-            
+            query += ' AND is_archived = 0 AND is_deleted = 0';
+
             if (filter?.date === 'today') {
                 query += " AND date(updated_at, 'localtime') = date('now', 'localtime')";
             } else if (filter?.date === 'yesterday') {
@@ -58,16 +65,18 @@ export class DialogService {
             } else if (filter?.date === 'month') {
                 query += " AND datetime(updated_at, 'localtime') >= datetime('now', '-30 days', 'localtime')";
             }
+            query += ' ORDER BY is_pinned DESC, updated_at DESC LIMIT ? OFFSET ?';
         }
 
-        query += ' ORDER BY is_pinned DESC, updated_at DESC LIMIT ? OFFSET ?';
         params.push(limit, offset);
 
         try {
             return DatabaseService.db.prepare(query).all(...params) as Session[];
         } catch (err) {
-            // Fallback for query without SQLite date functions if not supported
-            return DatabaseService.db.prepare('SELECT * FROM sessions WHERE is_archived = ? ORDER BY is_pinned DESC, updated_at DESC LIMIT ? OFFSET ?').all(filter?.archived || filter?.date === 'archived' ? 1 : 0, limit, offset) as Session[];
+            if (isTrash) {
+                return DatabaseService.db.prepare('SELECT * FROM sessions WHERE is_deleted = 1 ORDER BY deleted_at DESC, updated_at DESC LIMIT ? OFFSET ?').all(limit, offset) as Session[];
+            }
+            return DatabaseService.db.prepare('SELECT * FROM sessions WHERE is_archived = ? AND is_deleted = 0 ORDER BY is_pinned DESC, updated_at DESC LIMIT ? OFFSET ?').all(isArchived ? 1 : 0, limit, offset) as Session[];
         }
     }
 
@@ -162,7 +171,22 @@ export class DialogService {
         }
     }
 
-    static searchMessages(query: string, limit: number = 20): any[] {
+    static searchMessages(query: string, limit: number = 20, filter?: { archived?: boolean; trash?: boolean }): any[] {
+        const isTrash = Boolean(filter?.trash);
+        const isArchived = !isTrash && Boolean(filter?.archived);
+        let scopeWhere = '';
+        if (filter) {
+            if (isTrash) {
+                scopeWhere = ' AND COALESCE(s.is_deleted, 0) = 1';
+            } else if (isArchived) {
+                scopeWhere = ' AND COALESCE(s.is_deleted, 0) = 0 AND COALESCE(s.is_archived, 0) = 1';
+            } else {
+                scopeWhere = ' AND COALESCE(s.is_deleted, 0) = 0 AND COALESCE(s.is_archived, 0) = 0';
+            }
+        } else {
+            scopeWhere = ' AND COALESCE(s.is_deleted, 0) = 0';
+        }
+
         // FTS5 MATCH query
         const sql = `
             SELECT 
@@ -173,12 +197,14 @@ export class DialogService {
                 s.name as session_name,
                 s.is_archived,
                 s.is_pinned,
+                s.is_deleted,
+                s.deleted_at,
                 s.updated_at,
                 s.created_at
             FROM messages_fts f
             JOIN messages m ON f.rowid = m.id
             JOIN sessions s ON m.session_id = s.id
-            WHERE messages_fts MATCH ?
+            WHERE messages_fts MATCH ?${scopeWhere}
             ORDER BY rank
             LIMIT ?
         `;
