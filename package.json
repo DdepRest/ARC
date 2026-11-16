@@ -20,8 +20,8 @@
     "gate": "npm run lint && npm run check-visual-constitution && npm run test && npm run build && npm run check-sizes",
     "rebuild:electron": "node scripts/postinstall-check.js --force-electron",
     "postinstall": "node scripts/postinstall-check.js",
-    "dist:win": "npm run build && npx electron-builder --win --dir",
-    "pack:win": "npm run build && npx electron-builder --win"
+    "dist:win": "npm run build && npx electron-builder --win --dir --publish never",
+    "pack:win": "npm run build && npx electron-builder --win --publish never"
   },
   "packageManager": "npm@10.8.2",
   "engines": {
