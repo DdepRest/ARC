@@ -5,6 +5,7 @@ import type { ReactorParticles } from "./reactor-particles";
 import type { ReactorPostFX } from "./reactor-postfx";
 import type { ReactorGeometryResult } from "./reactor-geometry";
 import { themeAccentHex } from "./reactor-theme";
+import type { GraphicsConfig } from "../../../features/settings/logic/graphics-presets";
 import {
   getActiveDiagnosticFlags,
   recordDiagnosticFrameSample,
@@ -37,6 +38,7 @@ export interface ReactorStateDriverParams {
   particles: ReactorParticles;
   postfx: ReactorPostFX;
   geometry: ReactorGeometryResult;
+  getEffectiveConfig?: () => GraphicsConfig;
   getReactorState: () => string;
   getVoiceState?: () => string;
   getIntensity: () => number | undefined;
@@ -73,10 +75,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     getAudioTargets,
   } = params;
 
-  let autoDegraded = false;
-  let autoDegradedTime = 0;
-  let lowFpsStartTime: number | null = null;
   let manualPulseValue = 0.0;
+  const prefersReducedMotion =
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
 
   // Smoothed Audio Levels
   let smoothBass = 0.0;
@@ -469,17 +472,24 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     }
 
     if (state === 'alert' || state === 'error') {
-      const strobe = Math.random() > 0.5 ? 1.5 : 0.2;
+      const strobe = prefersReducedMotion
+        ? 0.9 + Math.sin(elapsedTime * 2.5) * 0.15
+        : (Math.random() > 0.5 ? 1.45 : 0.25);
       latticeFocus *= strobe;
       ringsFocus *= strobe;
     }
 
-    const gfx = settingsStore.graphicsConfig;
+    const gfx: GraphicsConfig | undefined = params.getEffectiveConfig
+      ? params.getEffectiveConfig()
+      : settingsStore.graphicsConfig;
     const isBloomDisabled = gfx ? !gfx.bloomEnabled : settingsStore.graphicsQuality === "Low";
     postfx.bloomPass.enabled = !isBloomDisabled;
     if (gfx && typeof gfx.bloomRadius === "number") {
       const clampedR = Math.max(0.2, Math.min(0.8, gfx.bloomRadius));
-      postfx.bloomPass.radius = 0.32 + ((clampedR - 0.2) / 0.6) * 0.09;
+      postfx.bloomPass.radius = 0.28 + ((clampedR - 0.2) / 0.6) * 0.22;
+    }
+    if (gfx && typeof gfx.bloomThreshold === "number") {
+      postfx.bloomPass.threshold = Math.max(0.35, Math.min(0.85, gfx.bloomThreshold));
     }
     const bloomOffEmissiveBoost = isBloomDisabled ? 1.25 : 1.0;
 
@@ -561,11 +571,12 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.singularityFacetedMat.emissiveIntensity = (0.22 + smoothTotal * 0.35) * stageCenter * bloomOffEmissiveBoost;
 
       // Stage 2: Waveguides, Channel Trenches, Plasma Vortex & Port Diodes
-      // Emissive compensation (+0.12) when 9 perimeter PointLights are reversibly culled for shader performance
-      const isUltraPerimeterLights = diagFlags.overrideActive
+      // Emissive compensation (+0.10) when outer perimeter PointLights are culled in Eco/Standard tiers
+      const lightTier = gfx?.dynamicPointLights ?? "standard";
+      const isFullPerimeterLights = diagFlags.overrideActive
         ? diagFlags.enablePerimeterPointLights
-        : (gfx?.dynamicPointLights === "ultra") || Boolean((gfx as any)?.perimeterPointLights) || diagFlags.enablePerimeterPointLights;
-      const perimeterLightComp = isUltraPerimeterLights ? 0.0 : 0.12;
+        : lightTier === "full" || diagFlags.enablePerimeterPointLights;
+      const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.1;
       materials.neonTubeMat.color.copy(tempTrenchColor);
       materials.neonTubeMat.emissive.copy(activeColor);
       const baseTubeIntensity = (1.50 + perimeterLightComp + smoothTotal * 0.55 + smoothBass * 0.45 + manualPulseValue * 0.45) * stageTrench * bloomOffEmissiveBoost;
@@ -662,7 +673,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
     geometry.reactorGroup.position.x += (targetX3d - geometry.reactorGroup.position.x) * 4.0 * delta;
     geometry.reactorGroup.position.y += (targetY3d - geometry.reactorGroup.position.y) * 4.0 * delta;
-    if (currentSignature.coreJitter > 0.05) {
+    if (currentSignature.coreJitter > 0.05 && !prefersReducedMotion) {
       const jitterMag = currentSignature.coreJitter * 0.15;
       geometry.reactorGroup.position.x += (Math.random() - 0.5) * jitterMag;
       geometry.reactorGroup.position.y += (Math.random() - 0.5) * jitterMag;
@@ -814,30 +825,35 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         }
       });
 
-      // Synchronize vertex & clamp perimeter lights (Reversibly controlled via visible flag to avoid 9 extra PBR PointLights per fragment)
-      const lightTier = gfx?.dynamicPointLights || "full";
-      const isPerimeterLightsActive = diagFlags.overrideActive
+      // Synchronize vertex & clamp perimeter lights per tier:
+      // eco: none | standard: 3 vertex lights | full: 3 vertex + 3 clamp lights
+      const tier = gfx?.dynamicPointLights ?? "standard";
+      const showVertexLights = diagFlags.overrideActive
         ? diagFlags.enablePerimeterPointLights
-        : lightTier === "ultra" || Boolean((gfx as any)?.perimeterPointLights) || diagFlags.enablePerimeterPointLights;
+        : tier === "standard" || tier === "full" || diagFlags.enablePerimeterPointLights;
+      const showClampLights = diagFlags.overrideActive
+        ? diagFlags.enablePerimeterPointLights
+        : tier === "full" || diagFlags.enablePerimeterPointLights;
+
       for (let d = 0; d < 3; d++) {
         const vLight = vertexLights[d];
         if (vLight) {
-          if (vLight.visible !== isPerimeterLightsActive) vLight.visible = isPerimeterLightsActive;
-          if (isPerimeterLightsActive) {
+          if (vLight.visible !== showVertexLights) vLight.visible = showVertexLights;
+          if (showVertexLights) {
             vLight.color.copy(activeColor);
             vLight.intensity =
-              (0.45 + smoothTotal * 0.35 + currentVisuals.coreIntensity * 0.2) * stageOuter * currentSignature.glowIntensity;
+              (0.42 + smoothTotal * 0.32 + currentVisuals.coreIntensity * 0.18) * stageOuter * currentSignature.glowIntensity;
           }
         }
 
         // Clamp local lights (Stage 4 - Outer Clamps)
         const cLight = outerClampLights[d];
         if (cLight) {
-          if (cLight.visible !== isPerimeterLightsActive) cLight.visible = isPerimeterLightsActive;
-          if (isPerimeterLightsActive) {
+          if (cLight.visible !== showClampLights) cLight.visible = showClampLights;
+          if (showClampLights) {
             cLight.color.copy(activeColor);
             cLight.intensity =
-              (0.45 + smoothBass * 0.35 + currentVisuals.coreIntensity * 0.2) * stageOuter * currentSignature.glowIntensity;
+              (0.42 + smoothBass * 0.32 + currentVisuals.coreIntensity * 0.18) * stageOuter * currentSignature.glowIntensity;
           }
         }
       }
@@ -1365,53 +1381,57 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       particles.dataNodes.visible = false;
     }
 
-    // 13. Bloom Strength & Lighting (Phased by Stage — Balanced High-Contrast Glow)
+    // 13. Bloom Strength & Studio Accent Lighting (Phased by Stage — Calibrated HDR Glow)
     const ramPulseMult = computeRamGlowPulse(ramUsage, elapsedTime);
-    const clampedStrength = gfx ? Math.max(50, Math.min(150, gfx.bloomStrength)) : 110;
-    const userBloomMult = 0.84 + ((clampedStrength - 50) / 100) * 0.22;
+    const clampedStrength = gfx ? Math.max(50, Math.min(150, gfx.bloomStrength)) : 95;
+    const userBloomMult = 0.72 + ((clampedStrength - 50) / 100) * 0.56;
     let finalBloom =
-      ((0.33 + currentVisuals.bloomStrength * 0.34) * (0.95 + (ramPulseMult - 1.0) * 0.14) + smoothTotal * 0.22 + manualPulseValue * 0.22) *
+      ((0.28 + currentVisuals.bloomStrength * 0.28) * (0.95 + (ramPulseMult - 1.0) * 0.14) + smoothTotal * 0.18 + manualPulseValue * 0.18) *
       masterGlow *
       userBloomMult;
     if (state === "speaking") {
-      finalBloom *= 1.0 + 0.26 * smoothMid + 0.14 * smoothBass;
+      finalBloom *= 1.0 + 0.22 * smoothMid + 0.12 * smoothBass;
     }
-    if (currentSignature.coreJitter > 0.2) {
-      finalBloom *= (0.86 + Math.random() * 0.28);
+    if (currentSignature.coreJitter > 0.2 && !prefersReducedMotion) {
+      finalBloom *= (0.88 + Math.random() * 0.24);
     }
-    finalBloom = Math.max(0.0, Math.min(0.78, finalBloom));
+    finalBloom = Math.max(0.0, Math.min(0.68, finalBloom));
     postfx.bloomPass.strength += (finalBloom - postfx.bloomPass.strength) * 0.2;
 
-    // Update lights color & intensity per spatial stage and dynamicPointLights tier
-    const lightTier = gfx?.dynamicPointLights || "full";
-    const isEcoLights = lightTier === "eco";
-    const isUltraPerimeterLights = diagFlags.overrideActive
+    // Update dynamic lights per tier:
+    // eco: coreLight only (soft) | standard: core + chamber + rim | full: core + chamber + rim + trenches
+    const activeLightTier = gfx?.dynamicPointLights ?? "standard";
+    const isEcoLights = activeLightTier === "eco";
+    const isFullTrenchLights = diagFlags.overrideActive
       ? diagFlags.enablePerimeterPointLights
-      : lightTier === "ultra" || Boolean((gfx as any)?.perimeterPointLights) || diagFlags.enablePerimeterPointLights;
+      : activeLightTier === "full" || diagFlags.enablePerimeterPointLights;
 
-    if (lighting.coreLight.visible !== !isEcoLights) lighting.coreLight.visible = !isEcoLights;
+    lighting.coreLight.visible = true;
+    lighting.coreLight.color.copy(activeColor);
+    const targetCoreLight = isEcoLights
+      ? Math.min(0.55, (0.34 + smoothTotal * 0.22) * stageCenter)
+      : Math.min(0.92, (0.52 + smoothTotal * 0.4) * stageCenter);
+    lighting.coreLight.intensity += (targetCoreLight - lighting.coreLight.intensity) * 0.2;
+
     if (lighting.innerChamberLight.visible !== !isEcoLights) lighting.innerChamberLight.visible = !isEcoLights;
     if (lighting.rimLight.visible !== !isEcoLights) lighting.rimLight.visible = !isEcoLights;
 
     if (!isEcoLights) {
       lighting.rimLight.color.copy(activeColor);
-      lighting.coreLight.color.copy(activeColor);
       lighting.innerChamberLight.color.copy(activeColor);
 
-      const targetCoreLight = Math.min(0.92, (0.52 + smoothTotal * 0.4) * stageCenter);
       const targetChamberLight = Math.min(0.72, (0.42 + smoothMid * 0.35) * stageTrench);
-      const targetRimLight = Math.min(0.72, (0.42 + smoothBass * 0.35) * stageRings);
+      const targetRimLight = Math.min(0.75, (0.45 + smoothBass * 0.35) * stageRings);
 
-      lighting.coreLight.intensity += (targetCoreLight - lighting.coreLight.intensity) * 0.2;
       lighting.innerChamberLight.intensity += (targetChamberLight - lighting.innerChamberLight.intensity) * 0.2;
       lighting.rimLight.intensity += (targetRimLight - lighting.rimLight.intensity) * 0.2;
     }
 
     lighting.trenchLights.forEach((light) => {
-      if (light.visible !== isUltraPerimeterLights) light.visible = isUltraPerimeterLights;
-      if (isUltraPerimeterLights) {
+      if (light.visible !== isFullTrenchLights) light.visible = isFullTrenchLights;
+      if (isFullTrenchLights) {
         light.color.copy(activeColor);
-        const targetTrenchLight = (0.48 + smoothTotal * 0.45 + smoothBass * 0.32) * stageTrench;
+        const targetTrenchLight = (0.42 + smoothTotal * 0.38 + smoothBass * 0.28) * stageTrench;
         light.intensity += (targetTrenchLight - light.intensity) * 0.2;
       }
     });

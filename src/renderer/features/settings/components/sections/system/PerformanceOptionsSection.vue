@@ -52,8 +52,8 @@
             id="system.perf.gfx_quality"
             layout="stacked"
             label="Быстрый шаблон графики реактора"
-            description="Глобальный профиль рендеринга (Низкий, Средний, Высокий, Ультра, Ультра плюс)."
-            data-search="качество графики реактора graphics quality low medium high ultra ultraplus ультра плюс высокие средние низкие"
+            description="Глобальный профиль рендеринга (Экономичный, Сбалансированный, Кинематографичный)."
+            data-search="качество графики реактора graphics quality eco balanced cinematic экономичный сбалансированный кинематографичный low medium high ultra"
           >
             <div class="flex flex-wrap items-center justify-between gap-2 w-full">
               <div
@@ -61,7 +61,7 @@
                 :style="{ boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.65)' }"
               >
                 <button
-                  v-for="q in (['Low', 'Medium', 'High', 'Ultra', 'UltraPlus'] as const)"
+                  v-for="q in presetOrder"
                   :key="q"
                   type="button"
                   @click="store.applyGraphicsPreset(q)"
@@ -70,7 +70,7 @@
                     ? 'bg-[var(--arc-selected)] text-[var(--accent)] border border-[rgba(var(--accent-rgb),0.4)] font-semibold'
                     : 'text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] border border-transparent'"
                 >
-                  {{ q === 'Low' ? 'Низкий' : q === 'Medium' ? 'Средний' : q === 'High' ? 'Высокий' : q === 'Ultra' ? 'Ультра' : 'Ультра плюс' }}
+                  {{ presetMeta[q].titleRu }}
                 </button>
               </div>
               <CrossLink tab="system" sectionId="section-graphics" label="Тонкая настройка 3D-Ядра" />
@@ -103,6 +103,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
+import { GRAPHICS_PRESET_ORDER, GRAPHICS_PRESET_META } from '../../../logic/graphics-presets';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsGroup from '../../primitives/SettingsGroup.vue';
 import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
@@ -113,11 +114,15 @@ import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import { Gauge } from 'lucide-vue-next';
 
 const store = useSettingsStore();
+const presetOrder = GRAPHICS_PRESET_ORDER;
+const presetMeta = GRAPHICS_PRESET_META;
+
+const activePresetLabel = computed(() => presetMeta[store.graphicsPreset]?.titleRu || presetMeta.Balanced.titleRu);
 
 const summaryItems = computed<SummaryStripItem[]>(() => [
   { label: 'Целевой FPS', value: store.targetFps === 'auto' ? 'Авто (60)' : `${store.targetFps} FPS`, tone: 'accent', detail: 'Лимит планировщика RAF' },
-  { label: 'Шаблон графики', value: store.graphicsPreset, tone: 'default', detail: 'Активный профиль 3D' },
+  { label: 'Шаблон графики', value: activePresetLabel.value, tone: 'default', detail: 'Активный профиль 3D' },
   { label: 'Синхронизация VSync', value: store.disableVsync ? 'Отключена' : 'Включена', tone: store.disableVsync ? 'warn' : 'default', detail: 'Кадровый буфер GPU' },
-  { label: 'Оверлей телеметрии', value: store.showWidgetFps ? 'Видим' : 'Скрыт', tone: store.showWidgetFps ? 'default' : 'off', detail: 'Прибор ЯДРО в доке' },
+  { label: 'Оверлей телеметрии', value: store.showTechnicalHUD ? 'Видим' : 'Скрыт', tone: store.showTechnicalHUD ? 'default' : 'off', detail: 'Прибор ЯДРО в доке' },
 ]);
 </script>

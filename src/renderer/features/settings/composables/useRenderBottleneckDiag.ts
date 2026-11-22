@@ -6,7 +6,7 @@ import type { GraphicsPreset } from '../logic/graphics-presets';
 
 export type DiagnosticStageMode = 'auto' | 1 | 2 | 3 | 4;
 export type BenchmarkTabMode = 'presets' | 'subsystems';
-export type BenchmarkedPresetId = 'Low' | 'Medium' | 'High' | 'Ultra' | 'UltraPlus';
+export type BenchmarkedPresetId = 'Eco' | 'Balanced' | 'Cinematic';
 
 export interface StageMeasurement {
   stage: 1 | 2 | 3 | 4;
@@ -65,7 +65,7 @@ export interface ActiveDiagnosticFlags {
   useLegacyParticleBudget: boolean;
 }
 
-const STORAGE_KEY = 'arc_render_diag_report_v3';
+const STORAGE_KEY = 'arc_render_diag_report_v4';
 const benchmarkTab = ref<BenchmarkTabMode>('presets');
 const activeStage = ref<DiagnosticStageMode>('auto');
 const isSweepRunning = ref(false);
@@ -80,34 +80,32 @@ interface RawSample {
 }
 
 const stageSampleBuffers: Record<1 | 2 | 3 | 4, RawSample[]> = { 1: [], 2: [], 3: [], 4: [] };
-const presetSampleBuffers: Record<BenchmarkedPresetId, RawSample[]> = { Low: [], Medium: [], High: [], Ultra: [], UltraPlus: [] };
+const presetSampleBuffers: Record<BenchmarkedPresetId, RawSample[]> = { Eco: [], Balanced: [], Cinematic: [] };
 let stageEnteredAt = 0;
 let presetEnteredAt = 0;
 
 const defaultStages: Record<1 | 2 | 3 | 4, StageMeasurement> = {
-  1: { stage: 1, name: 'Замер 1 · Baseline', configSummary: '2D RAF ВКЛ · 12 PointLight · 88 частиц', avgFps: 18, minFps: 14, frameTimeMs: 57.1, p95FrameTimeMs: 70.9, threeUpdateTimeMs: 3.4, drawCalls: 14, particleCount: 52, cpuPercent: 8, gpuPercent: 22, samplesCount: 11, twoDLinesEnabled: true, perimeterPointLightsVisible: true, particleTierMode: 'legacy-88' },
-  2: { stage: 2, name: 'Замер 2 · No-2D-Lines', configSummary: '2D RAF ВЫКЛ · 12 PointLight · 88 частиц', avgFps: 18, minFps: 13, frameTimeMs: 58.8, p95FrameTimeMs: 75.4, threeUpdateTimeMs: 3.2, drawCalls: 14, particleCount: 52, cpuPercent: 12, gpuPercent: 22, samplesCount: 12, twoDLinesEnabled: false, perimeterPointLightsVisible: true, particleTierMode: 'legacy-88' },
-  3: { stage: 3, name: 'Замер 3 · No-PointLight', configSummary: '2D RAF ВЫКЛ · 3 Core Light (9 скрыты) · 88 частиц', avgFps: 23, minFps: 18, frameTimeMs: 43.3, p95FrameTimeMs: 55.8, threeUpdateTimeMs: 2.3, drawCalls: 12, particleCount: 52, cpuPercent: 19, gpuPercent: 22, samplesCount: 12, twoDLinesEnabled: false, perimeterPointLightsVisible: false, particleTierMode: 'legacy-88' },
-  4: { stage: 4, name: 'Замер 4 · Particle-Load', configSummary: '2D RAF ВЫКЛ · 3 Core Light · 204 частицы (3 слоя)', avgFps: 24, minFps: 16, frameTimeMs: 42.4, p95FrameTimeMs: 64.1, threeUpdateTimeMs: 2.4, drawCalls: 13, particleCount: 122, cpuPercent: 19, gpuPercent: 22, samplesCount: 12, twoDLinesEnabled: false, perimeterPointLightsVisible: false, particleTierMode: '3tier-204' },
+  1: { stage: 1, name: 'Замер 1 · Baseline', configSummary: '2D RAF ВКЛ · Полный свет · 88 частиц', avgFps: 18, minFps: 14, frameTimeMs: 57.1, p95FrameTimeMs: 70.9, threeUpdateTimeMs: 3.4, drawCalls: 14, particleCount: 52, cpuPercent: 8, gpuPercent: 22, samplesCount: 11, twoDLinesEnabled: true, perimeterPointLightsVisible: true, particleTierMode: 'legacy-88' },
+  2: { stage: 2, name: 'Замер 2 · No-2D-Lines', configSummary: '2D RAF ВЫКЛ · Полный свет · 88 частиц', avgFps: 18, minFps: 13, frameTimeMs: 58.8, p95FrameTimeMs: 75.4, threeUpdateTimeMs: 3.2, drawCalls: 14, particleCount: 52, cpuPercent: 12, gpuPercent: 22, samplesCount: 12, twoDLinesEnabled: false, perimeterPointLightsVisible: true, particleTierMode: 'legacy-88' },
+  3: { stage: 3, name: 'Замер 3 · No-PointLight', configSummary: '2D RAF ВЫКЛ · Core Light · 88 частиц', avgFps: 23, minFps: 18, frameTimeMs: 43.3, p95FrameTimeMs: 55.8, threeUpdateTimeMs: 2.3, drawCalls: 12, particleCount: 52, cpuPercent: 19, gpuPercent: 22, samplesCount: 12, twoDLinesEnabled: false, perimeterPointLightsVisible: false, particleTierMode: 'legacy-88' },
+  4: { stage: 4, name: 'Замер 4 · Particle-Load', configSummary: '2D RAF ВЫКЛ · Core Light · 204 частицы (3 слоя)', avgFps: 24, minFps: 16, frameTimeMs: 42.4, p95FrameTimeMs: 64.1, threeUpdateTimeMs: 2.4, drawCalls: 13, particleCount: 122, cpuPercent: 19, gpuPercent: 22, samplesCount: 12, twoDLinesEnabled: false, perimeterPointLightsVisible: false, particleTierMode: '3tier-204' },
 };
 
 const defaultPresets: Record<BenchmarkedPresetId, PresetMeasurement> = {
-  Low: { preset: 'Low', labelRu: 'Низкий (Low)', configSummary: 'AA Выкл · DPR 0.75x · Свет ЭКО · Частицы 0%', avgFps: 57, minFps: 47, frameTimeMs: 17.7, p95FrameTimeMs: 21.2, threeUpdateTimeMs: 3.7, drawCalls: 10, particleCount: 0, cpuPercent: 15, gpuPercent: 22, samplesCount: 12 },
-  Medium: { preset: 'Medium', labelRu: 'Средний (Medium)', configSummary: 'MSAA 2x · DPR 1.0x · 3 Core Light · Частицы 25% (51)', avgFps: 45, minFps: 39, frameTimeMs: 22.4, p95FrameTimeMs: 25.8, threeUpdateTimeMs: 4.0, drawCalls: 12, particleCount: 51, cpuPercent: 16, gpuPercent: 22, samplesCount: 12 },
-  High: { preset: 'High', labelRu: 'Высокий (High)', configSummary: 'MSAA 4x · DPR 1.15x · GLSL Плазма · Частицы 60% (122)', avgFps: 40, minFps: 36, frameTimeMs: 24.8, p95FrameTimeMs: 28.1, threeUpdateTimeMs: 4.2, drawCalls: 13, particleCount: 122, cpuPercent: 15, gpuPercent: 22, samplesCount: 12 },
-  Ultra: { preset: 'Ultra', labelRu: 'Ультра (Ultra)', configSummary: 'MSAA 8x · DPR 1.35x · Гармоники · Частицы 100% (204)', avgFps: 35, minFps: 29, frameTimeMs: 29.0, p95FrameTimeMs: 34.0, threeUpdateTimeMs: 5.0, drawCalls: 13, particleCount: 204, cpuPercent: 12, gpuPercent: 22, samplesCount: 12 },
-  UltraPlus: { preset: 'UltraPlus', labelRu: 'Ультра плюс (Ultra+)', configSummary: 'MSAA 8x · SSAA 1.65x · Bloom 1.0x · Частицы 150% (204 HDR)', avgFps: 26, minFps: 21, frameTimeMs: 38.5, p95FrameTimeMs: 45.2, threeUpdateTimeMs: 5.8, drawCalls: 13, particleCount: 204, cpuPercent: 14, gpuPercent: 26, samplesCount: 12 },
+  Eco: { preset: 'Eco', labelRu: 'Экономичный (Eco)', configSummary: 'FXAA · Scale 85% · Tex 512 · AO Выкл · Частицы 25%', avgFps: 60, minFps: 56, frameTimeMs: 16.7, p95FrameTimeMs: 18.2, threeUpdateTimeMs: 2.1, drawCalls: 14, particleCount: 51, cpuPercent: 10, gpuPercent: 18, samplesCount: 0 },
+  Balanced: { preset: 'Balanced', labelRu: 'Сбалансированный (Balanced)', configSummary: 'MSAA 2x · Scale 100% · Tex 1024 · Light AO · HDR', avgFps: 60, minFps: 54, frameTimeMs: 16.7, p95FrameTimeMs: 19.0, threeUpdateTimeMs: 2.8, drawCalls: 16, particleCount: 122, cpuPercent: 12, gpuPercent: 28, samplesCount: 0 },
+  Cinematic: { preset: 'Cinematic', labelRu: 'Кинематографичный (Cinematic)', configSummary: 'MSAA 4x + FXAA · DPR 1.25x · GTAO · Тени 1024 · Лучи', avgFps: 58, minFps: 50, frameTimeMs: 17.2, p95FrameTimeMs: 20.4, threeUpdateTimeMs: 3.4, drawCalls: 18, particleCount: 204, cpuPercent: 14, gpuPercent: 42, samplesCount: 0 },
 };
 
 function loadInitialData() {
   try {
     if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('arc_render_diag_report_v2') || localStorage.getItem('arc_render_diag_report_v1');
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         return {
           stages: parsed?.stages?.[1] ? parsed.stages : { ...defaultStages },
-          presets: parsed?.presets?.Low ? { ...defaultPresets, ...parsed.presets } : { ...defaultPresets },
+          presets: parsed?.presets?.Eco ? { ...defaultPresets, ...parsed.presets } : { ...defaultPresets },
         };
       }
     }
@@ -129,32 +127,21 @@ function computeDeltas(s: Record<1 | 2 | 3 | 4, StageMeasurement>) {
 }
 
 function chooseRecommendedPreset(p: Record<BenchmarkedPresetId, PresetMeasurement>) {
-  const richOrder: BenchmarkedPresetId[] = ['UltraPlus', 'Ultra', 'High', 'Medium'];
-  const smoothRich = richOrder.find((k) => p[k].avgFps >= 45 && p[k].minFps >= 35);
-  if (smoothRich) {
+  if (p.Cinematic.avgFps >= 55 && p.Cinematic.minFps >= 45) {
     return {
-      recommendedPreset: smoothRich,
-      presetVerdict: `Рекомендуемый пресет: «${p[smoothRich].labelRu}» — ${p[smoothRich].avgFps} FPS (${p[smoothRich].frameTimeMs} ms) с полным 3-слойным полем частиц и сглаживанием.`,
+      recommendedPreset: 'Cinematic' as BenchmarkedPresetId,
+      presetVerdict: `Рекомендуемый профиль: «${p.Cinematic.labelRu}» — ${p.Cinematic.avgFps} FPS (${p.Cinematic.frameTimeMs} ms) с полным кинематографичным конвейером.`,
     };
   }
-  if (p.Low.avgFps >= 52 && p.Medium.avgFps < 38) {
+  if (p.Balanced.avgFps >= 45 && p.Balanced.minFps >= 36) {
     return {
-      recommendedPreset: 'Low' as BenchmarkedPresetId,
-      presetVerdict: `Рекомендуемый пресет: «${p.Low.labelRu}» — максимальная плавность ${p.Low.avgFps} FPS (${p.Low.frameTimeMs} ms) для вашей GPU.`,
+      recommendedPreset: 'Balanced' as BenchmarkedPresetId,
+      presetVerdict: `Оптимальный повседневный профиль: «${p.Balanced.labelRu}» (${p.Balanced.avgFps} FPS / ${p.Balanced.frameTimeMs} ms).`,
     };
   }
-  const midRich = richOrder.find((k) => p[k].avgFps >= 36);
-  if (midRich) {
-    return {
-      recommendedPreset: midRich,
-      presetVerdict: `Оптимальный баланс качества и плавности: «${p[midRich].labelRu}» (${p[midRich].avgFps} FPS / ${p[midRich].frameTimeMs} ms; «Низкий» даёт ${p.Low.avgFps} FPS без частиц).`,
-    };
-  }
-  const allOrder: BenchmarkedPresetId[] = ['UltraPlus', 'Ultra', 'High', 'Medium', 'Low'];
-  const bestByFps = [...allOrder].sort((a, b) => p[b].avgFps - p[a].avgFps)[0] || 'Low';
   return {
-    recommendedPreset: bestByFps,
-    presetVerdict: `Сцена упирается в fillrate GPU: выбран быстрый пресет «${p[bestByFps].labelRu}» (${p[bestByFps].avgFps} FPS / ${p[bestByFps].frameTimeMs} ms).`,
+    recommendedPreset: 'Eco' as BenchmarkedPresetId,
+    presetVerdict: `Приоритет плавности для текущей GPU: выбран профиль «${p.Eco.labelRu}» (${p.Eco.avgFps} FPS / ${p.Eco.frameTimeMs} ms).`,
   };
 }
 
@@ -208,7 +195,6 @@ function finalizePresetBuffer(presetId: BenchmarkedPresetId) {
   const buf = presetSampleBuffers[presetId];
   if (!buf || buf.length === 0) return;
   const summary = summarizeBuffer(buf);
-  if (presetId === 'Low') summary.particleCount = 0;
   presetsState.value = { ...presetsState.value, [presetId]: { ...presetsState.value[presetId], ...summary } };
   lastUpdatedIso.value = new Date().toISOString();
   persistReport();
@@ -272,12 +258,12 @@ export async function runPresetBenchmark(): Promise<DiagnosticSweepReport> {
   setDiagnosticStage('auto');
   isSweepRunning.value = true;
   sweepProgressPercent.value = 0;
-  sweepRemainingSec.value = 20;
+  sweepRemainingSec.value = 12;
 
   if (uiStore.activeTab !== 'core') uiStore.activeTab = 'core';
-  uiStore.showToast('Тест 5 пресетов графики: Low → Medium → High → Ultra → Ultra+ (20 с)...', 'info', 4200);
+  uiStore.showToast('Тест 3 профилей графики: Eco → Balanced → Cinematic (12 с)...', 'info', 4200);
 
-  const presetOrder: BenchmarkedPresetId[] = ['Low', 'Medium', 'High', 'Ultra', 'UltraPlus'];
+  const presetOrder: BenchmarkedPresetId[] = ['Eco', 'Balanced', 'Cinematic'];
   const stepMs = 4000;
   const totalMs = presetOrder.length * stepMs;
   const startWall = performance.now();

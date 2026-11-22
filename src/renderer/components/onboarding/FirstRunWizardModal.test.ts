@@ -3,10 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { parse as parseSfc, compileTemplate } from '@vue/compiler-sfc';
 import { completeFirstRunWizard } from './utils/complete-wizard';
-import {
-  recommendGraphicsPreset,
-  isUltraPlusAvailable
-} from './utils/recommend-preset';
+import { recommendGraphicsPreset } from './utils/recommend-preset';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSettingsStore } from '../../features/settings/stores/settings.store';
 import { createWizardFlowController } from './composables/useFirstRunWizard';
@@ -56,34 +53,29 @@ describe('FirstRunWizard Logic & Recommendations', () => {
     expect(mockStore.onboardingVersion).toBe(1);
   });
 
-  it('2. recommendGraphicsPreset accurately maps TZ VRAM thresholds (4096 / 8192)', () => {
-    expect(recommendGraphicsPreset(null)).toBe('Medium');
-    expect(recommendGraphicsPreset(undefined)).toBe('Medium');
-    expect(recommendGraphicsPreset(Number.NaN)).toBe('Medium');
-    expect(recommendGraphicsPreset(0)).toBe('Medium');
-    expect(recommendGraphicsPreset(-512)).toBe('Medium');
+  it('2. recommendGraphicsPreset accurately maps 3-preset VRAM thresholds (4096 / 8192)', () => {
+    expect(recommendGraphicsPreset(null)).toBe('Balanced');
+    expect(recommendGraphicsPreset(undefined)).toBe('Balanced');
+    expect(recommendGraphicsPreset(Number.NaN)).toBe('Balanced');
+    expect(recommendGraphicsPreset(0)).toBe('Balanced');
+    expect(recommendGraphicsPreset(-512)).toBe('Balanced');
 
-    expect(recommendGraphicsPreset(2048)).toBe('Low');
-    expect(recommendGraphicsPreset(4095)).toBe('Low');
+    expect(recommendGraphicsPreset(2048)).toBe('Eco');
+    expect(recommendGraphicsPreset(4095)).toBe('Eco');
 
-    expect(recommendGraphicsPreset(4096)).toBe('Medium');
-    expect(recommendGraphicsPreset(8191)).toBe('Medium');
+    expect(recommendGraphicsPreset(4096)).toBe('Balanced');
+    expect(recommendGraphicsPreset(8191)).toBe('Balanced');
 
-    expect(recommendGraphicsPreset(8192)).toBe('High');
-    expect(recommendGraphicsPreset(12288)).toBe('High');
+    expect(recommendGraphicsPreset(8192)).toBe('Cinematic');
+    expect(recommendGraphicsPreset(12288)).toBe('Cinematic');
   });
 
-  it('3. isUltraPlusAvailable enforces 12GB (12288 MB) threshold and returns false on null', () => {
-    expect(isUltraPlusAvailable(null)).toBe(false);
-    expect(isUltraPlusAvailable(undefined)).toBe(false);
-    expect(isUltraPlusAvailable(Number.NaN)).toBe(false);
-    expect(isUltraPlusAvailable(0)).toBe(false);
-
-    expect(isUltraPlusAvailable(8192)).toBe(false);
-    expect(isUltraPlusAvailable(12287)).toBe(false);
-
-    expect(isUltraPlusAvailable(12288)).toBe(true);
-    expect(isUltraPlusAvailable(16384)).toBe(true);
+  it('3. GraphicsStep.vue offers only Eco, Balanced, Cinematic without UltraPlus or overwriting saved choice', () => {
+    const stepSource = fs.readFileSync(path.resolve(__dirname, 'steps/GraphicsStep.vue'), 'utf8');
+    expect(stepSource).toContain('GRAPHICS_PRESET_ORDER');
+    expect(stepSource).toContain('hasUserSelectedGraphicsPreset');
+    expect(stepSource).not.toContain('UltraPlus');
+    expect(stepSource).not.toContain('isUltraPlusAvailable');
   });
 });
 

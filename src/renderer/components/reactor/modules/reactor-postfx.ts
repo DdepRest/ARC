@@ -1,19 +1,73 @@
-import * as THREE from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
-import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
-import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass.js";
-import type { GraphicsConfig } from "../../../features/settings/logic/graphics-presets";
+import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import type { GraphicsConfig } from '../../../features/settings/logic/graphics-presets';
+import type { GpuCapabilities } from './reactor-gpu-capabilities';
+
+const ColorGradingVignetteShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uContrast: { value: 1.04 },
+    uSaturation: { value: 1.04 },
+    uVignette: { value: 0.14 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float uContrast;
+    uniform float uSaturation;
+    uniform float uVignette;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 texel = texture2D(tDiffuse, vUv);
+      vec3 col = texel.rgb;
+
+      // Subtle filmic saturation & gentle midtone contrast in linear HDR without crushing darks
+      float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+      col = mix(vec3(luma), col, uSaturation);
+      col = max(vec3(0.0), (col - vec3(0.02)) * uContrast + vec3(0.02));
+
+      // Delicate optical edge vignette (applied gently to preserve transparent backdrop alpha)
+      if (uVignette > 0.001) {
+        vec2 centered = (vUv - 0.5) * 2.0;
+        float distSq = dot(centered, centered);
+        float vig = 1.0 - smoothstep(0.55, 1.85, distSq) * uVignette;
+        col *= vig;
+      }
+
+      gl_FragColor = vec4(col, texel.a);
+    }
+  `,
+};
 
 export interface ReactorPostFX {
   composer: EffectComposer;
   bloomPass: UnrealBloomPass;
-  bokehPass?: BokehPass;
-  updatePixelRatio: (quality: string, scale?: number) => void;
-  applyGraphicsConfig: (config: GraphicsConfig) => void;
+  gtaoPass: GTAOPass | null;
+  bokehPass: BokehPass | null;
+  applyGraphicsConfig: (config: GraphicsConfig, caps?: GpuCapabilities | null) => void;
+  setAdaptiveRenderScale: (scale: number | null) => void;
+  setAdaptiveOverrides: (overrides: {
+    renderScale?: number | null;
+    disableAo?: boolean;
+    bloomResolutionScale?: number | null;
+  }) => void;
   updateSize: (width: number, height: number) => void;
+  getEffectiveDpr: () => number;
+  getEffectiveRenderScale: () => number;
   dispose: () => void;
 }
 
@@ -23,217 +77,316 @@ export function createReactorPostFX(
   renderer: THREE.WebGLRenderer,
   width: number,
   height: number,
-  graphicsQuality: string,
-  renderScale: number = 1.0,
-  initialConfig?: GraphicsConfig | null,
+  initialConfig: GraphicsConfig,
+  initialCaps: GpuCapabilities
 ): ReactorPostFX {
-  let currentWidth = width;
-  let currentHeight = height;
-  let currentQuality = graphicsQuality;
-  let currentScale = renderScale;
-  let activeConfig: GraphicsConfig | null = initialConfig ?? null;
+  let currentWidth = Math.max(1, width);
+  let currentHeight = Math.max(1, height);
+  let activeConfig: GraphicsConfig = initialConfig;
+  let activeCaps: GpuCapabilities = initialCaps;
+
+  let adaptiveRenderScale: number | null = null;
+  let adaptiveDisableAo = false;
+  let adaptiveBloomScale: number | null = null;
+  let effectiveDpr = 1.0;
 
   const mapBloomRadius = (uiRadius: number): number => {
     const clamped = Math.max(0.2, Math.min(0.8, uiRadius));
-    // Maps UI slider [0.20 .. 0.80] into the balanced optical sweet spot [0.32 .. 0.41]
-    return 0.32 + ((clamped - 0.2) / 0.6) * 0.09;
+    return 0.28 + ((clamped - 0.2) / 0.6) * 0.22;
   };
 
-  const resolveSamples = (cfg?: GraphicsConfig | null, quality?: string): number => {
-    // 4x hardware MSAA on HalfFloatType is the sweet spot for integrated & discrete GPUs
-    const maxSamples = Math.min(renderer.capabilities?.maxSamples ?? 4, 4);
-    if (cfg) {
-      if (cfg.msaaSamples <= 0) return 0;
-      return Math.min(maxSamples, cfg.msaaSamples);
+  const resolveBufferType = (cfg: GraphicsConfig, caps: GpuCapabilities): THREE.TextureDataType => {
+    if (cfg.colorBufferPrecision === 'halfFloat' && caps.supportsHalfFloatColorBuffer) {
+      return THREE.HalfFloatType;
     }
-    if (quality === "Low") return 0;
-    if (quality === "Medium") return Math.min(maxSamples, 2);
-    return maxSamples;
+    return THREE.UnsignedByteType;
   };
 
-  const calculateTargetDpr = (_quality: string, scale: number = 1.0, cfg?: GraphicsConfig | null): number => {
-    const windowDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-    if (cfg) {
-      const baseDpr =
-        cfg.targetDpr === "auto"
-          ? Math.min(windowDpr, 1.25)
-          : cfg.targetDpr;
-      const rawCombined = baseDpr * cfg.renderScale;
-      // Low (1.0 * 0.75 = 0.75) -> 0.75x lightweight render target
-      if (rawCombined <= 0.8) {
-        return 0.75;
-      }
-      // Medium (1.0 * 1.0 = 1.0) -> 1.0x native
-      if (rawCombined <= 1.05) {
-        return 1.0;
-      }
-      // High (1.25 * 1.0 = 1.25) -> 1.15x crisp render without excessive fillrate penalty
-      if (rawCombined <= 1.35) {
-        return 1.15;
-      }
-      // Ultra (1.5 * 1.25 = 1.875) -> 1.35x supersampling
-      if (rawCombined <= 2.0) {
-        return 1.35;
-      }
-      // UltraPlus (2.0 * 1.5 = 3.0) -> 1.65x supersampling
-      return 1.65;
+  const resolveSamples = (cfg: GraphicsConfig, caps: GpuCapabilities): number => {
+    if (!caps.isWebGL2 || caps.isSoftwareGl || caps.maxSamples <= 0 || cfg.msaaSamples <= 0) {
+      return 0;
     }
-
-    if (_quality === "Low") return 0.75;
-    if (_quality === "Medium") return 1.0 * scale;
-    return Math.min(1.5, Math.max(windowDpr, 1.15) * scale);
+    return Math.min(caps.maxSamples, cfg.msaaSamples);
   };
 
-  const calculateBloomScale = (cfg?: GraphicsConfig | null, quality?: string): number => {
-    if (!cfg) return quality === "Low" ? 0.45 : 0.65;
-    const baseDpr = cfg.targetDpr === "auto" ? 1.25 : cfg.targetDpr;
-    const rawCombined = baseDpr * cfg.renderScale;
-    if (rawCombined <= 0.8) return 0.45;  // Low: fast quarter-area bloom
-    if (rawCombined <= 1.05) return 0.55; // Medium: half-scale Gaussian pyramid
-    if (rawCombined <= 1.35) return 0.65; // High: optimal optical bloom without 5-mip fillrate bottleneck
-    if (rawCombined <= 2.0) return 0.80;  // Ultra
-    return 1.0;                           // UltraPlus: full-resolution Gaussian bloom pyramid
+  const computeEffectiveDpr = (cfg: GraphicsConfig, caps: GpuCapabilities): number => {
+    const winDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const baseDpr = cfg.targetDpr === 'auto' ? Math.min(winDpr, 1.25) : cfg.targetDpr;
+    const scale = adaptiveRenderScale !== null ? adaptiveRenderScale : cfg.renderScale;
+    const combined = baseDpr * scale;
+    const maxCap = caps.isSoftwareGl ? 1.0 : 1.5;
+    return Math.max(0.65, Math.min(maxCap, combined));
   };
 
-  const initialDpr = calculateTargetDpr(graphicsQuality, renderScale, activeConfig);
-  const initialSamples = resolveSamples(activeConfig, graphicsQuality);
-  renderer.setPixelRatio(initialDpr);
+  const computeBloomScale = (cfg: GraphicsConfig): number => {
+    if (adaptiveBloomScale !== null) return adaptiveBloomScale;
+    return Math.max(0.25, Math.min(1.0, cfg.bloomResolutionScale || 0.5));
+  };
 
+  effectiveDpr = computeEffectiveDpr(activeConfig, activeCaps);
+  const initialSamples = resolveSamples(activeConfig, activeCaps);
+  const initialBufferType = resolveBufferType(activeConfig, activeCaps);
+
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 1.06;
+  renderer.setPixelRatio(effectiveDpr);
 
-  const renderTarget = new THREE.WebGLRenderTarget(
-    Math.max(1, Math.round(width * initialDpr)),
-    Math.max(1, Math.round(height * initialDpr)),
+  const initialRt = new THREE.WebGLRenderTarget(
+    Math.max(1, Math.round(currentWidth * effectiveDpr)),
+    Math.max(1, Math.round(currentHeight * effectiveDpr)),
     {
-      type: THREE.HalfFloatType,
+      type: initialBufferType,
       samples: initialSamples,
     }
   );
 
-  const composer = new EffectComposer(renderer, renderTarget);
-  // IMPORTANT: In Three.js EffectComposer, readBuffer = renderTarget2 and writeBuffer = renderTarget1.
-  // RenderPass renders into readBuffer (renderTarget2), and neither RenderPass nor UnrealBloomPass swaps buffers.
-  // Therefore, hardware MSAA samples MUST be on renderTarget2 (readBuffer), while renderTarget1 (unused writeBuffer) stays at 0.
-  if (composer.renderTarget1) {
-    composer.renderTarget1.samples = 0;
-  }
-  if (composer.renderTarget2) {
-    composer.renderTarget2.samples = initialSamples;
-  }
-  composer.setPixelRatio(initialDpr);
-  composer.setSize(width, height);
+  const composer = new EffectComposer(renderer, initialRt);
+  if (composer.renderTarget1) composer.renderTarget1.samples = 0;
+  if (composer.renderTarget2) composer.renderTarget2.samples = initialSamples;
+  composer.setPixelRatio(effectiveDpr);
+  composer.setSize(currentWidth, currentHeight);
 
+  // 1. Scene RenderPass (linear HDR, transparent background preserved)
   const renderPass = new RenderPass(scene, camera);
   renderPass.clearColor = new THREE.Color(0x000000);
   renderPass.clearAlpha = 0;
+  composer.addPass(renderPass);
 
-  const initialBloomScale = calculateBloomScale(activeConfig, graphicsQuality);
+  // 2. GTAOPass (50% resolution, hardware HalfFloat GPUs only)
+  let gtaoPass: GTAOPass | null = null;
+  if (activeCaps.supportsHalfFloatColorBuffer && !activeCaps.isSoftwareGl) {
+    try {
+      const aoW = Math.max(1, Math.round(currentWidth * effectiveDpr * 0.5));
+      const aoH = Math.max(1, Math.round(currentHeight * effectiveDpr * 0.5));
+      gtaoPass = new GTAOPass(scene, camera, aoW, aoH);
+      gtaoPass.output = GTAOPass.OUTPUT.Default;
+      gtaoPass.updateGtaoMaterial({
+        radius: 0.65,
+        distanceExponent: 1.6,
+        thickness: 1.2,
+        scale: 1.0,
+        samples: 12,
+        distanceFallOff: 0.9,
+      });
+      gtaoPass.updatePdMaterial({
+        lumaPhi: 10,
+        depthPhi: 2,
+        normalPhi: 3,
+        radius: 5,
+        samples: 8,
+      });
+      gtaoPass.blendIntensity = 0.65;
+      gtaoPass.enabled = false;
+      composer.addPass(gtaoPass);
+    } catch (err) {
+      console.warn('[ReactorPostFX] GTAOPass unavailable, continuing without AO:', err);
+      gtaoPass = null;
+    }
+  }
+
+  // 3. Optional BokehPass (STRICTLY disabled in Eco/Balanced/Cinematic; enabled only in Showcase)
+  let bokehPass: BokehPass | null = null;
+  if (!activeCaps.isSoftwareGl) {
+    try {
+      bokehPass = new BokehPass(scene, camera, {
+        focus: 81.5,
+        aperture: 0.00018,
+        maxblur: 0.0045,
+      });
+      bokehPass.enabled = false;
+      composer.addPass(bokehPass);
+    } catch {
+      bokehPass = null;
+    }
+  }
+
+  // 4. Calibrated UnrealBloomPass (honors actual config strength/radius/threshold/scale)
+  const initBloomScale = computeBloomScale(activeConfig);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(
-      Math.max(1, Math.round(width * initialDpr * initialBloomScale)),
-      Math.max(1, Math.round(height * initialDpr * initialBloomScale))
+      Math.max(1, Math.round(currentWidth * effectiveDpr * initBloomScale)),
+      Math.max(1, Math.round(currentHeight * effectiveDpr * initBloomScale))
     ),
-    0.52,
-    activeConfig ? mapBloomRadius(activeConfig.bloomRadius) : 0.38,
-    0.48
+    0.38 * (activeConfig.bloomStrength / 100),
+    mapBloomRadius(activeConfig.bloomRadius),
+    activeConfig.bloomThreshold
   );
-  bloomPass.enabled = activeConfig ? activeConfig.bloomEnabled : true;
+  bloomPass.enabled = activeConfig.bloomEnabled;
+  composer.addPass(bloomPass);
 
-  // Keep fxaaPass disabled so UnrealBloomPass remains the final pass (renderToScreen = true)
-  // and applies ACESFilmicToneMapping + LinearToSRGB via bloomPass.basic before additive bloom blending.
+  // 5. Subtle Color Grading & Optical Vignette (linear HDR space, alpha-preserving)
+  const colorGradePass = new ShaderPass(ColorGradingVignetteShader);
+  colorGradePass.enabled = activeConfig.colorGrading || activeConfig.vignetteStrength > 0.001;
+  composer.addPass(colorGradePass);
+
+  // 6. Single OutputPass (ACES Filmic Tone Mapping + Linear -> sRGB encoding)
+  const outputPass = new OutputPass();
+  composer.addPass(outputPass);
+
+  // 7. Conditional FXAA Pass (placed AFTER OutputPass in sRGB space; genuinely respects config.fxaaEnabled)
   const fxaaPass = new ShaderPass(FXAAShader);
-  const syncFxaaResolution = (w: number, h: number, dpr: number) => {
-    const effW = Math.max(1, w * dpr);
-    const effH = Math.max(1, h * dpr);
+  fxaaPass.enabled = activeConfig.fxaaEnabled;
+  composer.addPass(fxaaPass);
+
+  let currentBufferType: THREE.TextureDataType = initialBufferType;
+
+  const syncPassResolutions = (dpr: number) => {
+    const effW = Math.max(1, Math.round(currentWidth * dpr));
+    const effH = Math.max(1, Math.round(currentHeight * dpr));
+
     if (fxaaPass.material?.uniforms?.resolution) {
       fxaaPass.material.uniforms.resolution.value.set(1 / effW, 1 / effH);
     }
+
+    const bScale = computeBloomScale(activeConfig);
+    bloomPass.setSize(
+      Math.max(1, Math.round(effW * bScale)),
+      Math.max(1, Math.round(effH * bScale))
+    );
+
+    if (gtaoPass) {
+      // Strictly 50% resolution for GTAO
+      gtaoPass.setSize(
+        Math.max(1, Math.round(effW * 0.5)),
+        Math.max(1, Math.round(effH * 0.5))
+      );
+    }
   };
-  fxaaPass.enabled = false;
-  syncFxaaResolution(width, height, initialDpr);
 
-  composer.addPass(renderPass);
-  composer.addPass(bloomPass);
-  composer.addPass(fxaaPass);
-  bloomPass.setSize(
-    Math.max(1, Math.round(width * initialDpr * initialBloomScale)),
-    Math.max(1, Math.round(height * initialDpr * initialBloomScale))
-  );
+  const syncTargetsAndPasses = () => {
+    const targetSamples = resolveSamples(activeConfig, activeCaps);
+    const targetType = resolveBufferType(activeConfig, activeCaps);
+    effectiveDpr = computeEffectiveDpr(activeConfig, activeCaps);
 
-  const syncTargetsAndSize = (dpr: number) => {
-    const targetSamples = resolveSamples(activeConfig, currentQuality);
     const rt1 = composer.renderTarget1;
     const rt2 = composer.renderTarget2;
-    if (rt1 && rt1.samples !== 0) {
+
+    if (rt1 && (rt1.samples !== 0 || rt1.texture.type !== targetType)) {
       rt1.samples = 0;
+      rt1.texture.type = targetType;
       rt1.dispose();
     }
-    if (rt2 && rt2.samples !== targetSamples) {
+    if (rt2 && (rt2.samples !== targetSamples || rt2.texture.type !== targetType)) {
       rt2.samples = targetSamples;
+      rt2.texture.type = targetType;
       rt2.dispose();
     }
+    currentBufferType = targetType;
 
-    renderer.setPixelRatio(dpr);
-    composer.setPixelRatio(dpr);
+    // Configure passes
+    if (gtaoPass) {
+      const aoActive = !adaptiveDisableAo && !activeCaps.isSoftwareGl && activeConfig.aoMode !== 'off';
+      gtaoPass.enabled = aoActive;
+      if (aoActive) {
+        const isFullGtao = activeConfig.aoMode === 'gtao';
+        gtaoPass.blendIntensity = isFullGtao ? 0.78 : 0.45;
+        gtaoPass.updateGtaoMaterial({
+          radius: isFullGtao ? 0.68 : 0.52,
+          samples: isFullGtao ? 14 : 8,
+          distanceExponent: 1.6,
+          thickness: 1.15,
+          scale: 1.0,
+          distanceFallOff: 0.9,
+        });
+      }
+    }
+
+    if (bokehPass) {
+      bokehPass.enabled = Boolean(activeConfig.dofEnabled) && !activeCaps.isSoftwareGl;
+    }
+
+    bloomPass.enabled = activeConfig.bloomEnabled;
+    bloomPass.radius = mapBloomRadius(activeConfig.bloomRadius);
+    bloomPass.threshold = Math.max(0.35, Math.min(0.85, activeConfig.bloomThreshold));
+
+    const wantGrading = activeConfig.colorGrading;
+    const vig = Math.max(0, Math.min(0.35, activeConfig.vignetteStrength));
+    colorGradePass.enabled = wantGrading || vig > 0.001;
+    if (colorGradePass.uniforms) {
+      colorGradePass.uniforms.uContrast.value = wantGrading ? 1.045 : 1.0;
+      colorGradePass.uniforms.uSaturation.value = wantGrading ? 1.05 : 1.0;
+      colorGradePass.uniforms.uVignette.value = vig;
+    }
+
+    fxaaPass.enabled = activeConfig.fxaaEnabled;
+
+    renderer.setPixelRatio(effectiveDpr);
+    composer.setPixelRatio(effectiveDpr);
     renderer.setSize(currentWidth, currentHeight, false);
     composer.setSize(currentWidth, currentHeight);
 
-    syncFxaaResolution(currentWidth, currentHeight, dpr);
-
-    const bScale = calculateBloomScale(activeConfig, currentQuality);
-    const bw = Math.max(1, Math.round(currentWidth * dpr * bScale));
-    const bh = Math.max(1, Math.round(currentHeight * dpr * bScale));
-    bloomPass.setSize(bw, bh);
+    // Override pass resolutions AFTER composer.setSize() so GTAO stays 50% and Bloom respects bloomResolutionScale
+    syncPassResolutions(effectiveDpr);
   };
 
-  const updatePixelRatio = (quality: string, scale: number = 1.0) => {
-    currentQuality = quality;
-    currentScale = scale;
-    bloomPass.enabled = activeConfig ? activeConfig.bloomEnabled : true;
-    const dpr = calculateTargetDpr(quality, scale, activeConfig);
-    syncTargetsAndSize(dpr);
-  };
+  syncTargetsAndPasses();
 
-  const applyGraphicsConfig = (config: GraphicsConfig) => {
+  const applyGraphicsConfig = (config: GraphicsConfig, caps?: GpuCapabilities | null) => {
     activeConfig = config;
-    bloomPass.enabled = config.bloomEnabled;
-    bloomPass.radius = mapBloomRadius(config.bloomRadius);
-    fxaaPass.enabled = false;
+    if (caps) activeCaps = caps;
+    syncTargetsAndPasses();
+  };
 
-    const dpr = calculateTargetDpr(currentQuality, config.renderScale, config);
-    syncTargetsAndSize(dpr);
+  const setAdaptiveRenderScale = (scale: number | null) => {
+    if (adaptiveRenderScale === scale) return;
+    adaptiveRenderScale = scale;
+    syncTargetsAndPasses();
+  };
+
+  const setAdaptiveOverrides = (overrides: {
+    renderScale?: number | null;
+    disableAo?: boolean;
+    bloomResolutionScale?: number | null;
+  }) => {
+    let changed = false;
+    if (overrides.renderScale !== undefined && overrides.renderScale !== adaptiveRenderScale) {
+      adaptiveRenderScale = overrides.renderScale;
+      changed = true;
+    }
+    if (overrides.disableAo !== undefined && overrides.disableAo !== adaptiveDisableAo) {
+      adaptiveDisableAo = overrides.disableAo;
+      changed = true;
+    }
+    if (overrides.bloomResolutionScale !== undefined && overrides.bloomResolutionScale !== adaptiveBloomScale) {
+      adaptiveBloomScale = overrides.bloomResolutionScale;
+      changed = true;
+    }
+    if (changed) {
+      syncTargetsAndPasses();
+    }
   };
 
   const updateSize = (w: number, h: number) => {
-    currentWidth = w;
-    currentHeight = h;
-    camera.aspect = w / h;
+    currentWidth = Math.max(1, w);
+    currentHeight = Math.max(1, h);
+    camera.aspect = currentWidth / currentHeight;
     camera.updateProjectionMatrix();
-    const dpr = calculateTargetDpr(currentQuality, currentScale, activeConfig);
-    syncTargetsAndSize(dpr);
+    syncTargetsAndPasses();
   };
 
   const dispose = () => {
-    composer.dispose();
-    if (bloomPass && typeof bloomPass.dispose === "function") {
-      bloomPass.dispose();
-    }
-    if (fxaaPass && typeof fxaaPass.dispose === "function") {
-      fxaaPass.dispose();
-    }
-    console.log("[GPU] Disposed EffectComposer and BloomPass");
+    try { composer.dispose(); } catch {}
+    try { gtaoPass?.dispose(); } catch {}
+    try { bokehPass?.dispose(); } catch {}
+    try { bloomPass.dispose(); } catch {}
+    try { colorGradePass.dispose(); } catch {}
+    try { outputPass.dispose(); } catch {}
+    try { fxaaPass.dispose(); } catch {}
+    void currentBufferType;
   };
 
   return {
     composer,
     bloomPass,
-    updatePixelRatio,
+    gtaoPass,
+    bokehPass,
     applyGraphicsConfig,
+    setAdaptiveRenderScale,
+    setAdaptiveOverrides,
     updateSize,
+    getEffectiveDpr: () => effectiveDpr,
+    getEffectiveRenderScale: () => (adaptiveRenderScale !== null ? adaptiveRenderScale : activeConfig.renderScale),
     dispose,
   };
 }
-
-
-

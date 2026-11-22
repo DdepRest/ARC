@@ -2,143 +2,197 @@
   <div
     class="rounded-[16px] border border-[var(--arc-hairline)] bg-[var(--arc-block)] p-4 sm:p-5 flex flex-col gap-4"
     data-setting-id="system.gfx.preset"
-    data-search="пресеты шаблон качества графики низкие средние высокие ультра ультра плюс пользовательский preset low medium high ultra custom"
+    data-search="пресеты профиль качества графики eco balanced cinematic showcase экономичный сбалансированный кинематографичный демонстрация"
   >
-    <!-- Header Row: Title + Live Hardware Config Strip -->
+    <!-- Header Row: Active Profile + Modified Reset + Live Telemetry -->
     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
       <div class="flex flex-col gap-1 min-w-0">
-        <div class="flex items-center gap-2.5 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <span class="text-sm font-semibold text-[var(--arc-text-primary)]">
             Профиль графического движка
           </span>
-          <span
-            class="px-2 py-0.5 rounded-[6px] text-xs font-mono uppercase tracking-wider border"
-            :class="store.graphicsPreset === 'Custom'
-              ? 'bg-[var(--arc-selected)] text-[var(--accent)] border-[rgba(var(--accent-rgb),0.45)]'
-              : 'bg-[var(--arc-input)] text-[var(--arc-text-primary)] border-[var(--arc-hairline)]'"
-          >
-            {{ activePresetTitle }}
+          <span class="px-2 py-0.5 rounded-[6px] text-xs font-mono uppercase tracking-wider border bg-[var(--arc-input)] text-[var(--arc-text-primary)] border-[var(--arc-hairline)]">
+            {{ activeMeta.code }} · {{ activeMeta.titleRu }}
           </span>
+          <span
+            v-if="store.isGraphicsModified"
+            class="px-2 py-0.5 rounded-[6px] text-xs font-mono uppercase tracking-wider border bg-[var(--arc-selected)] text-[var(--accent)] border-[rgba(var(--accent-rgb),0.45)]"
+          >
+            Изменён
+          </span>
+          <button
+            v-if="store.isGraphicsModified"
+            type="button"
+            @click="store.resetGraphicsPresetToDefault()"
+            class="px-2.5 py-0.5 rounded-[6px] text-xs font-mono border border-[var(--arc-hairline)] bg-[var(--arc-plane)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] hover:bg-[var(--arc-hover)] transition cursor-pointer"
+          >
+            Сбросить профиль
+          </button>
         </div>
         <span class="text-xs text-[var(--arc-text-muted)] leading-relaxed">
-          В каждом профиле приоритет отдан чёткости кольца и эталонному свечению ядра; на младших уровнях отключаются только вторичные эффекты и частицы.
+          Единый графический движок WebGL2. Постоянные профили управляют PBR-текстурами, студийным светом, GTAO, тенями и пост-обработкой без пересоздания сцены.
         </span>
       </div>
 
-      <!-- Compact Telemetry & Preset Benchmark Trigger -->
+      <!-- Compact Live Telemetry & Benchmark Trigger -->
       <div class="flex flex-wrap items-center self-start shrink-0 gap-2">
         <button
           type="button"
-          :disabled="isSweepRunning"
+          :disabled="isSweepRunning || store.showcaseActive"
           @click="runPresetBenchmark()"
           class="px-3 py-1.5 rounded-[10px] bg-[var(--arc-plane)] border border-[rgba(var(--accent-rgb),0.45)] text-xs font-mono font-semibold text-[var(--accent)] hover:bg-[var(--arc-hover)] transition cursor-pointer disabled:opacity-50"
         >
-          {{ isSweepRunning && sweepCurrentPreset ? `Тест: ${sweepCurrentPreset} (${sweepRemainingSec} с)` : 'Автоподбор 5 пресетов (20 с)' }}
+          {{ isSweepRunning && sweepCurrentPreset ? `Тест: ${sweepCurrentPreset} (${sweepRemainingSec} с)` : 'Автоподбор 3 профилей (12 с)' }}
         </button>
 
-        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] bg-[var(--arc-input)] border border-[var(--arc-hairline)] text-xs font-mono">
+        <div class="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-[10px] bg-[var(--arc-input)] border border-[var(--arc-hairline)] text-xs font-mono tabular-nums">
           <div class="flex items-center gap-1">
             <span class="text-[var(--arc-text-muted)]">FPS</span>
             <span class="text-[var(--arc-text-primary)] font-semibold">{{ uiStore.profilerStats?.fps || 60 }}</span>
           </div>
           <span class="text-[var(--arc-hairline)]">·</span>
           <div class="flex items-center gap-1">
-            <span class="text-[var(--arc-text-muted)]">DPR</span>
-            <span class="text-[var(--arc-text-primary)]">{{ formattedDpr }}</span>
-          </div>
-          <span class="text-[var(--arc-hairline)]">·</span>
-          <div class="flex items-center gap-1">
-            <span class="text-[var(--arc-text-muted)]">AF</span>
-            <span class="text-[var(--arc-text-primary)]">{{ store.graphicsConfig.anisotropy }}x</span>
+            <span class="text-[var(--arc-text-muted)]">SCALE</span>
+            <span class="text-[var(--arc-text-primary)]">{{ effectiveScalePct }}%</span>
           </div>
           <span class="text-[var(--arc-hairline)]">·</span>
           <div class="flex items-center gap-1">
             <span class="text-[var(--arc-text-muted)]">AA</span>
-            <span class="text-[var(--accent)] font-semibold">{{ formattedMsaa }}</span>
+            <span class="text-[var(--accent)] font-semibold">{{ formattedAa }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 3x2 Balanced Preset Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+    <!-- 3 Permanent Graphics Profile Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <button
-        v-for="item in presetCards"
-        :key="item.id"
+        v-for="presetId in presetOrder"
+        :key="presetId"
         type="button"
-        @click="handlePresetClick(item.id)"
-        :disabled="item.id === 'Custom' && store.graphicsPreset !== 'Custom'"
-        class="flex flex-col justify-between gap-2 p-3.5 rounded-[12px] border text-left transition cursor-pointer disabled:opacity-45 disabled:cursor-default"
-        :class="store.graphicsPreset === item.id
+        @click="handlePresetClick(presetId)"
+        class="flex flex-col justify-between gap-2.5 p-4 rounded-[12px] border text-left transition cursor-pointer"
+        :class="store.graphicsPreset === presetId
           ? 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.55)] text-[var(--arc-text-primary)]'
           : 'bg-[var(--arc-input)] border-[var(--arc-hairline)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] hover:bg-[var(--arc-hover)]'"
       >
-        <div class="w-full flex flex-col gap-1.5">
-          <!-- Card Top Header: Single-line Title + Tier Bars + Tag -->
+        <div class="w-full flex flex-col gap-2">
           <div class="w-full flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
               <span
-                class="text-xs font-semibold whitespace-nowrap"
-                :class="store.graphicsPreset === item.id ? 'text-[var(--accent)]' : 'text-[var(--arc-text-primary)]'"
+                class="text-xs font-mono font-bold tracking-wider whitespace-nowrap"
+                :class="store.graphicsPreset === presetId ? 'text-[var(--accent)]' : 'text-[var(--arc-text-primary)]'"
               >
-                {{ item.label }}
+                {{ presetMeta[presetId].code }}
               </span>
-              <!-- 5-Step Quality Tier Bars -->
-              <div v-if="item.level > 0" class="inline-flex items-center gap-0.5 shrink-0">
-                <span
-                  v-for="step in 5"
-                  :key="step"
-                  class="w-1 h-2.5 rounded-[1px] transition-colors"
-                  :style="{
-                    backgroundColor: step <= item.level
-                      ? (store.graphicsPreset === item.id ? 'var(--accent)' : 'var(--arc-text-secondary)')
-                      : 'var(--arc-hairline)'
-                  }"
-                />
-              </div>
+              <span class="text-xs font-medium text-[var(--arc-text-secondary)] truncate">
+                {{ presetMeta[presetId].titleRu }}
+              </span>
             </div>
-            <span
-              class="px-1.5 py-0.5 rounded-[5px] text-xs font-mono whitespace-nowrap shrink-0 border"
-              :class="store.graphicsPreset === item.id
-                ? 'bg-[var(--arc-block)] text-[var(--accent)] border-[rgba(var(--accent-rgb),0.35)]'
-                : 'bg-[var(--arc-block)] text-[var(--arc-text-muted)] border-[var(--arc-hairline)]'"
-            >
-              {{ item.tag }}
-            </span>
+
+            <div class="inline-flex items-center gap-1 shrink-0">
+              <span
+                v-for="step in 3"
+                :key="step"
+                class="w-1.5 h-2.5 rounded-[1px] transition-colors"
+                :style="{
+                  backgroundColor: step <= presetMeta[presetId].level
+                    ? (store.graphicsPreset === presetId ? 'var(--accent)' : 'var(--arc-text-secondary)')
+                    : 'var(--arc-hairline)'
+                }"
+              />
+            </div>
           </div>
 
-          <!-- Concise Human Description -->
-          <span class="text-xs leading-snug text-[var(--arc-text-secondary)]">
-            {{ item.desc }}
-          </span>
+          <div class="text-xs text-[var(--arc-text-primary)] leading-snug">
+            {{ presetMeta[presetId].purposeRu }}
+          </div>
+          <div class="text-xs text-[var(--arc-text-muted)] leading-snug">
+            {{ presetMeta[presetId].visualHighlightsRu }}
+          </div>
         </div>
 
-        <!-- Bottom Machine Spec Line -->
-        <div class="w-full pt-2 border-t border-[var(--arc-hairline)] flex items-center justify-between gap-1 text-xs font-mono text-[var(--arc-text-muted)]">
-          <span class="truncate">{{ item.specs }}</span>
+        <div class="w-full pt-2.5 border-t border-[var(--arc-hairline)] flex flex-col gap-1">
+          <span class="text-xs font-mono text-[var(--arc-text-secondary)]">
+            {{ presetMeta[presetId].performanceLevelRu }}
+          </span>
+          <span class="text-xs font-mono text-[var(--arc-text-muted)] truncate">
+            {{ presetMeta[presetId].specsRu }}
+          </span>
         </div>
       </button>
     </div>
 
-    <!-- GPU Load Impact Meter -->
-    <div class="flex flex-col gap-1.5 pt-1 border-t border-[var(--arc-hairline)]">
-      <div class="flex items-center justify-between gap-2 text-xs">
-        <span class="text-[var(--arc-text-muted)] font-mono">
-          ОЦЕНКА НАГРУЗКИ НА GPU (FILLRATE &amp; SHADERS)
+    <!-- Dedicated Temporary Showcase Mode Card -->
+    <div
+      class="rounded-[12px] border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+      :class="store.showcaseActive
+        ? 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.55)]'
+        : 'bg-[var(--arc-plane)] border-[var(--arc-hairline)]'"
+    >
+      <div class="flex flex-col gap-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-mono font-bold tracking-wider text-[var(--accent)]">
+            SHOWCASE · ВРЕМЕННЫЙ РЕЖИМ
+          </span>
+          <span class="px-2 py-0.5 rounded-[5px] text-xs font-mono border border-[var(--arc-hairline)] bg-[var(--arc-block)] text-[var(--arc-text-secondary)]">
+            {{ store.showcaseActive ? `Активен (${store.showcaseRemainingSec} с)` : 'До 120 с · Автовозврат' }}
+          </span>
+        </div>
+        <span class="text-xs text-[var(--arc-text-secondary)] leading-snug">
+          Пиковое демонстрационное качество: 2048 PBR, Soft Shadows 2048, GTAO, объёмные лучи, деликатный DOF и кинематографичная последовательность ядра. Не перезаписывает постоянный профиль.
         </span>
-        <div class="flex items-center gap-2 font-mono">
+      </div>
+
+      <button
+        type="button"
+        @click="handleShowcaseToggle"
+        class="shrink-0 px-4 py-2 rounded-[10px] text-xs font-mono font-semibold uppercase tracking-wider border transition cursor-pointer"
+        :class="store.showcaseActive
+          ? 'bg-[var(--arc-block)] border-[rgba(var(--accent-rgb),0.6)] text-[var(--accent)] hover:bg-[var(--arc-hover)]'
+          : 'bg-[var(--arc-selected)] border-[rgba(var(--accent-rgb),0.55)] text-[var(--accent)] hover:bg-[var(--arc-hover)]'"
+      >
+        {{ store.showcaseActive ? 'ОСТАНОВИТЬ SHOWCASE' : 'ЗАПУСТИТЬ SHOWCASE' }}
+      </button>
+    </div>
+
+    <!-- GPU Load & Adaptive Status Bar -->
+    <div class="flex flex-col gap-2 pt-2 border-t border-[var(--arc-hairline)]">
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-[var(--arc-text-muted)]">ОЦЕНКА НАГРУЗКИ GPU</span>
+          <span class="text-[var(--arc-text-secondary)]">· {{ store.adaptiveRuntimeState.gpuName }}</span>
+          <span
+            v-if="store.adaptiveRuntimeState.isSoftwareGl"
+            class="px-1.5 py-0.5 rounded-[5px] border border-[var(--arc-hairline)] bg-[var(--arc-input)] text-[var(--status-warn)]"
+          >
+            Software WebGL
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
           <span class="text-[var(--arc-text-secondary)]">{{ gpuLoad.labelRu }}</span>
           <span class="text-[var(--accent)] font-semibold">{{ gpuLoad.percent }}%</span>
         </div>
       </div>
+
       <div class="w-full h-2 rounded-full bg-[var(--arc-input)] border border-[var(--arc-hairline)] overflow-hidden p-0.5">
         <div
           class="h-full rounded-full transition-all duration-300"
-          :style="{
-            width: `${gpuLoad.percent}%`,
-            backgroundColor: gpuBarColor
-          }"
+          :style="{ width: `${gpuLoad.percent}%`, backgroundColor: gpuBarColor }"
         />
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-[var(--arc-text-muted)]">
+        <span>
+          Адаптивное качество:
+          <strong class="text-[var(--arc-text-primary)]">{{ store.autoAdjustGraphics ? 'Авто (защита 60 FPS)' : 'Фиксированное' }}</strong>
+          <template v-if="store.adaptiveRuntimeState.degradationStep > 0">
+            · Активна ступень {{ store.adaptiveRuntimeState.degradationStep }}
+          </template>
+        </span>
+        <span v-if="store.adaptiveRuntimeState.gpuFrameTimeMs !== null">
+          GPU: {{ store.adaptiveRuntimeState.gpuFrameTimeMs.toFixed(1) }} ms
+        </span>
       </div>
     </div>
   </div>
@@ -148,84 +202,33 @@
 import { computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
 import { useUIStore } from '../../../../../stores/ui.store';
-import { estimateGpuLoadScore, type GraphicsPreset } from '../../../logic/graphics-presets';
+import {
+  GRAPHICS_PRESET_ORDER,
+  GRAPHICS_PRESET_META,
+  estimateGpuLoadScore,
+  type GraphicsPreset,
+} from '../../../logic/graphics-presets';
 import { useRenderBottleneckDiag } from '../../../composables/useRenderBottleneckDiag';
 
 const store = useSettingsStore();
 const uiStore = useUIStore();
 const { isSweepRunning, sweepCurrentPreset, sweepRemainingSec, runPresetBenchmark } = useRenderBottleneckDiag();
 
-const formattedDpr = computed(() => {
-  const dpr = store.graphicsConfig.targetDpr;
-  return dpr === 'auto' ? 'Авто' : `${dpr}x`;
-});
+const presetOrder = GRAPHICS_PRESET_ORDER;
+const presetMeta = GRAPHICS_PRESET_META;
 
-const formattedMsaa = computed(() => {
-  const samples = store.graphicsConfig.msaaSamples;
-  return samples === 0 ? 'Выкл' : `${samples}x`;
-});
+const activeMeta = computed(() => presetMeta[store.graphicsPreset] || presetMeta.Balanced);
 
-const presetCards: Array<{
-  id: GraphicsPreset;
-  label: string;
-  level: number;
-  tag: string;
-  desc: string;
-  specs: string;
-}> = [
-  {
-    id: 'Low',
-    label: 'Низкий',
-    level: 1,
-    tag: 'ЭКО · 1.0x',
-    desc: 'Чёткое кольцо и свечение ядра без частиц и тяжёлых шейдеров',
-    specs: 'AA Выкл · AF 1x · Scale 75% · Пыль 0%',
-  },
-  {
-    id: 'Medium',
-    label: 'Средний',
-    level: 2,
-    tag: '2x MSAA',
-    desc: 'Сбалансированное сглаживание, базовые отражения и инерция колец',
-    specs: 'MSAA 2x · AF 4x · Scale 100% · Пыль 25%',
-  },
-  {
-    id: 'High',
-    label: 'Высокий',
-    level: 3,
-    tag: '4x + FXAA',
-    desc: 'Повышенная чёткость 1.25x, GLSL-плазма, HDR-буфер и полный свет',
-    specs: 'MSAA 4x · AF 8x · DPR 1.25x · Пыль 60%',
-  },
-  {
-    id: 'Ultra',
-    label: 'Ультра',
-    level: 4,
-    tag: '8x MSAA',
-    desc: 'Суперсэмплинг 1.5x, HD-отражения, гармоники и плотный поток искр',
-    specs: 'MSAA 8x · AF 16x · DPR 1.5x · Пыль 100%',
-  },
-  {
-    id: 'UltraPlus',
-    label: 'Ультра плюс',
-    level: 5,
-    tag: 'MAX 2.0x',
-    desc: 'Абсолютный максимум: все ползунки и буферы рендера на 100%',
-    specs: 'MSAA 8x · SSAA 2.0x · Scale 150% · 150%',
-  },
-  {
-    id: 'Custom',
-    label: 'Свой профиль',
-    level: 0,
-    tag: 'РУЧНОЙ',
-    desc: 'Индивидуальная комбинация ползунков и шейдерных параметров',
-    specs: 'Авто-активация при ручной правке ниже',
-  },
-];
+const effectiveScalePct = computed(() =>
+  Math.round((store.adaptiveRuntimeState.effectiveRenderScale || store.graphicsConfig.renderScale) * 100)
+);
 
-const activePresetTitle = computed(() => {
-  const found = presetCards.find((p) => p.id === store.graphicsPreset);
-  return found ? found.label : 'Высокий';
+const formattedAa = computed(() => {
+  const { msaaSamples, fxaaEnabled } = store.graphicsConfig;
+  if (msaaSamples > 0 && fxaaEnabled) return `${msaaSamples}x+FXAA`;
+  if (msaaSamples > 0) return `MSAA ${msaaSamples}x`;
+  if (fxaaEnabled) return 'FXAA';
+  return 'Выкл';
 });
 
 const gpuLoad = computed(() => estimateGpuLoadScore(store.graphicsConfig));
@@ -239,7 +242,15 @@ const gpuBarColor = computed(() => {
 });
 
 function handlePresetClick(id: GraphicsPreset) {
-  if (id === 'Custom') return;
   store.applyGraphicsPreset(id);
+}
+
+function handleShowcaseToggle() {
+  if (store.showcaseActive) {
+    store.requestShowcaseStop();
+    return;
+  }
+  store.requestShowcaseStart(uiStore.activeTab);
+  uiStore.activeTab = 'core';
 }
 </script>

@@ -4,9 +4,13 @@ import type { TabName } from '../../../../shared/types/ui';
 import { useAiConfigStore } from '../../../stores/aiConfig';
 import {
   GRAPHICS_PRESETS,
+  GRAPHICS_STORAGE_KEYS,
   cloneGraphicsConfig,
-  detectMatchingPreset,
+  isPresetModified,
+  loadAndMigrateGraphicsStorage,
   presetToLegacyQuality,
+  legacyQualityToPreset,
+  resolveValidGraphicsPreset,
   type GraphicsPreset,
   type GraphicsConfig
 } from '../logic/graphics-presets';
@@ -167,88 +171,111 @@ export const useSettingsStore = defineStore('settings', () => {
   // Advanced FPS and rendering control settings
   const targetFps = ref<'auto' | '30' | '60' | '120' | '144' | 'unlimited'>('auto');
   const disableVsync = ref(false);
-  const renderScale = ref<0.5 | 0.75 | 1.0 | 1.25 | 1.5>(1.0);
+  const renderScale = ref<0.75 | 0.85 | 0.95 | 1.0 | 1.15 | 1.25>(1.0);
 
-  // Granular 3D Reactor Graphics Engine Settings
-  const loadInitialGraphicsConfig = (): { preset: GraphicsPreset; config: GraphicsConfig } => {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const savedPreset =
-          localStorage.getItem('arc_graphics_preset_v9') ||
-          localStorage.getItem('arc_graphics_preset_v8') ||
-          localStorage.getItem('arc_graphics_preset_v7') ||
-          localStorage.getItem('arc_graphics_preset_v6') ||
-          localStorage.getItem('arc_graphics_preset_v5') ||
-          localStorage.getItem('arc_graphics_preset_v4') ||
-          localStorage.getItem('arc_graphics_preset_v3') ||
-          localStorage.getItem('arc_graphics_preset_v2') ||
-          localStorage.getItem('arc_graphics_preset_v1');
-        if (
-          savedPreset === 'Low' ||
-          savedPreset === 'Medium' ||
-          savedPreset === 'High' ||
-          savedPreset === 'Ultra' ||
-          savedPreset === 'UltraPlus'
-        ) {
-          return {
-            preset: savedPreset,
-            config: cloneGraphicsConfig(GRAPHICS_PRESETS[savedPreset])
-          };
-        }
-        const raw = localStorage.getItem('arc_graphics_config_v9');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const merged: GraphicsConfig = { ...GRAPHICS_PRESETS.High, ...parsed };
-          const preset = detectMatchingPreset(merged);
-          return { preset, config: merged };
-        }
-      }
-    } catch {
-      // Fallback to default High preset
-    }
-    return { preset: 'High', config: cloneGraphicsConfig(GRAPHICS_PRESETS.High) };
-  };
-
-  const initialGfx = loadInitialGraphicsConfig();
+  // Granular 3D Reactor Graphics Engine Settings (v10: Eco / Balanced / Cinematic + v9->v10 migration)
+  const initialGfx = loadAndMigrateGraphicsStorage();
   const graphicsPreset = ref<GraphicsPreset>(initialGfx.preset);
   const graphicsConfig = ref<GraphicsConfig>(initialGfx.config);
+  const hasUserSelectedGraphicsPreset = ref<boolean>(initialGfx.userSelected);
+  const isGraphicsModified = computed<boolean>(() =>
+    isPresetModified(graphicsPreset.value, graphicsConfig.value)
+  );
+
+  // Sync legacy compatibility refs cleanly from single source of truth
+  graphicsQuality.value = presetToLegacyQuality(initialGfx.preset, initialGfx.config);
+  renderScale.value = initialGfx.config.renderScale;
+
+  // Runtime-only (NEVER persisted) Showcase & Adaptive Performance telemetry
+  const showcaseActive = ref(false);
+  const showcaseRemainingSec = ref(0);
+  const showcasePreviousTab = ref<TabName | null>(null);
+  const adaptiveRuntimeState = ref<{
+    degradationStep: number;
+    effectiveRenderScale: number;
+    gpuFrameTimeMs: number | null;
+    gpuTimerSupported: boolean;
+    gpuName: string;
+    isSoftwareGl: boolean;
+    activeReason: string | null;
+  }>({
+    degradationStep: 0,
+    effectiveRenderScale: initialGfx.config.renderScale,
+    gpuFrameTimeMs: null,
+    gpuTimerSupported: false,
+    gpuName: 'Определение GPU...',
+    isSoftwareGl: false,
+    activeReason: null,
+  });
+
   let isSyncingGraphics = false;
 
   const persistGraphicsConfig = () => {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('arc_graphics_config_v9', JSON.stringify(graphicsConfig.value));
-        localStorage.setItem('arc_graphics_preset_v9', graphicsPreset.value);
+        localStorage.setItem(GRAPHICS_STORAGE_KEYS.presetV10, graphicsPreset.value);
+        localStorage.setItem(GRAPHICS_STORAGE_KEYS.configV10, JSON.stringify(graphicsConfig.value));
+        localStorage.setItem(GRAPHICS_STORAGE_KEYS.userSelectedV10, String(hasUserSelectedGraphicsPreset.value));
       }
     } catch {
       // Ignore storage quota errors
     }
   };
 
-  function applyGraphicsPreset(preset: Exclude<GraphicsPreset, 'Custom'>) {
+  function applyGraphicsPreset(preset: GraphicsPreset, options?: { markUserSelected?: boolean }) {
+    const safePreset = resolveValidGraphicsPreset(preset);
     isSyncingGraphics = true;
-    graphicsPreset.value = preset;
-    graphicsConfig.value = cloneGraphicsConfig(GRAPHICS_PRESETS[preset]);
-    graphicsQuality.value = presetToLegacyQuality(preset, graphicsConfig.value);
+    graphicsPreset.value = safePreset;
+    graphicsConfig.value = cloneGraphicsConfig(GRAPHICS_PRESETS[safePreset]);
+    if (options?.markUserSelected !== false) {
+      hasUserSelectedGraphicsPreset.value = true;
+    }
+    graphicsQuality.value = presetToLegacyQuality(safePreset, graphicsConfig.value);
     renderScale.value = graphicsConfig.value.renderScale;
     persistGraphicsConfig();
     isSyncingGraphics = false;
   }
 
+  function resetGraphicsPresetToDefault() {
+    applyGraphicsPreset(graphicsPreset.value);
+  }
+
   function updateGraphicsParam<K extends keyof GraphicsConfig>(key: K, value: GraphicsConfig[K]) {
     isSyncingGraphics = true;
+    const baseCfg = graphicsConfig.value && typeof graphicsConfig.value === 'object'
+      ? graphicsConfig.value
+      : cloneGraphicsConfig(GRAPHICS_PRESETS[resolveValidGraphicsPreset(graphicsPreset.value)]);
     graphicsConfig.value = {
-      ...graphicsConfig.value,
+      ...baseCfg,
       [key]: value,
     };
-    const matched = detectMatchingPreset(graphicsConfig.value);
-    graphicsPreset.value = matched;
-    graphicsQuality.value = presetToLegacyQuality(matched, graphicsConfig.value);
+    hasUserSelectedGraphicsPreset.value = true;
+    // Do NOT create a 'Custom' preset; keep active preset and expose isGraphicsModified badge
+    graphicsQuality.value = presetToLegacyQuality(graphicsPreset.value, graphicsConfig.value);
     if (key === 'renderScale') {
-      renderScale.value = value as 0.5 | 0.75 | 1.0 | 1.25 | 1.5;
+      renderScale.value = value as 0.75 | 0.85 | 0.95 | 1.0 | 1.15 | 1.25;
     }
     persistGraphicsConfig();
     isSyncingGraphics = false;
+  }
+
+  function updateAdaptiveRuntimeState(patch: Partial<typeof adaptiveRuntimeState.value>) {
+    adaptiveRuntimeState.value = {
+      ...adaptiveRuntimeState.value,
+      ...patch,
+    };
+  }
+
+  function requestShowcaseStart(fromTab?: TabName) {
+    if (showcaseActive.value) return;
+    showcasePreviousTab.value = fromTab ?? null;
+    showcaseRemainingSec.value = 120;
+    showcaseActive.value = true;
+  }
+
+  function requestShowcaseStop() {
+    showcaseActive.value = false;
+    showcaseRemainingSec.value = 0;
   }
 
   // Persistence of Tasks fullscreen mode
@@ -532,12 +559,11 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(graphicsQuality, (newVal, oldVal) => {
     if (newVal !== oldVal) {
       if (!isSyncingGraphics) {
-        const mappedPreset: Exclude<GraphicsPreset, 'Custom'> =
-          newVal === 'Low' ? 'Low' : newVal === 'Medium' ? 'Medium' : 'High';
+        const mappedPreset: GraphicsPreset = legacyQualityToPreset(newVal);
         applyGraphicsPreset(mappedPreset);
       }
       triggerSyncToast(
-        `Качество графики: ${newVal}`,
+        `Качество графики: ${graphicsPreset.value}`,
         () => { graphicsQuality.value = oldVal; }
       );
     }
@@ -765,8 +791,7 @@ export const useSettingsStore = defineStore('settings', () => {
     isAudioReactive.value = true;
     autoStart.value = false;
     runInBackground.value = true;
-    graphicsQuality.value = 'High';
-    applyGraphicsPreset('High');
+    applyGraphicsPreset('Balanced');
     autoAdjustGraphics.value = true;
     voiceFeedback.value = true;
     requireConfirm.value = true;
@@ -1059,8 +1084,18 @@ export const useSettingsStore = defineStore('settings', () => {
     renderScale,
     graphicsPreset,
     graphicsConfig,
+    hasUserSelectedGraphicsPreset,
+    isGraphicsModified,
     applyGraphicsPreset,
+    resetGraphicsPresetToDefault,
     updateGraphicsParam,
+    showcaseActive,
+    showcaseRemainingSec,
+    showcasePreviousTab,
+    adaptiveRuntimeState,
+    updateAdaptiveRuntimeState,
+    requestShowcaseStart,
+    requestShowcaseStop,
     tasksFullscreen,
     vkAudioUrl,
     showMusicWidget,

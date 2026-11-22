@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import type { ReactorMaterials } from "./reactor-materials";
+import { ensureUv2 } from "./reactor-geometry-details";
 
 export interface CentralChamberRig {
   group: THREE.Group;
@@ -60,6 +61,7 @@ export function buildCentralChamber(
   });
 
   const chamberDarkCarbon: THREE.Mesh[] = [];
+  const chamberDarkCeramic: THREE.Mesh[] = [];
   const chamberAnodizedBlack: THREE.Mesh[] = [];
   const chamberBrushedTitanium: THREE.Mesh[] = [];
   const chamberNeonTube: THREE.Mesh[] = [];
@@ -96,12 +98,18 @@ export function buildCentralChamber(
     edgeGroup.add(innerWallMesh);
     chamberAnodizedBlack.push(innerWallMesh);
 
-    // Outer Wall (Anodized Black)
+    // Outer Wall (Anodized Black) + Matte Ceramic Thermal Backing Ledge
     const outerWallGeo = new THREE.BoxGeometry(trenchL + 0.2, 0.12, 0.22);
     const outerWallMesh = new THREE.Mesh(outerWallGeo, materials.anodizedBlack);
     outerWallMesh.position.set(0, APOTHEM_INNER + 0.2, 0.16);
     edgeGroup.add(outerWallMesh);
     chamberAnodizedBlack.push(outerWallMesh);
+
+    const ceramicTrimGeo = new THREE.BoxGeometry(trenchL + 0.3, 0.08, 0.14);
+    const ceramicTrimMesh = new THREE.Mesh(ceramicTrimGeo, materials.darkCeramic);
+    ceramicTrimMesh.position.set(0, APOTHEM_INNER + 0.29, 0.12);
+    edgeGroup.add(ceramicTrimMesh);
+    chamberDarkCeramic.push(ceramicTrimMesh);
 
     // Glowing Core Plasma Tube (Individual material clone per edge for 3-band frequency modulation)
     const tubeGeo = new THREE.CylinderGeometry(0.065, 0.065, trenchL - 0.2, 32);
@@ -290,6 +298,7 @@ export function buildCentralChamber(
       }
     }
     if (mergedGeo) {
+      ensureUv2(mergedGeo);
       const mergedMesh = new THREE.Mesh(mergedGeo, material);
       mergedMesh.name = mergedName;
       mergedMesh.updateMatrix();
@@ -303,6 +312,12 @@ export function buildCentralChamber(
     materials.darkCarbon,
     innerChassisGroup,
     "arc-merged-chamber-darkCarbon"
+  );
+  mergeChamberSection(
+    chamberDarkCeramic,
+    materials.darkCeramic,
+    innerChassisGroup,
+    "arc-merged-chamber-darkCeramic"
   );
   mergeChamberSection(
     chamberAnodizedBlack,

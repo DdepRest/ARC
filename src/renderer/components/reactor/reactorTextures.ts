@@ -170,6 +170,7 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
   }
 
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   return texture;
@@ -200,6 +201,7 @@ export function createGlowParticleTexture(size = 128, hexColor = 0x00d4ff): THRE
   }
 
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
@@ -259,6 +261,8 @@ export function createHolographicReticleTexture(size = 512): THREE.CanvasTexture
   }
 
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  cachedHoloReticle = texture;
   return texture;
 }
 
@@ -364,6 +368,8 @@ export function createTriangularReticleTexture(size = 512): THREE.CanvasTexture 
   }
 
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  cachedTriangularReticle = texture;
   return texture;
 }
 
@@ -462,6 +468,7 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
   }
 
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   texture.generateMipmaps = true;
   texture.anisotropy = 16; // Maximum anisotropy for razor-sharp rendering
   texture.minFilter = THREE.LinearMipmapLinearFilter;

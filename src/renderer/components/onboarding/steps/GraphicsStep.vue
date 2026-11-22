@@ -3,65 +3,26 @@ import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../features/settings/stores/settings.store';
 import {
   GRAPHICS_PRESETS,
+  GRAPHICS_PRESET_ORDER,
+  GRAPHICS_PRESET_META,
   type GraphicsPreset,
-  type GraphicsConfig
+  type GraphicsConfig,
 } from '../../../features/settings/logic/graphics-presets';
-import { recommendGraphicsPreset, isUltraPlusAvailable } from '../utils/recommend-preset';
+import { recommendGraphicsPreset } from '../utils/recommend-preset';
 import type { StepSaveResult } from '../utils/wizard-save';
 
 const settingsStore = useSettingsStore();
 
 const detectedGpu = ref<string>('Определение GPU...');
 const detectedVramMb = ref<number | null>(null);
-const recommendedPreset = ref<Exclude<GraphicsPreset, 'Custom'>>('Medium');
-const selectedPreset = ref<GraphicsPreset>(settingsStore.graphicsPreset || 'Medium');
+const recommendedPreset = ref<GraphicsPreset>('Balanced');
+const selectedPreset = ref<GraphicsPreset>(settingsStore.graphicsPreset || 'Balanced');
 
-interface PresetCardMeta {
-  id: Exclude<GraphicsPreset, 'Custom'>;
-  code: string;
-  title: string;
-  vramBucket: string;
-  config: GraphicsConfig;
-}
-
-const basePresets: PresetCardMeta[] = [
-  {
-    id: 'Low',
-    code: 'LOW',
-    title: 'Эко-контур',
-    vramBucket: 'до 4 ГБ VRAM',
-    config: GRAPHICS_PRESETS.Low
-  },
-  {
-    id: 'Medium',
-    code: 'MEDIUM',
-    title: 'Базовый баланс',
-    vramBucket: '4–8 ГБ VRAM',
-    config: GRAPHICS_PRESETS.Medium
-  },
-  {
-    id: 'High',
-    code: 'HIGH',
-    title: 'Высокая чёткость',
-    vramBucket: '8 ГБ VRAM и выше',
-    config: GRAPHICS_PRESETS.High
-  },
-  {
-    id: 'Ultra',
-    code: 'ULTRA',
-    title: 'Полный конвейер',
-    vramBucket: 'для дискретных GPU',
-    config: GRAPHICS_PRESETS.Ultra
-  }
-];
-
-const ultraPlusPreset: PresetCardMeta = {
-  id: 'UltraPlus',
-  code: 'ULTRA+',
-  title: 'Суперсэмплинг',
-  vramBucket: 'только при ≥ 12 ГБ VRAM',
-  config: GRAPHICS_PRESETS.UltraPlus
-};
+const presets = GRAPHICS_PRESET_ORDER.map((id) => ({
+  id,
+  meta: GRAPHICS_PRESET_META[id],
+  config: GRAPHICS_PRESETS[id],
+}));
 
 const formattedVram = computed(() => {
   if (detectedVramMb.value == null || detectedVramMb.value <= 0) {
@@ -70,16 +31,21 @@ const formattedVram = computed(() => {
   return `VRAM: ${Math.round(detectedVramMb.value)} МБ`;
 });
 
-function formatMsaa(samples: GraphicsConfig['msaaSamples']): string {
-  return samples > 0 ? `MSAA ${samples}x` : 'MSAA ВЫКЛ';
-}
-
-function formatBloom(enabled: boolean, strength: number): string {
-  return enabled ? `Bloom ВКЛ (${strength}%)` : 'Bloom ВЫКЛ';
+function formatAa(cfg: GraphicsConfig): string {
+  if (cfg.msaaSamples > 0 && cfg.fxaaEnabled) return `MSAA ${cfg.msaaSamples}x + FXAA`;
+  if (cfg.msaaSamples > 0) return `MSAA ${cfg.msaaSamples}x`;
+  return cfg.fxaaEnabled ? 'FXAA' : 'AA Выкл';
 }
 
 function formatScale(scale: GraphicsConfig['renderScale'], dpr: GraphicsConfig['targetDpr']): string {
-  return `Scale ${Math.round(scale * 100)}% · DPR ${dpr}x`;
+  const dprStr = dpr === 'auto' ? 'Авто' : `${dpr}x`;
+  return `Scale ${Math.round(scale * 100)}% · DPR ${dprStr}`;
+}
+
+function formatEffects(cfg: GraphicsConfig): string {
+  const ao = cfg.aoMode === 'gtao' ? 'GTAO' : cfg.aoMode === 'light' ? 'Light AO' : 'Без AO';
+  const sh = cfg.shadowQuality === 'off' ? 'Без теней' : `Тени ${cfg.shadowQuality}`;
+  return `${ao} · ${sh}`;
 }
 
 onMounted(async () => {
@@ -102,14 +68,17 @@ onMounted(async () => {
 
   const recommended = recommendGraphicsPreset(detectedVramMb.value);
   recommendedPreset.value = recommended;
-  selectedPreset.value = recommended;
-  settingsStore.applyGraphicsPreset(recommended);
+
+  // Never overwrite an already-saved user choice on mount
+  if (!settingsStore.hasUserSelectedGraphicsPreset) {
+    selectedPreset.value = recommended;
+    settingsStore.applyGraphicsPreset(recommended, { markUserSelected: false });
+  } else {
+    selectedPreset.value = settingsStore.graphicsPreset;
+  }
 });
 
-function selectPreset(presetId: Exclude<GraphicsPreset, 'Custom'>) {
-  if (presetId === 'UltraPlus' && !isUltraPlusAvailable(detectedVramMb.value)) {
-    return;
-  }
+function selectPreset(presetId: GraphicsPreset) {
   selectedPreset.value = presetId;
   settingsStore.applyGraphicsPreset(presetId);
 }
@@ -117,16 +86,15 @@ function selectPreset(presetId: Exclude<GraphicsPreset, 'Custom'>) {
 defineExpose({
   saveCurrentState: (): StepSaveResult => {
     try {
-      const targetPreset = selectedPreset.value === 'Custom' ? recommendedPreset.value : selectedPreset.value;
-      settingsStore.applyGraphicsPreset(targetPreset);
+      settingsStore.applyGraphicsPreset(selectedPreset.value);
       return { ok: true };
     } catch {
       return {
         ok: true,
-        optionalWarnings: ['Профиль 3D-рендера не применён (можно выбрать в Настройках)']
+        optionalWarnings: ['Профиль 3D-рендера не применён (можно выбрать в Настройках)'],
       };
     }
-  }
+  },
 });
 </script>
 
@@ -150,10 +118,10 @@ defineExpose({
       </div>
     </div>
 
-    <!-- 2x2 Base Presets Grid -->
-    <div class="grid grid-cols-2 gap-3">
+    <!-- 3 Permanent Graphics Profiles (No VRAM Locks, No Showcase Card) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div
-        v-for="preset in basePresets"
+        v-for="preset in presets"
         :key="preset.id"
         role="radio"
         :aria-checked="selectedPreset === preset.id"
@@ -161,23 +129,20 @@ defineExpose({
         @click="selectPreset(preset.id)"
         @keydown.enter.prevent="selectPreset(preset.id)"
         @keydown.space.prevent="selectPreset(preset.id)"
-        class="p-3.5 rounded-[12px] border transition-colors cursor-pointer flex flex-col justify-between select-none outline-none"
+        class="p-3.5 rounded-[12px] border transition-colors cursor-pointer flex flex-col justify-between select-none outline-none gap-3"
         :class="selectedPreset === preset.id
           ? 'border-[var(--accent)] bg-[var(--arc-selected)] text-[var(--arc-text-primary)]'
           : 'border-[var(--arc-hairline)] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)]'"
       >
-        <div>
+        <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 min-w-0">
               <span
                 class="w-2 h-2 rounded-full shrink-0"
                 :class="selectedPreset === preset.id ? 'bg-[var(--accent)]' : 'bg-[var(--arc-divider)]'"
               ></span>
               <span class="font-mono text-xs font-bold tracking-wider text-[var(--arc-text-primary)]">
-                {{ preset.code }}
-              </span>
-              <span class="text-xs text-[var(--arc-text-secondary)]">
-                · {{ preset.title }}
+                {{ preset.meta.code }}
               </span>
             </div>
 
@@ -189,58 +154,23 @@ defineExpose({
             </span>
           </div>
 
-          <div class="mt-2.5 space-y-1 font-mono text-xs text-[var(--arc-text-muted)]">
+          <div class="text-xs font-medium text-[var(--arc-text-primary)]">
+            {{ preset.meta.titleRu }}
+          </div>
+          <div class="text-xs text-[var(--arc-text-secondary)] leading-snug">
+            {{ preset.meta.purposeRu }}
+          </div>
+
+          <div class="pt-1 space-y-1 font-mono text-xs text-[var(--arc-text-muted)]">
             <div>{{ formatScale(preset.config.renderScale, preset.config.targetDpr) }}</div>
-            <div>{{ formatBloom(preset.config.bloomEnabled, preset.config.bloomStrength) }}</div>
-            <div>{{ formatMsaa(preset.config.msaaSamples) }}</div>
+            <div>{{ formatAa(preset.config) }} · Tex {{ preset.config.textureResolution }}</div>
+            <div>{{ formatEffects(preset.config) }}</div>
           </div>
         </div>
 
-        <div class="mt-3 pt-2 border-t border-[var(--arc-divider)] flex items-center justify-between">
-          <span class="font-mono text-xs text-[var(--arc-text-muted)]">Допуск</span>
-          <span class="font-mono text-xs text-[var(--arc-text-secondary)]">{{ preset.vramBucket }}</span>
+        <div class="pt-2 border-t border-[var(--arc-divider)] font-mono text-xs text-[var(--arc-text-secondary)]">
+          {{ preset.meta.performanceLevelRu }}
         </div>
-      </div>
-    </div>
-
-    <!-- 5th Card: UltraPlus (Rendered ONLY when VRAM >= 12 GB) -->
-    <div
-      v-if="isUltraPlusAvailable(detectedVramMb)"
-      role="radio"
-      :aria-checked="selectedPreset === ultraPlusPreset.id"
-      tabindex="0"
-      @click="selectPreset(ultraPlusPreset.id)"
-      @keydown.enter.prevent="selectPreset(ultraPlusPreset.id)"
-      @keydown.space.prevent="selectPreset(ultraPlusPreset.id)"
-      class="p-3.5 rounded-[12px] border transition-colors cursor-pointer flex items-center justify-between gap-4 select-none outline-none"
-      :class="selectedPreset === ultraPlusPreset.id
-        ? 'border-[var(--accent)] bg-[var(--arc-selected)] text-[var(--arc-text-primary)]'
-        : 'border-[var(--arc-hairline)] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)]'"
-    >
-      <div class="space-y-1.5">
-        <div class="flex items-center gap-2">
-          <span
-            class="w-2 h-2 rounded-full shrink-0"
-            :class="selectedPreset === ultraPlusPreset.id ? 'bg-[var(--accent)]' : 'bg-[var(--arc-divider)]'"
-          ></span>
-          <span class="font-mono text-xs font-bold tracking-wider text-[var(--arc-text-primary)]">
-            {{ ultraPlusPreset.code }}
-          </span>
-          <span class="text-xs text-[var(--arc-text-secondary)]">
-            · {{ ultraPlusPreset.title }}
-          </span>
-        </div>
-        <div class="flex flex-wrap items-center gap-3 font-mono text-xs text-[var(--arc-text-muted)]">
-          <span>{{ formatScale(ultraPlusPreset.config.renderScale, ultraPlusPreset.config.targetDpr) }}</span>
-          <span>·</span>
-          <span>{{ formatBloom(ultraPlusPreset.config.bloomEnabled, ultraPlusPreset.config.bloomStrength) }}</span>
-          <span>·</span>
-          <span>{{ formatMsaa(ultraPlusPreset.config.msaaSamples) }}</span>
-        </div>
-      </div>
-
-      <div class="px-2.5 py-1 rounded-[6px] border border-[var(--arc-hairline)] bg-[var(--arc-plane)] font-mono text-xs text-[var(--arc-text-secondary)] shrink-0">
-        {{ ultraPlusPreset.vramBucket }}
       </div>
     </div>
   </div>

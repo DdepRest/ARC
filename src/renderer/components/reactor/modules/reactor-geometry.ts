@@ -9,6 +9,11 @@ import {
   buildFiberOpticsAndDataModules,
 } from "./reactor-geometry-sub";
 import { buildCoreDecorations } from "./reactor-geometry-core-decor";
+import {
+  ensureUv2,
+  buildOuterMicroDetails,
+  applySelectiveShadowFlags,
+} from "./reactor-geometry-details";
 
 export interface LightRunner {
   group: THREE.Group;
@@ -152,10 +157,10 @@ export function buildReactorGeometry(
   const baseRadius = 5.6;
   const ringRadius = baseRadius - 0.2; // 5.4
 
-  const basePlate = new THREE.Mesh(
-    new THREE.CylinderGeometry(baseRadius, baseRadius - 0.2, 0.6, 128),
-    materials.anodizedBlack
-  );
+  const basePlateGeo = new THREE.CylinderGeometry(baseRadius, baseRadius - 0.2, 0.6, 128);
+  ensureUv2(basePlateGeo);
+  const basePlate = new THREE.Mesh(basePlateGeo, materials.anodizedBlack);
+  basePlate.name = "arc-base-plate";
   basePlate.rotation.x = Math.PI / 2;
   basePlate.position.z = -0.5;
   basePlate.updateMatrix();
@@ -174,19 +179,17 @@ export function buildReactorGeometry(
   outerEnvelope.add(outerGlassRing);
 
   // 2. Titanium Frame Bezels framing the glass conduit
-  const outerBezel = new THREE.Mesh(
-    new THREE.TorusGeometry(ringRadius + 0.16, 0.02, 16, 128),
-    materials.brushedTitanium
-  );
+  const outerBezelGeo = new THREE.TorusGeometry(ringRadius + 0.16, 0.022, 16, 128);
+  ensureUv2(outerBezelGeo);
+  const outerBezel = new THREE.Mesh(outerBezelGeo, materials.brushedTitanium);
   outerBezel.position.z = -0.15;
   outerBezel.updateMatrix();
   outerBezel.matrixAutoUpdate = false;
   outerEnvelope.add(outerBezel);
 
-  const innerBezel = new THREE.Mesh(
-    new THREE.TorusGeometry(ringRadius - 0.16, 0.02, 16, 128),
-    materials.brushedTitanium
-  );
+  const innerBezelGeo = new THREE.TorusGeometry(ringRadius - 0.16, 0.022, 16, 128);
+  ensureUv2(innerBezelGeo);
+  const innerBezel = new THREE.Mesh(innerBezelGeo, materials.brushedTitanium);
   innerBezel.position.z = -0.15;
   innerBezel.updateMatrix();
   innerBezel.matrixAutoUpdate = false;
@@ -271,6 +274,7 @@ export function buildReactorGeometry(
       mesh.geometry.dispose();
     }
     if (mergedGeo) {
+      ensureUv2(mergedGeo);
       const mergedMesh = new THREE.Mesh(mergedGeo, material);
       mergedMesh.name = mergedName;
       mergedMesh.updateMatrix();
@@ -296,6 +300,7 @@ export function buildReactorGeometry(
   );
   tempNozzleGroups.forEach((g) => outerEnvelope.remove(g));
 
+  buildOuterMicroDetails(outerEnvelope, materials, ringRadius);
   reactorGroup.add(outerEnvelope);
 
   // Trenches & Corner Clamps & Fiber Optics / Data Modules
@@ -331,6 +336,7 @@ export function buildReactorGeometry(
   buildCoreDecorations(coreGroup, materials, graphicsQuality);
 
   reactorGroup.add(coreGroup);
+  applySelectiveShadowFlags(reactorGroup);
 
   return {
     reactorGroup,

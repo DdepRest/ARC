@@ -1,6 +1,5 @@
 import { onMounted, onUnmounted, watch, ref, type Ref } from "vue";
 import * as THREE from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { useUIStore } from "../../stores/ui.store";
 import { useSettingsStore } from "../../features/settings/stores/settings.store";
 import { useEcoStore } from "../../stores/eco.store";
@@ -8,7 +7,7 @@ import { useSystemStore } from "../../stores/system.store";
 import { getVoiceState } from "../../composables/useVoice";
 import { audioManager } from "../../composables/useAudioManager";
 import type { ReactorState } from "../../../shared/types/ui";
-import { applyThemeToMaterials, pregenerateThemes, themeAccentHex, clearThemeTextureCache } from "./modules/reactor-theme";
+import { applyThemeToMaterials, themeAccentHex, clearThemeTextureCache } from "./modules/reactor-theme";
 import { clearStaticTextureCache } from "./reactorTextures";
 
 import { createReactorMaterials, type ReactorMaterials } from "./modules/reactor-materials";
@@ -17,6 +16,15 @@ import { createReactorParticles, type ReactorParticles } from "./modules/reactor
 import { createReactorPostFX, type ReactorPostFX } from "./modules/reactor-postfx";
 import { buildReactorGeometry, type ReactorGeometryResult } from "./modules/reactor-geometry";
 import { createReactorStateDriver } from "./modules/reactor-state-driver";
+import {
+  detectGpuCapabilities,
+  sanitizeConfigForCapabilities,
+} from "./modules/reactor-gpu-capabilities";
+import { ReactorTextureRegistry } from "./modules/reactor-texture-registry";
+import {
+  createGraphicsQualityManager,
+  type GraphicsQualityManager,
+} from "./modules/reactor-quality-manager";
 
 export interface ReactorProps {
   state?: ReactorState;
@@ -59,6 +67,8 @@ export function useReactor3D(
   let particles: ReactorParticles | null = null;
   let postfx: ReactorPostFX | null = null;
   let geometry: ReactorGeometryResult | null = null;
+  let textureRegistry: ReactorTextureRegistry | null = null;
+  let qualityManager: GraphicsQualityManager | null = null;
   let stateDriver: { updateFrame: (delta: number) => void; triggerPulse: () => void } | null = null;
 
   const clock = new THREE.Clock();
@@ -141,20 +151,28 @@ export function useReactor3D(
     if (materials) applyThemeToMaterials(theme, materials);
   }, { immediate: true });
 
-  // Graphics Quality, Render Scale & Granular Graphics Config
-  watch([() => settingsStore.graphicsQuality, () => settingsStore.renderScale], ([quality, scale]) => {
-    if (postfx) postfx.updatePixelRatio(quality, scale);
-  });
-
+  // Granular Graphics Config & Showcase Override via centralized GraphicsQualityManager
   watch(
     () => settingsStore.graphicsConfig,
     (cfg) => {
-      if (!cfg) return;
-      const maxAniso = renderer?.capabilities?.getMaxAnisotropy?.() || 16;
-      if (materials) materials.applyGraphicsConfig(cfg, maxAniso);
-      if (postfx) postfx.applyGraphicsConfig(cfg);
+      if (!cfg || !qualityManager) return;
+      qualityManager.applyBaseConfig(cfg);
+      settingsStore.updateAdaptiveRuntimeState({
+        effectiveRenderScale: qualityManager.getEffectiveRenderScale(),
+      });
     },
     { deep: true }
+  );
+
+  watch(
+    () => settingsStore.showcaseActive,
+    (active) => {
+      if (!qualityManager) return;
+      qualityManager.setShowcaseOverride(active);
+      settingsStore.updateAdaptiveRuntimeState({
+        effectiveRenderScale: qualityManager.getEffectiveRenderScale(),
+      });
+    }
   );
 
   const ecoStore = useEcoStore();
@@ -280,30 +298,52 @@ export function useReactor3D(
       resizeObserver.disconnect();
       resizeObserver = null;
     }
+
+    // Single-owner disposal order:
+    // 1. QualityManager (Studio PMREM scene.environment)
+    // 2. Materials (THREE.Material instances only)
+    // 3. Shared Texture Registries & Static Caches (disposed exactly once)
+    // 4. Particles & PostFX render targets / passes
+    qualityManager?.dispose();
+    qualityManager = null;
+
     materials?.dispose();
+    materials = null;
+
+    textureRegistry?.disposeAll();
+    textureRegistry = null;
+
     clearStaticTextureCache();
     clearThemeTextureCache();
+
     particles?.dispose();
+    particles = null;
+
     postfx?.dispose();
+    postfx = null;
+
+    lighting = null;
+    geometry = null;
+    stateDriver = null;
 
     if (scene) {
+      const disposedGeos = new Set<THREE.BufferGeometry>();
+      const disposedMats = new Set<THREE.Material>();
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.geometry && !disposedGeos.has(mesh.geometry)) {
+          disposedGeos.add(mesh.geometry);
+          mesh.geometry.dispose();
+        }
         if (mesh.material) {
-          const disposeMaterial = (m: THREE.Material) => {
-            const anyMat = m as any;
-            if (anyMat.map) anyMat.map.dispose();
-            if (anyMat.envMap) anyMat.envMap.dispose();
-            if (anyMat.alphaMap) anyMat.alphaMap.dispose();
-            if (anyMat.emissiveMap) anyMat.emissiveMap.dispose();
-            if (anyMat.normalMap) anyMat.normalMap.dispose();
-            if (anyMat.roughnessMap) anyMat.roughnessMap.dispose();
-            if (anyMat.metalnessMap) anyMat.metalnessMap.dispose();
-            m.dispose();
+          const disposeMatOnly = (m: THREE.Material) => {
+            if (!disposedMats.has(m)) {
+              disposedMats.add(m);
+              m.dispose();
+            }
           };
-          if (Array.isArray(mesh.material)) mesh.material.forEach((m) => disposeMaterial(m));
-          else disposeMaterial(mesh.material);
+          if (Array.isArray(mesh.material)) mesh.material.forEach(disposeMatOnly);
+          else disposeMatOnly(mesh.material);
         }
       });
       scene.clear();
@@ -346,53 +386,46 @@ export function useReactor3D(
     camera = new THREE.PerspectiveCamera(12, width / height, 0.1, 1000);
     camera.position.z = 81.5;
 
+    // antialias: false on default backbuffer because EffectComposer.renderTarget2 owns MSAA
     try {
       renderer = new THREE.WebGLRenderer({
         alpha: true,
-        antialias: true,
+        antialias: false,
         powerPreference: "high-performance",
         failIfMajorPerformanceCaveat: false,
       });
-    } catch {
-      try {
-        renderer = new THREE.WebGLRenderer({
-          alpha: true,
-          antialias: false,
-          powerPreference: "high-performance",
-          failIfMajorPerformanceCaveat: false,
-        });
-      } catch (err: any) {
-        console.warn("[Reactor3D] WebGLRenderer creation failed:", err?.message || err);
-        isWebglContextLost.value = true;
-        return;
-      }
+    } catch (err: any) {
+      console.warn("[Reactor3D] WebGLRenderer creation failed:", err?.message || err);
+      isWebglContextLost.value = true;
+      return;
     }
+
     // WebGLRenderer successfully created - ensure fallback rings are hidden
     isWebglContextLost.value = false;
     renderer.debug.checkShaderErrors = false;
     renderer.setSize(width, height, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.06;
 
-    // Step 1: GPU Audit & Telemetry
+    // Step 1: GPU Capability Detection & Telemetry
+    const caps = detectGpuCapabilities(renderer);
+    const initialSafeConfig = sanitizeConfigForCapabilities(settingsStore.graphicsConfig, caps);
+
+    settingsStore.updateAdaptiveRuntimeState({
+      gpuName: caps.rendererName,
+      isSoftwareGl: caps.isSoftwareGl,
+      gpuTimerSupported: caps.supportsDisjointTimerQuery,
+      effectiveRenderScale: initialSafeConfig.renderScale,
+    });
+
     if (typeof window !== "undefined") {
-      let gpuVendor = "unknown-vendor";
-      let gpuRenderer = "unknown-renderer";
-      try {
-        const gl = renderer.getContext();
-        const debugInfo = gl?.getExtension("WEBGL_debug_renderer_info");
-        if (debugInfo && gl) {
-          gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || gpuVendor;
-          gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || gpuRenderer;
-        }
-      } catch (e) {
-        console.warn("[Reactor3D] Failed to read WEBGL_debug_renderer_info:", e);
-      }
-
       (window as any).__reactorGpuAudit = {
-        vendor: gpuVendor,
-        renderer: gpuRenderer,
+        vendor: caps.vendor,
+        renderer: caps.rendererName,
         powerPreference: "high-performance",
+        capabilities: caps,
+        getEffectiveConfig: () => qualityManager?.getEffectiveConfig() ?? settingsStore.graphicsConfig,
         getInfo: () => ({
           calls: renderer?.info?.render?.calls ?? 0,
           triangles: renderer?.info?.render?.triangles ?? 0,
@@ -403,13 +436,18 @@ export function useReactor3D(
           textures: renderer?.info?.memory?.textures ?? 0,
         }),
       };
-      console.log(`[Reactor3D] GPU: ${gpuVendor} | ${gpuRenderer} | powerPreference: high-performance`);
+      console.log(
+        `[Reactor3D] GPU: ${caps.vendor} | ${caps.rendererName} | WebGL2=${caps.isWebGL2} | HalfFloat=${caps.supportsHalfFloatColorBuffer} | maxSamples=${caps.maxSamples} | swGL=${caps.isSoftwareGl}`
+      );
     }
 
     onContextLost = (event: Event) => {
       event.preventDefault();
       console.warn("[Reactor3D] WebGL context lost handled with preventDefault.");
       isWebglContextLost.value = true;
+      if (settingsStore.showcaseActive) {
+        settingsStore.requestShowcaseStop();
+      }
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
@@ -444,15 +482,16 @@ export function useReactor3D(
 
     container.value.appendChild(renderer.domElement);
 
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const roomEnv = new RoomEnvironment();
-    scene.environment = pmremGenerator.fromScene(roomEnv, 0.04).texture;
-    pmremGenerator.dispose();
-    roomEnv.dispose();
+    // Instantiate Subsystems under ONE Graphics Engine
+    textureRegistry = new ReactorTextureRegistry();
+    const bootstrapAniso = Math.min(initialSafeConfig.anisotropy, caps.maxAnisotropy);
+    const bootstrapBundle = textureRegistry.getBootstrapBundle(
+      bootstrapAniso,
+      initialSafeConfig.trilinearFiltering
+    );
 
-    // Instantiate Subsystems
     const initialHex = themeAccentHex(settingsStore.reactorColorTheme);
-    materials = createReactorMaterials(settingsStore.reactorColorTheme);
+    materials = createReactorMaterials(settingsStore.reactorColorTheme, bootstrapBundle);
     lighting = createReactorLighting(scene, initialHex);
 
     geometry = buildReactorGeometry(
@@ -475,15 +514,28 @@ export function useReactor3D(
       renderer,
       width,
       height,
-      settingsStore.graphicsQuality,
-      settingsStore.renderScale,
-      settingsStore.graphicsConfig
+      initialSafeConfig,
+      caps
     );
 
-    if (settingsStore.graphicsConfig) {
-      const maxAniso = renderer.capabilities?.getMaxAnisotropy?.() || 16;
-      materials.applyGraphicsConfig(settingsStore.graphicsConfig, maxAniso);
+    qualityManager = createGraphicsQualityManager({
+      renderer,
+      scene,
+      materials,
+      lighting,
+      postfx,
+      textureRegistry,
+      initialConfig: settingsStore.graphicsConfig,
+      capabilities: caps,
+    });
+
+    if (settingsStore.showcaseActive) {
+      qualityManager.setShowcaseOverride(true);
     }
+
+    settingsStore.updateAdaptiveRuntimeState({
+      effectiveRenderScale: qualityManager.getEffectiveRenderScale(),
+    });
 
     stateDriver = createReactorStateDriver({
       scene,
@@ -494,6 +546,7 @@ export function useReactor3D(
       particles,
       postfx,
       geometry,
+      getEffectiveConfig: () => qualityManager?.getEffectiveConfig() ?? settingsStore.graphicsConfig,
       getReactorState: () => props.state || uiStore.reactorState,
       getVoiceState: () => getVoiceState(),
       getIntensity: () => props.intensity,

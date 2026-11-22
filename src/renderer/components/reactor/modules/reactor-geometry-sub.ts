@@ -3,6 +3,7 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 import type { ReactorMaterials } from "./reactor-materials";
 import type { ReactorLighting } from "./reactor-lighting";
 import { createHUDLabel } from "./reactor-particles";
+import { ensureUv2 } from "./reactor-geometry-details";
 
 function mergeStaticMeshBatch(
   meshes: THREE.Mesh[],
@@ -39,6 +40,7 @@ function mergeStaticMeshBatch(
   }
 
   if (mergedGeo) {
+    ensureUv2(mergedGeo);
     const mergedMesh = new THREE.Mesh(mergedGeo, material);
     mergedMesh.name = name;
     mergedMesh.updateMatrix();
@@ -197,6 +199,7 @@ export function buildCornerClamps(
   const blockGeo = new THREE.BoxGeometry(1.6, 2.2, 0.45, 2, 2, 2);
   const plateGeo = new THREE.BoxGeometry(1.65, 0.2, 0.55);
   const capGeo = new THREE.BoxGeometry(1.3, 1.7, 0.1);
+  const ceramicPadGeo = new THREE.BoxGeometry(1.44, 1.88, 0.05);
   const slitGeo = new THREE.BoxGeometry(1.1, 0.04, 0.05);
   const indicatorGeo = new THREE.BoxGeometry(0.3, 0.06, 0.02);
   const pistonGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.95, 16);
@@ -212,6 +215,7 @@ export function buildCornerClamps(
   const clampAnodizedBlack: THREE.Mesh[] = [];
   const clampBrushedTitanium: THREE.Mesh[] = [];
   const clampDarkCarbon: THREE.Mesh[] = [];
+  const clampDarkCeramic: THREE.Mesh[] = [];
   const clampNeonTube: THREE.Mesh[] = [];
 
   for (let i = 0; i < 3; i++) {
@@ -242,9 +246,14 @@ export function buildCornerClamps(
       clampBrushedTitanium.push(plateMesh);
     }
 
-    // 3. Smooth Dark Carbon Cap Plate
+    // 3. Matte Dark Ceramic Thermal Insulator Pad + Dark Carbon Cap Plate
+    const ceramicPad = new THREE.Mesh(ceramicPadGeo, materials.darkCeramic);
+    ceramicPad.position.z = 0.48;
+    clampGroup.add(ceramicPad);
+    clampDarkCeramic.push(ceramicPad);
+
     const capMesh = new THREE.Mesh(capGeo, materials.darkCarbon);
-    capMesh.position.z = 0.52;
+    capMesh.position.z = 0.53;
     clampGroup.add(capMesh);
     clampDarkCarbon.push(capMesh);
 
@@ -296,6 +305,7 @@ export function buildCornerClamps(
   mergeStaticMeshBatch(clampAnodizedBlack, materials.anodizedBlack, reactorGroup, "arc-merged-clamps-anodizedBlack");
   mergeStaticMeshBatch(clampBrushedTitanium, materials.brushedTitanium, reactorGroup, "arc-merged-clamps-brushedTitanium");
   mergeStaticMeshBatch(clampDarkCarbon, materials.darkCarbon, reactorGroup, "arc-merged-clamps-darkCarbon");
+  mergeStaticMeshBatch(clampDarkCeramic, materials.darkCeramic, reactorGroup, "arc-merged-clamps-darkCeramic");
   mergeStaticMeshBatch(clampNeonTube, materials.neonTubeMat, reactorGroup, "arc-merged-clamps-neonTubeMat");
 
   pistonInst.instanceMatrix.needsUpdate = true;

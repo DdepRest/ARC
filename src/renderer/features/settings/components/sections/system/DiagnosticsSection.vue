@@ -4,7 +4,7 @@
       variant="workspace"
       categoryLabel="Система · Подсистема 03"
       title="Диагностика и логи"
-      description="Тестирование пресетов графики (Низкий → Ультра), пошаговая изоляция узких мест конвейера рендера (CPU/GPU) и журнал событий."
+      description="Тестирование 3 профилей графики (Eco → Balanced → Cinematic), пошаговая изоляция узких мест конвейера рендера (CPU/GPU) и журнал событий."
       :statusLabel="headerStatus.label"
       :statusTone="headerStatus.tone"
       blockCountText="3 функциональные группы"
@@ -23,24 +23,24 @@
         :badgeText="isSweepRunning ? 'Выполняется замер' : `Рекомендовано: ${report.presets[report.recommendedPreset]?.labelRu || store.graphicsPreset}`"
       >
         <SettingsBlock
-          title="Диагностика рендера: Пресеты графики и Узлы сцены"
-          subtitle="Автоподбор оптимального пресета (Низкий → Средний → Высокий → Ультра) и изоляция 2D-canvas / PointLight / Частиц"
+          title="Диагностика рендера: Профили графики и Узлы сцены"
+          subtitle="Автоподбор оптимального профиля (Eco → Balanced → Cinematic) и изоляция 2D-canvas / PointLight / Частиц"
         >
           <SettingsRow
             id="system.diag.render_stage_mode"
             layout="stacked"
             label="Режим тестирования конвейера (window.__arcDiag)"
-            description="«Пресеты графики» замеряет FPS на профилях Низкий → Средний → Высокий → Ультра и выбирает лучший для GPU. «Изоляция узлов 1–4» проверяет вклад 2D-canvas, 9 PointLight и 3 слоёв частиц внутри текущего пресета."
-            data-search="диагностика рендера пресеты графики низкий средний высокий ультра замеры baseline pointlight частицы fps"
+            description="«Профили графики» замеряет FPS на Eco → Balanced → Cinematic и выбирает лучший для GPU. «Изоляция узлов 1–4» проверяет вклад 2D-canvas, источников света и 3 слоёв частиц."
+            data-search="диагностика рендера профили графики eco balanced cinematic замеры baseline pointlight частицы fps"
           >
             <div class="flex flex-wrap items-center justify-between gap-2 w-full">
               <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-                <button type="button" :disabled="isSweepRunning" @click="benchmarkTab = 'presets'" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer disabled:opacity-50" :class="tabBtnClass(benchmarkTab === 'presets')">5 пресетов (Low–Ultra+)</button>
+                <button type="button" :disabled="isSweepRunning" @click="benchmarkTab = 'presets'" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer disabled:opacity-50" :class="tabBtnClass(benchmarkTab === 'presets')">3 профиля (Eco–Cinematic)</button>
                 <button type="button" :disabled="isSweepRunning" @click="benchmarkTab = 'subsystems'" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer disabled:opacity-50" :class="tabBtnClass(benchmarkTab === 'subsystems')">Узлы 1–4 (2D / Свет)</button>
               </div>
 
               <button v-if="benchmarkTab === 'presets'" type="button" :disabled="isSweepRunning" @click="runPresetBenchmark()" class="px-3.5 py-1.5 rounded-[10px] bg-[var(--arc-plane)] border border-[rgba(var(--accent-rgb),0.45)] text-xs font-mono font-semibold text-[var(--accent)] hover:bg-[var(--arc-hover)] transition cursor-pointer disabled:opacity-50">
-                {{ isSweepRunning && sweepCurrentPreset ? `Тест: ${sweepCurrentPreset} (${sweepRemainingSec} с)` : 'Тест 5 пресетов (20 с)' }}
+                {{ isSweepRunning && sweepCurrentPreset ? `Тест: ${sweepCurrentPreset} (${sweepRemainingSec} с)` : 'Тест 3 профилей (12 с)' }}
               </button>
               <button v-else type="button" :disabled="isSweepRunning" @click="runDiagnosticSweep()" class="px-3.5 py-1.5 rounded-[10px] bg-[var(--arc-plane)] border border-[rgba(var(--accent-rgb),0.45)] text-xs font-mono font-semibold text-[var(--accent)] hover:bg-[var(--arc-hover)] transition cursor-pointer disabled:opacity-50">
                 {{ isSweepRunning && sweepCurrentStage ? `Этап ${sweepCurrentStage}/4 (${sweepRemainingSec} с)` : 'Автопрогон узлов 1–4 (16 с)' }}
@@ -270,7 +270,7 @@ const {
   sweepProgressPercent, sweepRemainingSec, report, setDiagnosticStage, runDiagnosticSweep, runPresetBenchmark,
 } = useRenderBottleneckDiag();
 
-const presetIds: BenchmarkedPresetId[] = ['Low', 'Medium', 'High', 'Ultra', 'UltraPlus'];
+const presetIds: BenchmarkedPresetId[] = ['Eco', 'Balanced', 'Cinematic'];
 const stageOptions: Array<{ value: DiagnosticStageMode; label: string }> = [
   { value: 'auto', label: 'Авто (Оптимум)' },
   { value: 1, label: '1 · Baseline' },
@@ -327,7 +327,7 @@ const headerStatus = computed(() => {
 const summaryItems = computed<SummaryStripItem[]>(() => [
   { label: 'Нагрузка CPU', value: cpuPercent.value !== null ? `${cpuPercent.value}%` : '—', tone: cpuPercent.value === null ? 'off' : cpuPercent.value < 80 ? 'ok' : 'warn', detail: hasLiveMetrics.value ? 'Вычислительный контур' : 'Ожидание замера' },
   { label: 'Память RAM', value: ramPercent.value !== null ? `${ramPercent.value}%` : '—', tone: ramPercent.value === null ? 'off' : ramPercent.value < 85 ? 'ok' : 'warn', detail: `RSS: ${processRssText.value}` },
-  { label: 'Режим бенчмарка', value: benchmarkTab.value === 'presets' ? '5 пресетов' : 'Узлы 1–4', tone: isSweepRunning.value ? 'warn' : 'default', detail: isSweepRunning.value ? 'Идёт замер...' : 'Готов к запуску' },
+  { label: 'Режим бенчмарка', value: benchmarkTab.value === 'presets' ? '3 профиля' : 'Узлы 1–4', tone: isSweepRunning.value ? 'warn' : 'default', detail: isSweepRunning.value ? 'Идёт замер...' : 'Готов к запуску' },
   { label: 'Логирование FPS', value: store.logFpsToConsole ? 'Включено' : 'Отключено', tone: store.logFpsToConsole ? 'accent' : 'off', detail: 'Консоль DevTools' },
 ]);
 

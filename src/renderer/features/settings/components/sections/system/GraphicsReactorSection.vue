@@ -4,10 +4,10 @@
       variant="workspace"
       categoryLabel="Система · Подсистема 01"
       title="Графика и 3D-Ядро"
-      description="Детальная конфигурация конвейера рендеринга WebGL2, сглаживания (MSAA/FXAA/SSAA), фильтрации текстур, шейдеров и физики реактора."
-      :statusLabel="`ПРЕСЕТ: ${presetLabel}`"
+      description="Единый кинематографичный движок 3D-реактора WebGL2: профили Eco / Balanced / Cinematic, временный режим Showcase и тонкая настройка PBR-конвейера."
+      :statusLabel="headerStatusLabel"
       statusTone="accent"
-      blockCountText="5 функциональных групп"
+      blockCountText="Профили · Showcase · Расширенные"
       :icon="Layers"
     >
       <template #summary>
@@ -15,255 +15,185 @@
       </template>
     </SettingsSectionHeader>
 
-    <div class="flex flex-col gap-7">
+    <div class="flex flex-col gap-6">
       <SettingsGroup
         indexLabel="01"
-        title="Профиль графического движка"
-        description="Базовые пресеты рендеринга от экономичного контура до максимальной детализации"
-        :badgeText="presetLabel"
+        title="Профили качества и Showcase"
+        description="Выберите постоянный профиль работы или запустите временную демонстрацию максимального качества"
+        :badgeText="presetBadgeText"
       >
         <GraphicsPresetBanner />
       </SettingsGroup>
 
-      <SettingsGroup
-        indexLabel="02"
-        title="Сглаживание и разрешение"
-        description="Аппаратный мультисэмплинг MSAA, экранный FXAA и внутренний масштаб буфера"
-        :badgeText="`MSAA ${cfg.msaaSamples}x · ${Math.round(cfg.renderScale * 100)}%`"
-      >
-        <SettingsBlock title="Сглаживание и разрешение" subtitle="MSAA, FXAA, суперсэмплинг SSAA и масштаб рендера">
-          <SettingsRow
-            id="system.gfx.msaa"
-            label="Аппаратное сглаживание (WebGL2 MSAA)"
-            description="Мультисэмплинг геометрических граней колец и центрального треугольника во фреймбуфере."
-            data-search="msaa сглаживание антиалиасинг мультисэмплинг 2x 4x 8x грани лесенки"
-          >
-            <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="opt in msaaOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('msaaSamples', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.msaaSamples === opt.value)">{{ opt.label }}</button>
+      <!-- Collapsed-by-default Advanced Settings Accordion -->
+      <div class="rounded-[16px] border border-[var(--arc-hairline)] bg-[var(--arc-block)] overflow-hidden">
+        <button
+          type="button"
+          @click="advancedOpen = !advancedOpen"
+          :aria-expanded="advancedOpen"
+          class="w-full px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[var(--arc-hover)] transition cursor-pointer"
+        >
+          <div class="flex flex-col gap-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-[var(--arc-text-muted)]">02</span>
+              <span class="text-sm font-semibold text-[var(--arc-text-primary)]">Расширенные параметры рендеринга</span>
+              <span v-if="store.isGraphicsModified" class="px-2 py-0.5 rounded-[5px] text-xs font-mono bg-[var(--arc-selected)] text-[var(--accent)] border border-[rgba(var(--accent-rgb),0.4)]">Изменён</span>
             </div>
-          </SettingsRow>
+            <span class="text-xs text-[var(--arc-text-muted)]">
+              Ручное управление MSAA/FXAA, разрешением PBR-текстур, PMREM, GTAO, тенями, Bloom, шейдерами и адаптивным качеством
+            </span>
+          </div>
+          <span class="shrink-0 inline-flex items-center gap-1.5 text-xs font-mono text-[var(--arc-text-secondary)]">
+            <span>{{ advancedOpen ? 'Свернуть' : 'Раскрыть' }}</span>
+            <ChevronDown class="w-4 h-4 transition-transform duration-200" :class="advancedOpen ? 'rotate-180' : ''" />
+          </span>
+        </button>
 
-          <SettingsRow
-            id="system.gfx.fxaa"
-            label="Экранное пост-сглаживание (FXAA ShaderPass)"
-            description="Дополнительный проход сглаживания высококонтрастных субпиксельных бликов после Bloom."
-            data-search="fxaa пост сглаживание шейдер блики контуры"
-          >
-            <ArcToggle :modelValue="cfg.fxaaEnabled" @update:modelValue="(val: boolean) => store.updateGraphicsParam('fxaaEnabled', val)" />
-          </SettingsRow>
+        <div v-show="advancedOpen" class="border-t border-[var(--arc-hairline)] p-4 sm:p-5 flex flex-col gap-6">
+          <SettingsBlock title="Сглаживание, разрешение и адаптивность" subtitle="MSAA, FXAA, DPR, масштаб буфера и защита 60 FPS">
+            <SettingsRow id="system.gfx.adaptive" label="Адаптивное управление производительностью" description="Автоматическое ступенчатое снижение нагрузки при просадках FPS ниже 55 с возвратом при стабильных 60 FPS." data-search="адаптивное качество авто fps adaptive performance фиксированное">
+              <ArcToggle v-model="store.autoAdjustGraphics" />
+            </SettingsRow>
+            <SettingsRow id="system.gfx.msaa" label="Аппаратное сглаживание (WebGL2 MSAA)" description="Мультисэмплинг геометрии во фреймбуфере EffectComposer (до 4x, ограничивается возможностями GPU)." data-search="msaa сглаживание антиалиасинг мультисэмплинг 2x 4x">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in msaaOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('msaaSamples', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.msaaSamples === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.fxaa" label="Экранное пост-сглаживание (FXAA)" description="Проход сглаживания высококонтрастных кромок после OutputPass в пространстве sRGB." data-search="fxaa пост сглаживание шейдер блики контуры">
+              <ArcToggle :modelValue="cfg.fxaaEnabled" @update:modelValue="(val: boolean) => store.updateGraphicsParam('fxaaEnabled', val)" />
+            </SettingsRow>
+            <SettingsRow id="system.gfx.dpr" label="Плотность пикселей (Target DPR)" description="Базовая плотность пикселей WebGL-буфера для чёткости тонких колец и логотипа." data-search="dpr плотность пикселей четкость разрешение">
+              <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in dprOptions" :key="String(opt.value)" type="button" @click="store.updateGraphicsParam('targetDpr', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.targetDpr === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.render_scale" label="Масштаб внутреннего рендера (Render Scale)" description="Множитель разрешения буфера рендера (75% — экономия fillrate, 125% — суперсэмплинг)." data-search="render scale масштаб рендера разрешение 75 85 95 100 115 125">
+              <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="scale in renderScaleOptions" :key="scale" type="button" @click="store.updateGraphicsParam('renderScale', scale)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.renderScale === scale)">{{ Math.round(scale * 100) }}%</button>
+              </div>
+            </SettingsRow>
+          </SettingsBlock>
 
-          <SettingsRow
-            id="system.gfx.dpr"
-            layout="stacked"
-            label="Плотность пикселей и суперсэмплинг (DPR / SSAA)"
-            description="Рендер в повышенном разрешении (2.0x SSAA даёт эталонную чёткость декалей и тонких колец на 1080p)."
-            data-search="dpr ssaa суперсэмплинг плотность пикселей четкость мыло разрешение"
-          >
-            <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="opt in dprOptions" :key="String(opt.value)" type="button" @click="store.updateGraphicsParam('targetDpr', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.targetDpr === opt.value)">{{ opt.label }}</button>
-            </div>
-          </SettingsRow>
+          <SettingsBlock title="PBR-материалы, текстуры и студийный PMREM" subtitle="Разрешение процедурных карт, фильтрация и студийная карта отражений">
+            <SettingsRow id="system.gfx.tex_res" label="Разрешение PBR-карт материалов" description="Тир генерации карт Albedo / Normal / Roughness / AO для титана, карбона и керамики." data-search="текстуры pbr разрешение 256 512 1024 2048 normal roughness">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="res in texResOptions" :key="res" type="button" @click="store.updateGraphicsParam('textureResolution', res)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.textureResolution === res)">{{ res }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.anisotropy" label="Анизотропная фильтрация (Anisotropic)" description="Чёткость логотипа A.R.C. и металлических фасок под острыми углами." data-search="анизотропная фильтрация текстур декали логотип 1x 4x 8x 16x">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="aniso in ([1, 2, 4, 8, 16] as const)" :key="aniso" type="button" @click="store.updateGraphicsParam('anisotropy', aniso)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.anisotropy === aniso)">{{ aniso }}x</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.trilinear" label="Трилинейная фильтрация мипмапов" description="Плавная фильтрация без муара при вращении деталей." data-search="трилинейная фильтрация мипмапы trilinear mipmaps">
+              <ArcToggle :modelValue="cfg.trilinearFiltering" @update:modelValue="(val: boolean) => store.updateGraphicsParam('trilinearFiltering', val)" />
+            </SettingsRow>
+            <SettingsRow id="system.gfx.pmrem" label="Качество студийного PMREM-окружения" description="Уровень детализации и мягких софтбокс-отражений на титане и оптическом стекле." data-search="pmrem отражения софтбокс окружение environment">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in pmremOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('pmremQuality', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.pmremQuality === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.env_intensity" label="Интенсивность металлических отражений" description="Яркость студийных бликов на титановом шасси и кромках." data-search="интенсивность отражений envmap блеск металл">
+              <div class="w-52 shrink-0">
+                <ArcSlider :model-value="cfg.envMapIntensity" :min="50" :max="150" :step="5" unit="%" :show-value="true" @update:model-value="(val: number) => store.updateGraphicsParam('envMapIntensity', val)" />
+              </div>
+            </SettingsRow>
+          </SettingsBlock>
 
-          <SettingsRow
-            id="system.gfx.render_scale"
-            layout="stacked"
-            label="Масштаб внутреннего рендера (Render Scale)"
-            description="Множитель разрешения буфера относительно целевого DPR (50% — буст FPS, 150% — избыточная чёткость)."
-            data-search="render scale масштаб рендера разрешение апскейл 50 75 100 125 150"
-          >
-            <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="scale in ([0.5, 0.75, 1.0, 1.25, 1.5] as const)" :key="scale" type="button" @click="store.updateGraphicsParam('renderScale', scale)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.renderScale === scale)">{{ Math.round(scale * 100) }}%</button>
-            </div>
-          </SettingsRow>
-        </SettingsBlock>
-      </SettingsGroup>
+          <SettingsBlock title="Освещение, тени, GTAO и пост-обработка" subtitle="Ambient Occlusion, мягкие тени, калиброванный Bloom и цветокоррекция">
+            <SettingsRow id="system.gfx.ao" label="Контактное затенение (Ambient Occlusion / GTAO)" description="Затенение механических стыков и углублений корпуса на половинном разрешении." data-search="ao gtao ssao затенение стыки глубина">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in aoOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('aoMode', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.aoMode === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.shadows" label="Тени студийного Key-света (Shadow Map)" description="Контролируемые мягкие PCF-тени только от главного источника для читаемого рельефа." data-search="тени shadows pcf shadow map key light">
+              <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in shadowOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('shadowQuality', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.shadowQuality === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.bloom" label="Оптическое свечение (Unreal Bloom Pass)" description="Калиброванный ореол вокруг плазменных трубок без засветки корпуса и логотипа." data-search="unreal bloom свечение неон ореол пост обработка">
+              <ArcToggle :modelValue="cfg.bloomEnabled" @update:modelValue="(val: boolean) => store.updateGraphicsParam('bloomEnabled', val)" />
+            </SettingsRow>
+            <SettingsRow id="system.gfx.bloom_strength" label="Сила и радиус свечения (Bloom Strength / Radius)" description="Интенсивность и ширина оптического ореола." data-search="сила радиус свечения bloom strength radius">
+              <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <div class="w-44"><ArcSlider :model-value="cfg.bloomStrength" :min="50" :max="150" :step="5" unit="%" :disabled="!cfg.bloomEnabled" :show-value="true" @update:model-value="(val: number) => store.updateGraphicsParam('bloomStrength', val)" /></div>
+                <div class="w-44"><ArcSlider :model-value="cfg.bloomRadius" :min="0.2" :max="0.8" :step="0.05" :disabled="!cfg.bloomEnabled" :show-value="true" :format-value="(val: number) => val.toFixed(2)" @update:model-value="(val: number) => store.updateGraphicsParam('bloomRadius', val)" /></div>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.bloom_threshold" label="Порог отсечения свечения (Bloom Threshold)" description="Более высокий порог оставляет корпус чистым, подсвечивая только эмиссионное ядро." data-search="порог bloom threshold засветка">
+              <div class="w-52 shrink-0">
+                <ArcSlider :model-value="cfg.bloomThreshold" :min="0.35" :max="0.85" :step="0.02" :disabled="!cfg.bloomEnabled" :show-value="true" :format-value="(val: number) => val.toFixed(2)" @update:model-value="(val: number) => store.updateGraphicsParam('bloomThreshold', val)" />
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.volumetric" label="Объёмные лучи и кинематографичная цветокоррекция" description="Тонкие лучи за корпусом реактора, мягкий контраст и виньетирование." data-search="лучи volumetric цветокоррекция color grading виньетка">
+              <div class="flex items-center gap-4">
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Лучи</span>
+                  <ArcToggle :modelValue="cfg.volumetricRays" @update:modelValue="(val: boolean) => store.updateGraphicsParam('volumetricRays', val)" />
+                </label>
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Грейдинг</span>
+                  <ArcToggle :modelValue="cfg.colorGrading" @update:modelValue="(val: boolean) => store.updateGraphicsParam('colorGrading', val)" />
+                </label>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.color_buffer" label="Точность цветового буфера (HDR Framebuffer)" description="16-bit HalfFloat устраняет banding в тёмных градиентах (с авто-фолбэком при отсутствии поддержки GPU)." data-search="halffloat hdr глубина цвета 16 bit 8 bit буфер">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in bufferOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('colorBufferPrecision', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.colorBufferPrecision === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.point_lights" label="Контур динамического освещения" description="Количество активных динамических источников света ядра и периметра." data-search="точечный свет point lights освещение контур">
+              <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in lightOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('dynamicPointLights', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.dynamicPointLights === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+          </SettingsBlock>
 
-      <SettingsGroup
-        indexLabel="03"
-        title="Текстуры и отражения"
-        description="Анизотропная фильтрация логотипа A.R.C. и металлический PBR-блеск шасси"
-        :badgeText="`Aniso ${cfg.anisotropy}x · PMREM ${cfg.pmremQuality}`"
-      >
-        <SettingsBlock title="Текстуры и отражения" subtitle="Анизотропная фильтрация логотипа A.R.C. и металлический PBR-блеск">
-          <SettingsRow
-            id="system.gfx.anisotropy"
-            layout="stacked"
-            label="Анизотропная фильтрация декалей (Anisotropic)"
-            description="Чёткость центрального штампа A.R.C., шкал и прицельных сеток под острыми углами наклона."
-            data-search="анизотропная фильтрация текстур декали логотип четкость 1x 4x 8x 16x"
-          >
-            <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="aniso in ([1, 2, 4, 8, 16] as const)" :key="aniso" type="button" @click="store.updateGraphicsParam('anisotropy', aniso)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.anisotropy === aniso)">{{ aniso }}x</button>
-            </div>
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.trilinear"
-            label="Трилинейная фильтрация мипмапов (Trilinear Mipmaps)"
-            description="Плавная интерполяция между уровнями детализации текстур без муара при вращении колец."
-            data-search="трилинейная фильтрация мипмапы trilinear mipmaps муар текстуры"
-          >
-            <ArcToggle :modelValue="cfg.trilinearFiltering" @update:modelValue="(val: boolean) => store.updateGraphicsParam('trilinearFiltering', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.pmrem"
-            label="Карта отражений окружения (PMREM Environment)"
-            description="Физически корректные блики на титановом шасси, медных обмотках и тёмном стекле."
-            data-search="pmrem отражения окружение блики металл стекло environment"
-          >
-            <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="opt in pmremOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('pmremQuality', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.pmremQuality === opt.value)">{{ opt.label }}</button>
-            </div>
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.env_intensity"
-            label="Интенсивность металлических отражений"
-            description="Яркость зеркальных бликов на внешнем кольце и зажимах камеры."
-            data-search="интенсивность металлических отражений envmap блеск металл"
-          >
-            <div class="w-52 shrink-0">
-              <ArcSlider :model-value="cfg.envMapIntensity" :min="50" :max="150" :step="5" unit="%" :show-value="true" @update:model-value="(val: number) => store.updateGraphicsParam('envMapIntensity', val)" />
-            </div>
-          </SettingsRow>
-        </SettingsBlock>
-      </SettingsGroup>
-
-      <SettingsGroup
-        indexLabel="04"
-        title="Пост-обработка и освещение"
-        description="Unreal Bloom, глубина цвета HDR и динамические источники света"
-        :badgeText="cfg.bloomEnabled ? `Bloom ${cfg.bloomStrength}%` : 'Bloom Выкл'"
-      >
-        <SettingsBlock title="Пост-обработка и освещение" subtitle="Unreal Bloom, глубина цвета HDR и точечные источники света">
-          <SettingsRow
-            id="system.gfx.bloom"
-            label="Оптическое свечение (Unreal Bloom Pass)"
-            description="Мягкий неоновый ореол вокруг плазменных трубок и центрального ядра."
-            data-search="unreal bloom свечение неон ореол пост обработка"
-          >
-            <ArcToggle :modelValue="cfg.bloomEnabled" @update:modelValue="(val: boolean) => store.updateGraphicsParam('bloomEnabled', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.bloom_strength"
-            label="Множитель силы свечения (Bloom Strength)"
-            description="Баланс яркости ореола (100% — штатный профиль без засветки треугольника)."
-            data-search="сила свечения bloom strength яркость ореола засветка"
-          >
-            <div class="w-52 shrink-0">
-              <ArcSlider :model-value="cfg.bloomStrength" :min="50" :max="150" :step="5" unit="%" :disabled="!cfg.bloomEnabled" :show-value="true" @update:model-value="(val: number) => store.updateGraphicsParam('bloomStrength', val)" />
-            </div>
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.bloom_radius"
-            label="Радиус рассеивания ореола (Bloom Radius)"
-            description="Ширина диффузного свечения вокруг эмиссионных контуров (0.20 — узкий, 0.80 — широкий)."
-            data-search="радиус свечения bloom radius рассеивание ореол"
-          >
-            <div class="w-52 shrink-0">
-              <ArcSlider :model-value="cfg.bloomRadius" :min="0.2" :max="0.8" :step="0.05" :disabled="!cfg.bloomEnabled" :show-value="true" :format-value="(val: number) => val.toFixed(2)" @update:model-value="(val: number) => store.updateGraphicsParam('bloomRadius', val)" />
-            </div>
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.color_buffer"
-            label="Точность цветового буфера (HDR Framebuffer)"
-            description="HalfFloat 16-bit устраняет ступенчатость градиентов (banding) в тёмном стекле."
-            data-search="halffloat hdr глубина цвета 16 bit 8 bit буфер градиенты banding"
-          >
-            <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="opt in bufferOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('colorBufferPrecision', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.colorBufferPrecision === opt.value)">{{ opt.label }}</button>
-            </div>
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.point_lights"
-            label="Динамические точечные источники света (Point Lights)"
-            description="Освещение вершин треугольника, внешних зажимов и траншейных каналов."
-            data-search="точечный свет point lights освещение вершины зажимы"
-          >
-            <div class="inline-flex gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="opt in lightOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('dynamicPointLights', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.dynamicPointLights === opt.value)">{{ opt.label }}</button>
-            </div>
-          </SettingsRow>
-        </SettingsBlock>
-      </SettingsGroup>
-
-      <SettingsGroup
-        indexLabel="05"
-        title="Шейдеры, физика и частицы"
-        description="Процедурная плазма Френеля, гармоники, инерция колец и плотность искр"
-        :badgeText="`Частицы: ${cfg.particleDensity}%`"
-      >
-        <SettingsBlock title="Шейдеры, физика и частицы" subtitle="Процедурная плазма, гармоники, инерция колец и плотность искр">
-          <SettingsRow
-            id="system.gfx.glsl_plasma"
-            label="Процедурный GLSL-шейдер плазмы Френеля"
-            description="Анимированная симплекс-турбулентность и краевое свечение Френеля внутри вихря ядра."
-            data-search="glsl шейдер плазма френель fresnel turbulence вихрь"
-          >
-            <ArcToggle :modelValue="cfg.glslPlasmaShader" @update:modelValue="(val: boolean) => store.updateGraphicsParam('glslPlasmaShader', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.harmonics"
-            label="Сферические гармоники ядра (Spherical Harmonics)"
-            description="Микро-деформация внутренней кристаллической решётки в такт басу и частотам голоса."
-            data-search="сферические гармоники spherical harmonics деформация кристалл"
-          >
-            <ArcToggle :modelValue="cfg.sphericalHarmonics" @update:modelValue="(val: boolean) => store.updateGraphicsParam('sphericalHarmonics', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.spring_physics"
-            label="Пружинно-демпферная инерция колец (Spring-Damper)"
-            description="Физический отскок и инерционное раскрытие диафрагмы и колец при смене состояний ИИ."
-            data-search="пружинная физика инерция spring damper отскок кольца"
-          >
-            <ArcToggle :modelValue="cfg.springPhysics" @update:modelValue="(val: boolean) => store.updateGraphicsParam('springPhysics', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.shockwaves"
-            label="Импульсные ударные волны (Shockwaves)"
-            description="Расходящиеся энергетические волны по внешнему контуру при активации слова-триггера."
-            data-search="ударные волны shockwaves импульс отклик"
-          >
-            <ArcToggle :modelValue="cfg.shockwavesEnabled" @update:modelValue="(val: boolean) => store.updateGraphicsParam('shockwavesEnabled', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.spatial_audio"
-            label="3-полосный пространственный аудио-спектр"
-            description="Раздельная реакция 3 сторон треугольника на НЧ (Bass), СЧ (Mid) и ВЧ (Treble)."
-            data-search="3 полосный аудио спектр эквалайзер треугольник голос"
-          >
-            <ArcToggle :modelValue="cfg.spatialAudioBands" @update:modelValue="(val: boolean) => store.updateGraphicsParam('spatialAudioBands', val)" />
-          </SettingsRow>
-
-          <SettingsRow
-            id="system.gfx.particles"
-            layout="stacked"
-            label="Плотность частиц, искр и квантовой пыли"
-            description="Количество активных частиц в магнитной ловушке и внешнем поле."
-            data-search="плотность частиц искры пыль particles sparks"
-          >
-            <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
-              <button v-for="opt in particleOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('particleDensity', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.particleDensity === opt.value)">{{ opt.label }}</button>
-            </div>
-          </SettingsRow>
-        </SettingsBlock>
-      </SettingsGroup>
+          <SettingsBlock title="Шейдеры, физика и частицы" subtitle="GLSL-плазма, гармоники, пружинная инерция и энергетическое поле">
+            <SettingsRow id="system.gfx.glsl_plasma" label="GLSL-шейдер плазмы и сферические гармоники" description="Детализированный шейдер вихря и микро-колебания кристаллической решётки." data-search="glsl шейдер плазма френель гармоники">
+              <div class="flex items-center gap-4">
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Плазма</span>
+                  <ArcToggle :modelValue="cfg.glslPlasmaShader" @update:modelValue="(val: boolean) => store.updateGraphicsParam('glslPlasmaShader', val)" />
+                </label>
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Гармоники</span>
+                  <ArcToggle :modelValue="cfg.sphericalHarmonics" @update:modelValue="(val: boolean) => store.updateGraphicsParam('sphericalHarmonics', val)" />
+                </label>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.spring_physics" label="Инерция колец, импульсы и 3-полосный аудио-спектр" description="Пружинно-демпферная динамика диафрагмы, ударные волны и аудио-реакция 3 сторон." data-search="пружинная физика ударные волны shockwaves аудио спектр">
+              <div class="flex flex-wrap items-center gap-4">
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Инерция</span>
+                  <ArcToggle :modelValue="cfg.springPhysics" @update:modelValue="(val: boolean) => store.updateGraphicsParam('springPhysics', val)" />
+                </label>
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Импульсы</span>
+                  <ArcToggle :modelValue="cfg.shockwavesEnabled" @update:modelValue="(val: boolean) => store.updateGraphicsParam('shockwavesEnabled', val)" />
+                </label>
+                <label class="inline-flex items-center gap-2 text-xs text-[var(--arc-text-secondary)]">
+                  <span>Аудио 3-band</span>
+                  <ArcToggle :modelValue="cfg.spatialAudioBands" @update:modelValue="(val: boolean) => store.updateGraphicsParam('spatialAudioBands', val)" />
+                </label>
+              </div>
+            </SettingsRow>
+            <SettingsRow id="system.gfx.particles" label="Плотность частиц, искр и квантовой пыли" description="Доля активных частиц вокруг реактора (0% — отключено, 100% — полный объём)." data-search="плотность частиц искры пыль particles">
+              <div class="inline-flex flex-wrap gap-1 bg-[var(--arc-input)] p-1 rounded-[12px] border border-[var(--arc-hairline)]">
+                <button v-for="opt in particleOptions" :key="opt.value" type="button" @click="store.updateGraphicsParam('particleDensity', opt.value)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono transition cursor-pointer" :class="btnClass(cfg.particleDensity === opt.value)">{{ opt.label }}</button>
+              </div>
+            </SettingsRow>
+          </SettingsBlock>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useSettingsStore } from '../../../stores/settings.store';
+import { GRAPHICS_PRESET_META } from '../../../logic/graphics-presets';
 import SettingsSectionHeader from '../../SettingsSectionHeader.vue';
 import SettingsGroup from '../../primitives/SettingsGroup.vue';
 import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
@@ -272,21 +202,34 @@ import SettingsRow from '../../primitives/SettingsRow.vue';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import ArcSlider from '../../../../../components/ui/ArcSlider.vue';
 import GraphicsPresetBanner from './GraphicsPresetBanner.vue';
-import { Layers } from 'lucide-vue-next';
+import { Layers, ChevronDown } from 'lucide-vue-next';
 
 const store = useSettingsStore();
 const cfg = computed(() => store.graphicsConfig);
+const advancedOpen = ref(false);
 
-const presetLabel = computed(() => {
-  const p = store.graphicsPreset;
-  return p === 'Low' ? 'НИЗКИЙ' : p === 'Medium' ? 'СРЕДНИЙ' : p === 'High' ? 'ВЫСОКИЙ' : p === 'Ultra' ? 'УЛЬТРА' : p === 'UltraPlus' ? 'УЛЬТРА+' : 'СВОЙ';
-});
+// Auto-expand accordion when deep-linked from settings search
+watch(
+  () => store.pendingHighlightId,
+  (id) => {
+    if (id && id.startsWith('system.gfx.') && id !== 'system.gfx.preset') {
+      advancedOpen.value = true;
+    }
+  },
+  { immediate: true }
+);
+
+const activeMeta = computed(() => GRAPHICS_PRESET_META[store.graphicsPreset] || GRAPHICS_PRESET_META.Balanced);
+const presetBadgeText = computed(() => (store.isGraphicsModified ? `${activeMeta.value.code} · Изменён` : activeMeta.value.code));
+const headerStatusLabel = computed(() =>
+  store.showcaseActive ? 'SHOWCASE АКТИВЕН' : `ПРОФИЛЬ: ${presetBadgeText.value}`
+);
 
 const summaryItems = computed<SummaryStripItem[]>(() => [
-  { label: 'Профиль рендера', value: presetLabel.value, tone: 'accent', detail: `Масштаб ${Math.round(cfg.value.renderScale * 100)}%` },
-  { label: 'Сглаживание', value: cfg.value.msaaSamples > 0 ? `MSAA ${cfg.value.msaaSamples}x` : 'Выкл', tone: cfg.value.msaaSamples > 0 ? 'accent' : 'off', detail: cfg.value.fxaaEnabled ? 'FXAA активен' : 'Без FXAA' },
-  { label: 'Освещение и HDR', value: cfg.value.bloomEnabled ? `Bloom ${cfg.value.bloomStrength}%` : 'Без Bloom', tone: cfg.value.bloomEnabled ? 'default' : 'off', detail: cfg.value.colorBufferPrecision === 'halfFloat' ? '16-bit HDR' : '8-bit буфер' },
-  { label: 'Частицы и шейдеры', value: `${cfg.value.particleDensity}%`, tone: cfg.value.particleDensity > 0 ? 'default' : 'off', detail: cfg.value.glslPlasmaShader ? 'GLSL плазма вкл' : 'Базовый шейдер' },
+  { label: 'Профиль рендера', value: activeMeta.value.code, tone: 'accent', detail: `Масштаб ${Math.round(cfg.value.renderScale * 100)}% · Tex ${cfg.value.textureResolution}` },
+  { label: 'Сглаживание', value: cfg.value.msaaSamples > 0 ? `MSAA ${cfg.value.msaaSamples}x` : (cfg.value.fxaaEnabled ? 'FXAA' : 'Выкл'), tone: cfg.value.msaaSamples > 0 || cfg.value.fxaaEnabled ? 'accent' : 'off', detail: cfg.value.fxaaEnabled ? 'FXAA после OutputPass' : 'Без FXAA' },
+  { label: 'Освещение и AO', value: cfg.value.aoMode === 'gtao' ? 'GTAO' : cfg.value.aoMode === 'light' ? 'Light AO' : 'AO Выкл', tone: cfg.value.aoMode !== 'off' ? 'default' : 'off', detail: `Тени: ${cfg.value.shadowQuality} · ${cfg.value.colorBufferPrecision === 'halfFloat' ? 'HDR' : '8-bit'}` },
+  { label: 'Адаптивность', value: store.autoAdjustGraphics ? 'Авто 60 FPS' : 'Фикс.', tone: store.autoAdjustGraphics ? 'ok' : 'default', detail: `Частицы ${cfg.value.particleDensity}%` },
 ]);
 
 const btnClass = (active: boolean) =>
@@ -294,10 +237,14 @@ const btnClass = (active: boolean) =>
     ? 'bg-[var(--arc-selected)] text-[var(--accent)] border border-[rgba(var(--accent-rgb),0.4)] font-semibold'
     : 'text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] border border-transparent';
 
-const msaaOptions = [{ value: 0 as const, label: 'Выкл' }, { value: 2 as const, label: '2x' }, { value: 4 as const, label: '4x' }, { value: 8 as const, label: '8x MSAA' }];
-const dprOptions = [{ value: 1.0 as const, label: '1.0x' }, { value: 1.25 as const, label: '1.25x' }, { value: 1.5 as const, label: '1.5x' }, { value: 2.0 as const, label: '2.0x SSAA' }, { value: 'auto' as const, label: 'Авто' }];
-const pmremOptions = [{ value: 'off' as const, label: 'Выкл' }, { value: 'standard' as const, label: 'Стандарт' }, { value: 'high' as const, label: 'Высокие' }];
-const bufferOptions = [{ value: 'halfFloat' as const, label: '16-bit HalfFloat HDR' }, { value: 'unsignedByte' as const, label: '8-bit Стандарт' }];
-const lightOptions = [{ value: 'eco' as const, label: 'Эко (3)' }, { value: 'standard' as const, label: 'Стандарт (6)' }, { value: 'full' as const, label: 'Полное (12)' }];
-const particleOptions = [{ value: 0 as const, label: 'Выкл' }, { value: 25 as const, label: '25%' }, { value: 60 as const, label: '60%' }, { value: 100 as const, label: '100%' }, { value: 150 as const, label: '150%' }];
+const msaaOptions = [{ value: 0 as const, label: 'Выкл' }, { value: 2 as const, label: '2x' }, { value: 4 as const, label: '4x' }];
+const dprOptions = [{ value: 1.0 as const, label: '1.0x' }, { value: 1.15 as const, label: '1.15x' }, { value: 1.25 as const, label: '1.25x' }, { value: 'auto' as const, label: 'Авто' }];
+const renderScaleOptions = [0.75, 0.85, 0.95, 1.0, 1.15, 1.25] as const;
+const texResOptions = [256, 512, 1024, 2048] as const;
+const pmremOptions = [{ value: 'eco' as const, label: 'Эко' }, { value: 'standard' as const, label: 'Стандарт' }, { value: 'high' as const, label: 'Высокий' }];
+const aoOptions = [{ value: 'off' as const, label: 'Выкл' }, { value: 'light' as const, label: 'Light' }, { value: 'gtao' as const, label: 'GTAO' }];
+const shadowOptions = [{ value: 'off' as const, label: 'Выкл' }, { value: 'contact' as const, label: 'Контактные' }, { value: 'soft1024' as const, label: 'Soft 1024' }, { value: 'soft2048' as const, label: 'Soft 2048' }];
+const bufferOptions = [{ value: 'halfFloat' as const, label: '16-bit HDR' }, { value: 'unsignedByte' as const, label: '8-bit' }];
+const lightOptions = [{ value: 'eco' as const, label: 'Эко' }, { value: 'standard' as const, label: 'Стандарт' }, { value: 'full' as const, label: 'Полный' }];
+const particleOptions = [{ value: 0 as const, label: 'Выкл' }, { value: 25 as const, label: '25%' }, { value: 50 as const, label: '50%' }, { value: 60 as const, label: '60%' }, { value: 100 as const, label: '100%' }];
 </script>

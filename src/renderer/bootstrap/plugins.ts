@@ -1,4 +1,10 @@
 import { PiniaPluginContext } from 'pinia';
+import {
+  GRAPHICS_STORAGE_KEYS,
+  isValidGraphicsPreset,
+  normalizeGraphicsConfig,
+  resolveValidGraphicsPreset
+} from '../features/settings/logic/graphics-presets';
 
 export function toPlainObject(val: any, seen = new WeakSet()): any {
   if (val === null || typeof val !== 'object') {
@@ -198,6 +204,27 @@ export function persistencePlugin({ store }: PiniaPluginContext) {
         }
         if (store.$id === 'settings') {
           delete sanitizedPatch.reactorColorTheme;
+          // Never rehydrate runtime-only Showcase / Adaptive telemetry fields
+          delete sanitizedPatch.showcaseActive;
+          delete sanitizedPatch.showcaseRemainingSec;
+          delete sanitizedPatch.showcasePreviousTab;
+          delete sanitizedPatch.adaptiveRuntimeState;
+
+          // v10 graphics storage is authoritative when present; otherwise migrate/normalize legacy snapshot values
+          const v10PresetRaw = localStorage.getItem(GRAPHICS_STORAGE_KEYS.presetV10);
+          if (isValidGraphicsPreset(v10PresetRaw)) {
+            delete sanitizedPatch.graphicsPreset;
+            delete sanitizedPatch.graphicsConfig;
+            delete sanitizedPatch.hasUserSelectedGraphicsPreset;
+          } else if ('graphicsPreset' in sanitizedPatch || 'graphicsConfig' in sanitizedPatch) {
+            const rawCfg =
+              sanitizedPatch.graphicsConfig && typeof sanitizedPatch.graphicsConfig === 'object'
+                ? sanitizedPatch.graphicsConfig
+                : null;
+            const resolvedPreset = resolveValidGraphicsPreset(sanitizedPatch.graphicsPreset, rawCfg);
+            sanitizedPatch.graphicsPreset = resolvedPreset;
+            sanitizedPatch.graphicsConfig = normalizeGraphicsConfig(rawCfg, resolvedPreset);
+          }
         }
 
         const slowDelay = Number((globalThis as any).ARC_SLOW_SETTINGS || (typeof localStorage !== 'undefined' ? localStorage.getItem('ARC_SLOW_SETTINGS') : 0) || 0);
@@ -242,10 +269,14 @@ export function persistencePlugin({ store }: PiniaPluginContext) {
           stateToSave = { ...state, logs: [] };
         }
 
-        // Phase C.3: Exclude reactorColorTheme from persistent storage
+        // Phase C.3: Exclude reactorColorTheme and runtime-only graphics fields from persistent storage
         if (store.$id === 'settings') {
           stateToSave = { ...state };
           delete (stateToSave as any).reactorColorTheme;
+          delete (stateToSave as any).showcaseActive;
+          delete (stateToSave as any).showcaseRemainingSec;
+          delete (stateToSave as any).showcasePreviousTab;
+          delete (stateToSave as any).adaptiveRuntimeState;
         }
 
         const json = safeStringify(stateToSave);
