@@ -17,6 +17,9 @@ const {
   sttStatusChecked,
   sttStatusChecking,
   sttLastError,
+  sttModelsInstalled,
+  sttMissingReason,
+  sttSetupState,
   refreshSttStatus,
   applyEnginePayload
 } = useSttStatus();
@@ -32,7 +35,10 @@ const sttStatus = computed(() =>
     sttEngineReady: sttEngineReady.value,
     activeEngineName: activeEngineName.value,
     loadingProgress: uiStore.sttLoadingProgress,
-    lastError: sttLastError.value
+    lastError: sttLastError.value,
+    modelsInstalled: sttModelsInstalled.value,
+    missingReason: sttMissingReason.value,
+    setupState: sttSetupState.value
   })
 );
 

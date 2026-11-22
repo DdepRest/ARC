@@ -56,8 +56,10 @@ export function maskSecrets(input: unknown): string {
   // Mask OS user home directory paths (/Users/<name>/... or C:\Users\<name>\... or /home/<name>/...)
   text = text.replace(/([\\/](?:Users|home)[\\/])[^\\/\s"':)]+/gi, '$1***');
 
-  // Mask email addresses (PII)
-  text = text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]');
+  // Mask email addresses (PII) — fast guard & bounded quantifiers prevent O(n^2) backtracking on large outputs
+  if (text.includes('@')) {
+    text = text.replace(/[a-zA-Z0-9._%+-]{1,128}@[a-zA-Z0-9.-]{1,128}\.[a-zA-Z]{2,24}/g, '[EMAIL_REDACTED]');
+  }
 
   return text;
 }

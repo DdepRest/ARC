@@ -165,6 +165,28 @@
               <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-[var(--arc-text-secondary)]">RSS {{ processRssText }}</span>
             </div>
           </SettingsRow>
+          <SettingsRow
+            id="system.diag.db_engine"
+            label="Движок базы данных"
+            description="Фактический режим хранения, персистентность и поддержка транзакций."
+            :tech="dbDiagTech"
+            data-search="движок базы данных sqlite json degraded safe mode acid rollback ограничения"
+          >
+            <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-xs font-mono shrink-0" :class="dbDiagToneClass">
+              {{ dbDiagBadge }}
+            </span>
+          </SettingsRow>
+          <SettingsRow
+            id="system.diag.build_meta"
+            label="Версия и сборка артефакта"
+            description="Идентификатор установленной версии A.R.C. и коммита сборки для трассируемости диагностики."
+            :tech="buildMetaTech"
+            data-search="версия сборка commit sha build metadata артефакт диагностика"
+          >
+            <span class="px-2.5 py-1 rounded-[8px] bg-[var(--arc-plane)] border border-[var(--arc-hairline)] text-xs font-mono tabular-nums shrink-0 text-[var(--arc-text-primary)]">
+              {{ buildIdentityText }}
+            </span>
+          </SettingsRow>
         </SettingsBlock>
       </SettingsGroup>
 
@@ -237,6 +259,8 @@ import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
 import ArcToggle from '../../../../../components/ui/ArcToggle.vue';
 import { Activity, FileText, Download } from 'lucide-vue-next';
+import { buildDbStoragePresentation, type DbEngineStatusInfo } from './storage-db-presentation';
+import { formatBuildIdentity, getRuntimeBuildMetadata, UNKNOWN_BUILD_COMMIT } from '../../../../../../shared/config/build-metadata';
 
 const store = useSettingsStore();
 const systemStore = useSystemStore();
@@ -301,35 +325,40 @@ const headerStatus = computed(() => {
 });
 
 const summaryItems = computed<SummaryStripItem[]>(() => [
-  {
-    label: 'Нагрузка CPU',
-    value: cpuPercent.value !== null ? `${cpuPercent.value}%` : '—',
-    tone: cpuPercent.value === null ? 'off' : cpuPercent.value < 80 ? 'ok' : 'warn',
-    detail: hasLiveMetrics.value ? 'Вычислительный контур' : 'Ожидание замера'
-  },
-  {
-    label: 'Память RAM',
-    value: ramPercent.value !== null ? `${ramPercent.value}%` : '—',
-    tone: ramPercent.value === null ? 'off' : ramPercent.value < 85 ? 'ok' : 'warn',
-    detail: `RSS: ${processRssText.value}`
-  },
-  {
-    label: 'Режим бенчмарка',
-    value: benchmarkTab.value === 'presets' ? '5 пресетов' : 'Узлы 1–4',
-    tone: isSweepRunning.value ? 'warn' : 'default',
-    detail: isSweepRunning.value ? 'Идёт замер...' : 'Готов к запуску'
-  },
-  {
-    label: 'Логирование FPS',
-    value: store.logFpsToConsole ? 'Включено' : 'Отключено',
-    tone: store.logFpsToConsole ? 'accent' : 'off',
-    detail: 'Консоль DevTools'
-  },
+  { label: 'Нагрузка CPU', value: cpuPercent.value !== null ? `${cpuPercent.value}%` : '—', tone: cpuPercent.value === null ? 'off' : cpuPercent.value < 80 ? 'ok' : 'warn', detail: hasLiveMetrics.value ? 'Вычислительный контур' : 'Ожидание замера' },
+  { label: 'Память RAM', value: ramPercent.value !== null ? `${ramPercent.value}%` : '—', tone: ramPercent.value === null ? 'off' : ramPercent.value < 85 ? 'ok' : 'warn', detail: `RSS: ${processRssText.value}` },
+  { label: 'Режим бенчмарка', value: benchmarkTab.value === 'presets' ? '5 пресетов' : 'Узлы 1–4', tone: isSweepRunning.value ? 'warn' : 'default', detail: isSweepRunning.value ? 'Идёт замер...' : 'Готов к запуску' },
+  { label: 'Логирование FPS', value: store.logFpsToConsole ? 'Включено' : 'Отключено', tone: store.logFpsToConsole ? 'accent' : 'off', detail: 'Консоль DevTools' },
 ]);
+
+const dbStatus = ref<DbEngineStatusInfo | null>(null);
+const dbDiagPres = computed(() => buildDbStoragePresentation(dbStatus.value, Boolean(dbStatus.value?.engine)));
+const dbDiagBadge = computed(() => dbDiagPres.value.diagBadge);
+const dbDiagToneClass = computed(() => {
+  if (!dbStatus.value?.engine) return 'text-[var(--arc-text-muted)]';
+  return dbDiagPres.value.safeMode || dbDiagPres.value.degraded ? 'text-[var(--status-warn)]' : 'text-[var(--status-ok)]';
+});
+const dbDiagTech = computed(() => dbDiagPres.value.diagTech);
+
+const runtimeAppVersion = ref<string | undefined>(undefined);
+const buildMeta = computed(() => getRuntimeBuildMetadata(runtimeAppVersion.value));
+const buildIdentityText = computed(() => formatBuildIdentity(buildMeta.value));
+const buildMetaTech = computed(() =>
+  buildMeta.value.commit === UNKNOWN_BUILD_COMMIT
+    ? `Версия: v${buildMeta.value.version} · Commit: unknown (локальная сборка без Git SHA)`
+    : `Версия: v${buildMeta.value.version} · Commit: ${buildMeta.value.commit} · Источник: ${buildMeta.value.commitSource}`
+);
 
 onMounted(() => {
   if (!systemStore.isReady && typeof systemStore.initialize === 'function') systemStore.initialize();
   else if (typeof systemStore.fetchMetricsNow === 'function') systemStore.fetchMetricsNow();
+  const api = typeof window !== 'undefined' ? (window as any).api : null;
+  if (typeof api?.getDbStatus === 'function') {
+    api.getDbStatus().then((res: any) => { dbStatus.value = res || null; }).catch(() => {});
+  }
+  if (typeof api?.getVersion === 'function') {
+    api.getVersion().then((v: any) => { if (typeof v === 'string' && v.trim()) runtimeAppVersion.value = v.trim(); }).catch(() => {});
+  }
 });
 
 function handleCopyReport() {

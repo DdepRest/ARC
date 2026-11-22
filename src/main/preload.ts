@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld('api', {
   getSystemMetrics: () => ipcRenderer.invoke('system:metrics'),
   setEcoState: (state: string, reason?: string) => ipcRenderer.send('eco:set-state', state, reason),
   listFiles: () => ipcRenderer.invoke('system:files'),
-  getModulesStatus: () => ipcRenderer.invoke('system:modules'),
+  getModulesStatus: (options?: { refresh?: boolean }) => ipcRenderer.invoke('system:modules', options),
   quitApp: () => ipcRenderer.invoke('app:quit'),
   windowMinimize: () => ipcRenderer.invoke('window:minimize'),
   windowMaximize: () => ipcRenderer.invoke('window:maximize'),
@@ -129,10 +129,14 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('ui:approval-request', subscription);
   },
   respondApproval: (idOrPayload: any, maybeApproved?: boolean) => {
-    const payload = typeof idOrPayload === 'object' && idOrPayload !== null
-      ? idOrPayload
-      : { id: idOrPayload, approved: !!maybeApproved };
-    return ipcRenderer.invoke('ui:approval-response', payload);
+    const payload =
+      typeof idOrPayload === 'object' && idOrPayload !== null
+        ? { id: idOrPayload.id, approved: idOrPayload.approved }
+        : { id: idOrPayload, approved: maybeApproved };
+    if (!payload.id || typeof payload.id !== 'string' || !payload.id.trim() || typeof payload.approved !== 'boolean') {
+      return Promise.resolve({ success: false, error: 'INVALID_PAYLOAD' });
+    }
+    return ipcRenderer.invoke('ui:approval-response', { id: payload.id, approved: payload.approved });
   },
   // Objective-First Engine Preload Methods
   objectiveGetAll: () => ipcRenderer.invoke('objective:getAll'),
@@ -205,7 +209,7 @@ contextBridge.exposeInMainWorld('api', {
   switchSttModel: (modelId: string) => ipcRenderer.invoke('stt:switch-model', modelId),
   listSttModels: () => ipcRenderer.invoke('stt:list-models'),
   downloadSttModel: (params: { modelId: string; provider: string }) => ipcRenderer.invoke('stt:download-model', params),
-  cancelSttDownload: () => ipcRenderer.invoke('stt:cancel-download'),
+  cancelSttDownload: (modelId?: string) => ipcRenderer.invoke('stt:cancel-download', modelId),
   onSttDownloadProgress: (cb: (data: any) => void) => {
     const sub = (_e: any, data: any) => cb(data);
     ipcRenderer.on('stt:download-progress', sub);
@@ -213,6 +217,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   getTtsServerStatus: () => ipcRenderer.invoke('tts:server-status'),
   restartTtsServer: () => ipcRenderer.invoke('tts:restart-server'),
+  reloadTtsDictionaries: () => ipcRenderer.invoke('tts:reload-dictionaries'),
   onSttModelDownloadProgress: (cb: (p: {bytes:number,total:number}) => void) => {
     const sub = (_e: any, p: any) => cb(p);
     ipcRenderer.on('stt:model-download-progress', sub);

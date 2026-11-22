@@ -2,26 +2,16 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
-import fs from 'fs'
-import { execSync } from 'child_process'
 import { PROD_CSP } from './src/shared/config/csp.config'
+import { resolveBuildMetadata } from './src/shared/config/build-metadata.resolver'
 
-function getBuildCommit(): string {
-  if (process.env.BUILD_COMMIT) {
-    return process.env.BUILD_COMMIT.substring(0, 7);
-  }
-  try {
-    const hash = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    if (hash) return hash;
-  } catch (e) {}
-  const commitFile = resolve(__dirname, '.commit_hash');
-  if (fs.existsSync(commitFile)) {
-    return fs.readFileSync(commitFile, 'utf-8').trim().substring(0, 7);
-  }
-  return '9048f71';
-}
-
-const buildCommit = getBuildCommit();
+const buildMetadata = resolveBuildMetadata({ repoRoot: __dirname });
+const buildDefines = {
+  '__BUILD_COMMIT__': JSON.stringify(buildMetadata.commit),
+  '__BUILD_COMMIT_FULL__': JSON.stringify(buildMetadata.commitFull),
+  '__BUILD_COMMIT_SOURCE__': JSON.stringify(buildMetadata.commitSource),
+  '__APP_VERSION__': JSON.stringify(buildMetadata.version),
+};
 
 function cspHtmlPlugin() {
   return {
@@ -40,6 +30,7 @@ function cspHtmlPlugin() {
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    define: buildDefines,
     resolve: {
       alias: {
         'sharp': resolve(__dirname, 'src/main/empty.ts')
@@ -79,9 +70,7 @@ export default defineConfig({
       host: '127.0.0.1',
       hmr: false
     },
-    define: {
-      '__BUILD_COMMIT__': JSON.stringify(buildCommit)
-    },
+    define: buildDefines,
     plugins: [vue(), tailwindcss(), cspHtmlPlugin()],
     build: {
       rollupOptions: {

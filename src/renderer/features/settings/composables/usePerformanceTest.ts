@@ -1,6 +1,7 @@
 import { ref, computed, onUnmounted } from 'vue';
 import { useSettingsStore } from '../stores/settings.store';
 import { useSysLogs } from '../../../composables/useSysLogs';
+import { formatBuildIdentity, getRuntimeBuildMetadata } from '../../../../shared/config/build-metadata';
 
 export interface PerformanceTestResults {
   avgFps: number;
@@ -137,10 +138,11 @@ export function usePerformanceTest() {
     if (!testResults.value) return;
     const res = testResults.value;
     
+    const buildIdentity = formatBuildIdentity(getRuntimeBuildMetadata());
     const report = store.language === 'RU' 
       ? `=== ОТЧЕТ О ТЕСТИРОВАНИИ ПРОИЗВОДИТЕЛЬНОСТИ A.R.C. ===\n` +
         `Дата: ${new Date().toLocaleString()}\n` +
-        `Версия системы: v0.2.2-AI\n` +
+        `Версия системы: ${buildIdentity}\n` +
         `Язык интерфейса: RU\n` +
         `Качество графики: ${store.graphicsQuality}\n` +
         `---------------------------------------\n` +
@@ -152,7 +154,7 @@ export function usePerformanceTest() {
         `=== КОНЕЦ ОТЧЕТА ===`
       : `=== A.R.C. PERFORMANCE DIAGNOSTICS REPORT ===\n` +
         `Date: ${new Date().toLocaleString()}\n` +
-        `System Version: v0.2.2-AI\n` +
+        `System Version: ${buildIdentity}\n` +
         `Language: EN\n` +
         `Graphics Quality: ${store.graphicsQuality}\n` +
         `---------------------------------------\n` +
@@ -227,8 +229,11 @@ export function usePerformanceTest() {
       return;
     }
 
+    const buildMeta = getRuntimeBuildMetadata();
     const logsOutput = {
       appName: 'A.R.C. System OS',
+      appVersion: buildMeta.version,
+      buildCommit: buildMeta.commit,
       platform: typeof window !== 'undefined' && (window as any).api ? 'Electron' : 'Web Browser',
       testedAt: new Date().toISOString(),
       graphicsQuality: store.graphicsQuality,

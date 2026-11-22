@@ -13,36 +13,58 @@ export interface ApprovalRequest {
 }
 
 export const useSecurityStore = defineStore('security', () => {
-  const currentRequest = ref<ApprovalRequest | null>(null);
-  const isDialogOpen = computed(() => currentRequest.value !== null);
+  const requestQueue = ref<ApprovalRequest[]>([]);
+  const currentRequest = computed<ApprovalRequest | null>(() => requestQueue.value[0] ?? null);
+  const isDialogOpen = computed(() => requestQueue.value.length > 0);
   const trustedMacroIds = ref<Set<string>>(new Set());
 
-  function setRequest(req: ApprovalRequest | null) {
-    currentRequest.value = req;
-    if (req) {
-      // VoiceFSM lock: switch to WAKE_WORD_ONLY so voice cannot inadvertently confirm dialog
-      try {
-        voiceMode.value = 'WAKE_WORD_ONLY';
-      } catch (err: any) {
-        console.warn('[SecurityStore] Failed to lock VoiceFSM:', err?.message || err);
-      }
+  function lockVoiceForApproval() {
+    // VoiceFSM lock: switch to WAKE_WORD_ONLY so voice cannot inadvertently confirm dialog
+    try {
+      voiceMode.value = 'WAKE_WORD_ONLY';
+    } catch (err: any) {
+      console.warn('[SecurityStore] Failed to lock VoiceFSM:', err?.message || err);
     }
   }
 
-  function respond(approved: boolean, rememberMacro: boolean = false) {
-    if (!currentRequest.value) return;
-    const id = currentRequest.value.id;
-    const macroId = currentRequest.value.metadata?.macroId;
+  function setRequest(req: ApprovalRequest | null) {
+    if (!req) {
+      if (requestQueue.value.length > 0) {
+        requestQueue.value = requestQueue.value.slice(1);
+      }
+      return;
+    }
 
-    if (rememberMacro && macroId) {
+    if (!requestQueue.value.some((item) => item.id === req.id)) {
+      requestQueue.value = [...requestQueue.value, req];
+    }
+    lockVoiceForApproval();
+  }
+
+  function respond(approved: boolean, rememberMacro: boolean = false) {
+    const active = requestQueue.value[0];
+    if (!active) return;
+
+    const id = active.id;
+    const macroId = active.metadata?.macroId;
+
+    if (rememberMacro && approved && macroId) {
       trustedMacroIds.value.add(macroId);
     }
 
+    requestQueue.value = requestQueue.value.slice(1);
+
     if (typeof window !== 'undefined' && window.api?.respondApproval) {
-      window.api.respondApproval({ id, approved });
+      window.api.respondApproval({ id, approved: !!approved });
     }
 
-    currentRequest.value = null;
+    if (requestQueue.value.length > 0) {
+      lockVoiceForApproval();
+    }
+  }
+
+  function clearQueue() {
+    requestQueue.value = [];
   }
 
   function isMacroTrusted(macroId?: string): boolean {
@@ -51,11 +73,13 @@ export const useSecurityStore = defineStore('security', () => {
   }
 
   return {
+    requestQueue,
     currentRequest,
     isDialogOpen,
     trustedMacroIds,
     setRequest,
     respond,
+    clearQueue,
     isMacroTrusted
   };
 });

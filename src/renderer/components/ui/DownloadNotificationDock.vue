@@ -198,7 +198,7 @@ const isVisible = computed(() => {
                   {{ formatBytes(downloadStore.bytesDone) }}
                 </span>
                 <span class="text-xs text-[var(--arc-text-muted)] tabular-nums">
-                  / {{ formatBytes(downloadStore.totalBytes) }}
+                  / {{ downloadStore.totalBytes > 0 ? formatBytes(downloadStore.totalBytes) : 'неизвестен' }}
                 </span>
               </div>
 

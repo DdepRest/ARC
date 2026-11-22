@@ -259,6 +259,16 @@ describe('STTService Model Guard', () => {
         expect(switchRes.loading).toBe(true);
         expect(sttService.getStatus().modelLoaded).toBe(true);
     });
+
+    it('S2-07: reports consent_required without lastError when startListening is called with missing STT models', async () => {
+        existsSyncMock.mockReturnValue(false);
+        const started = await sttService.startListening();
+        expect(started).toBe(false);
+        const status = sttService.getStatus();
+        expect(status.modelsInstalled).toBe(false);
+        expect(status.setupState).toBe('consent_required');
+        expect(status.lastError).toBeNull();
+    });
 });
 
 

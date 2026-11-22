@@ -15,7 +15,30 @@ export class SandboxError extends Error {
   }
 }
 
-export type ActionType = 'FILE_READ' | 'FILE_WRITE' | 'FILE_DELETE' | 'FILE_RENAME' | 'SHELL_RUN' | 'NETWORK' | 'SYSTEM';
+export type ActionType =
+  | 'FILE_READ'
+  | 'FILE_WRITE'
+  | 'FILE_DELETE'
+  | 'FILE_RENAME'
+  | 'SHELL_RUN'
+  | 'NETWORK'
+  | 'SYSTEM';
+
+export interface PolicyEvaluationResult {
+  allowed: boolean;
+  requiresApproval: boolean;
+  reason?: string;
+}
+
+export type ShellExecutionMode = 'direct' | 'unsafe_raw_shell';
+
+export interface StructuredShellCommand {
+  executable: string;
+  args?: string[];
+  cwd?: string;
+  purpose?: string;
+  unsafeRawShell?: boolean;
+}
 
 export interface PolicyRule {
   actionType: ActionType;

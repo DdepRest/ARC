@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import { sanitizeError } from '../../shared/utils/log-sanitizer';
 import {
   secretVault,
+  CANONICAL_GEMINI_SECRET_KEY,
   type SecretVaultFileV2
 } from '../services/security/secret-vault.service';
 
@@ -110,17 +111,27 @@ export function handleSetKey(keyName: string, value: string) {
   try {
     if (!keyName) return { success: false, error: 'Key name is required' };
     const normalized = keyName.trim();
-    const isGemini = normalized.toLowerCase() === 'gemini_api_key' || normalized === 'GEMINI_API_KEY';
+    const isGemini = normalized.toLowerCase() === CANONICAL_GEMINI_SECRET_KEY || normalized === 'GEMINI_API_KEY';
+    const targetKey = isGemini ? CANONICAL_GEMINI_SECRET_KEY : normalized;
 
-    if (isGemini) {
-      process.env.GEMINI_API_KEY = value ? value.trim() : '';
+    const writeRes = secretVault.setSecret(targetKey, value);
+    if (!writeRes.success) {
+      return {
+        success: false,
+        storageMode: writeRes.storageMode,
+        isEncrypted: false,
+        error: writeRes.error || 'Не удалось сохранить ключ'
+      };
     }
 
-    const writeRes = secretVault.setSecret(normalized, value);
-    if (isGemini && value && value.trim()) {
-      secretVault.setSecret(secretVault.getProviderSecretKey('gemini'), value.trim());
-    } else if (isGemini && (!value || !value.trim())) {
-      secretVault.deleteProviderApiKey('gemini');
+    if (isGemini) {
+      const trimmedVal = value ? value.trim() : '';
+      if (trimmedVal) {
+        process.env.GEMINI_API_KEY = trimmedVal;
+      } else {
+        delete process.env.GEMINI_API_KEY;
+      }
+      secretVault.deleteSecret(secretVault.getProviderSecretKey('gemini'));
     }
 
     if (writeRes.storageMode === 'session_memory_only' && value && value.trim()) {
@@ -132,11 +143,10 @@ export function handleSetKey(keyName: string, value: string) {
     }
 
     return {
-      success: writeRes.success,
+      success: true,
       storageMode: writeRes.storageMode,
       isEncrypted: writeRes.isEncrypted,
-      warning: writeRes.warning,
-      error: writeRes.error
+      warning: writeRes.warning
     };
   } catch (err: any) {
     console.error(`[Settings-IPC] Error saving key "${keyName}": ${sanitizeError(err)}`);

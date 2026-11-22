@@ -28,16 +28,16 @@
       <SettingsGroup
         indexLabel="02"
         title="Локальная база данных и резервный архив"
-        description="Статистика дискового пространства SQLite и создание согласованного архива без секретов Vault"
+        description="Статистика дискового пространства и создание согласованного архива без секретов Vault"
         :badgeText="dbSizeDisplay"
       >
-        <SettingsBlock title="Объём используемой памяти" subtitle="Дисковое пространство">
+        <SettingsBlock title="Объём используемой памяти" subtitle="Дисковое пространство и движок">
           <SettingsRow
             id="system.storage.db"
-            label="База данных SQLite (диалоги, задачи, история)"
+            :label="dbRowLabel"
             description="Файлы базы данных в локальной директории данных приложения."
             :tech="dbRowTech"
-            data-search="база данных sqlite диалоги задачи история storage db"
+            data-search="база данных sqlite json database диалоги задачи история storage db режим ограничения"
           >
             <div class="flex flex-wrap items-center gap-2">
               <span class="px-2.5 py-1.5 rounded-[8px] border border-[var(--arc-hairline)] bg-[var(--arc-well)] text-xs font-mono tabular-nums text-[var(--arc-text-primary)]">
@@ -75,6 +75,22 @@
           </SettingsRow>
 
           <div
+            v-if="dbLimitations.length > 0"
+            data-testid="storage-db-limitations"
+            class="px-5 py-3 border-t border-[var(--arc-divider)] bg-[var(--arc-well)] text-xs font-mono flex flex-col gap-1.5"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[var(--status-warn)] font-semibold">
+              <span>{{ dbEngineBannerTitle }}</span>
+              <span class="text-[var(--arc-text-secondary)] font-normal">
+                {{ dbCapabilitiesSummary }}
+              </span>
+            </div>
+            <ul class="list-disc pl-4 space-y-0.5 text-[var(--arc-text-secondary)] font-sans">
+              <li v-for="(item, idx) in dbLimitations" :key="idx">{{ item }}</li>
+            </ul>
+          </div>
+
+          <div
             v-if="exportFeedback"
             class="px-5 py-3 border-t border-[var(--arc-divider)] bg-[var(--arc-well)] text-xs font-mono"
             :class="exportFeedbackClass"
@@ -95,18 +111,11 @@
 
       <SettingsGroup
         indexLabel="04"
-        title="Сброс к заводским параметрам"
-        description="Полная очистка пользовательских настроек и возврат конфигурации A.R.C. к исходному состоянию"
-        badgeText="Опасная зона"
+        title="Сброс настроек и данных"
+        description="Раздельное управление сбросом параметров интерфейса и локальных данных приложения. Secret Vault (API-ключи), журналы и резервные копии не удаляются."
+        badgeText="Вариант A · Защита Vault"
       >
-        <DangerZone
-          id="system.storage.reset"
-          title="Сбросить все параметры"
-          description="Возвращает систему к начальному состоянию. Будут удалены локальные настройки, кэш и временные файлы."
-          warning-text="Необратимое действие. Все пользовательские настройки будут сброшены до заводских значений."
-          confirm-button-text="Да, сбросить все параметры"
-          @confirm="handleSystemReset"
-        />
+        <SystemResetBlock :on-reset-ui="handleUiSettingsReset" />
       </SettingsGroup>
     </div>
   </section>
@@ -121,10 +130,11 @@ import SettingsGroup from '../../primitives/SettingsGroup.vue';
 import SettingsSummaryStrip, { type SummaryStripItem } from '../../primitives/SettingsSummaryStrip.vue';
 import SettingsBlock from '../../primitives/SettingsBlock.vue';
 import SettingsRow from '../../primitives/SettingsRow.vue';
-import DangerZone from '../../primitives/DangerZone.vue';
+import SystemResetBlock from './SystemResetBlock.vue';
 import CacheSettingsBlock from './CacheSettingsBlock.vue';
 import DialogTrashRetentionBlock from './DialogTrashRetentionBlock.vue';
 import { Database, Download, RefreshCw } from 'lucide-vue-next';
+import { buildDbStoragePresentation, type DbEngineStatusInfo } from './storage-db-presentation';
 
 const store = useSettingsStore();
 const uiStore = useUIStore();
@@ -135,13 +145,18 @@ const measureState = ref<MeasureState>('idle');
 const dbSizeBytes = ref<number | null>(null);
 const configSizeBytes = ref<number | null>(null);
 const storageDataDir = ref<string>('');
-const dbEngineInfo = ref<{ engine?: string; isSafeMode?: boolean; storageStatus?: string } | null>(null);
+const dbEngineInfo = ref<DbEngineStatusInfo | null>(null);
 const isExporting = ref(false);
 const exportFeedback = ref<{ tone: 'ok' | 'warn' | 'err'; message: string } | null>(null);
 const cacheBlockRef = ref<InstanceType<typeof CacheSettingsBlock> | null>(null);
 
 const canReadStorage = computed(() => typeof window !== 'undefined' && typeof (window as any).api?.getStorageInfo === 'function');
 const canExportArchive = computed(() => typeof window !== 'undefined' && typeof (window as any).api?.exportDataArchive === 'function');
+const dbPres = computed(() => buildDbStoragePresentation(dbEngineInfo.value, canReadStorage.value));
+const dbLimitations = computed(() => dbPres.value.limitations);
+const dbRowLabel = computed(() => dbPres.value.rowLabel);
+const dbEngineBannerTitle = computed(() => dbPres.value.bannerTitle);
+const dbCapabilitiesSummary = computed(() => dbPres.value.capabilitiesSummary);
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return '0 Б';
@@ -161,31 +176,24 @@ const dbSizeDisplay = computed(() => {
 });
 
 const dbRowTech = computed(() => {
+  const engineTag = dbPres.value.engineTag;
   if (measureState.value === 'measured') {
     const cfg = configSizeBytes.value !== null ? ` · Конфиги: ${formatBytes(configSizeBytes.value)}` : '';
-    return storageDataDir.value ? `Каталог: ${storageDataDir.value}${cfg}` : `Точный замер: ${dbSizeDisplay.value}`;
+    const base = storageDataDir.value ? `Каталог: ${storageDataDir.value}${cfg}` : `Точный замер: ${dbSizeDisplay.value}`;
+    return engineTag ? `${base} · ${engineTag}` : base;
   }
   if (measureState.value === 'unavailable') return 'IPC system:get-storage-info недоступен';
   if (measureState.value === 'error') return 'Не удалось получить размер файлов БД';
-  return 'Ожидание ответа файловой системы';
+  return engineTag || 'Ожидание ответа файловой системы';
 });
 
 const headerStatus = computed<{ label: string; tone: 'ok' | 'warn' | 'err' | 'off' }>(() => {
-  if (measureState.value === 'unavailable' && !canReadStorage.value) {
-    return { label: 'НЕИЗВЕСТНО · БЕЗ IPC', tone: 'off' };
-  }
-  if (measureState.value === 'error') {
-    return { label: 'ОШИБКА ЗАМЕРА', tone: 'err' };
-  }
-  if (dbEngineInfo.value?.isSafeMode) {
-    return { label: 'SAFE MODE (JSON)', tone: 'warn' };
-  }
-  if (dbEngineInfo.value?.engine === 'sqlite' && measureState.value === 'measured') {
-    return { label: 'SQLITE ЛОКАЛЬНО', tone: 'ok' };
-  }
-  if (measureState.value === 'measured') {
-    return { label: `ОБЪЁМ: ${dbSizeDisplay.value.toUpperCase()}`, tone: 'ok' };
-  }
+  if (measureState.value === 'unavailable' && !canReadStorage.value) return { label: 'НЕИЗВЕСТНО · БЕЗ IPC', tone: 'off' };
+  if (measureState.value === 'error') return { label: 'ОШИБКА ЗАМЕРА', tone: 'err' };
+  if (dbPres.value.safeMode) return { label: 'SAFE MODE · READ-ONLY', tone: 'warn' };
+  if (dbPres.value.degraded) return { label: 'JSON DEGRADED · БЕЗ ACID', tone: 'warn' };
+  if (dbPres.value.sqlite && measureState.value === 'measured') return { label: 'SQLITE ЛОКАЛЬНО', tone: 'ok' };
+  if (measureState.value === 'measured') return { label: `ОБЪЁМ: ${dbSizeDisplay.value.toUpperCase()}`, tone: 'ok' };
   return { label: 'ЗАМЕР...', tone: 'warn' };
 });
 
@@ -203,15 +211,6 @@ const exportFeedbackClass = computed(() => {
 });
 
 const summaryItems = computed<SummaryStripItem[]>(() => {
-  const isSqlite = dbEngineInfo.value?.engine === 'sqlite' && !dbEngineInfo.value?.isSafeMode;
-  const dbEngineTone: SummaryStripItem['tone'] = !canReadStorage.value
-    ? 'off'
-    : dbEngineInfo.value?.isSafeMode
-    ? 'warn'
-    : isSqlite
-    ? 'ok'
-    : 'default';
-
   const dbSizeTone: SummaryStripItem['tone'] =
     measureState.value === 'measured'
       ? 'accent'
@@ -224,9 +223,9 @@ const summaryItems = computed<SummaryStripItem[]>(() => {
   return [
     {
       label: 'Движок хранения',
-      value: !canReadStorage.value ? 'Нет IPC' : dbEngineInfo.value?.isSafeMode ? 'JSON Safe Mode' : isSqlite ? 'SQLite 3' : 'Локальный',
-      detail: 'Локальная изоляция',
-      tone: dbEngineTone
+      value: dbPres.value.summaryValue,
+      detail: dbPres.value.summaryDetail,
+      tone: dbPres.value.summaryTone
     },
     {
       label: 'Объём базы данных',
@@ -241,9 +240,9 @@ const summaryItems = computed<SummaryStripItem[]>(() => {
       tone: canExportArchive.value ? 'default' : 'off'
     },
     {
-      label: 'Сброс конфигурации',
-      value: 'Защищён',
-      detail: 'Требует подтверждения',
+      label: 'Сброс данных',
+      value: 'Вариант A',
+      detail: 'Vault и логи защищены',
       tone: 'default'
     }
   ];
@@ -314,10 +313,12 @@ async function exportArchive() {
   }
 }
 
-function handleSystemReset() {
-  cacheBlockRef.value?.clearAllCaches();
+async function handleUiSettingsReset() {
+  if (cacheBlockRef.value?.clearAllCaches) {
+    await cacheBlockRef.value.clearAllCaches();
+  }
   store.resetToDefaults();
-  void loadStorageStats();
+  await loadStorageStats();
 }
 
 onMounted(() => {

@@ -1,6 +1,9 @@
 /// <reference types="vite/client" />
 
 declare const __BUILD_COMMIT__: string;
+declare const __BUILD_COMMIT_FULL__: string;
+declare const __BUILD_COMMIT_SOURCE__: string;
+declare const __APP_VERSION__: string;
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -8,12 +11,14 @@ declare module '*.vue' {
   export default component
 }
 
+declare module 'better-sqlite3';
+
 interface Window {
   api: {
     getSystemInfo: () => Promise<any>;
     getSystemMetrics: () => Promise<any>;
     listFiles: () => Promise<string[]>;
-    getModulesStatus: () => Promise<Record<string, any>>;
+    getModulesStatus: (options?: import('./shared/config/modules-capability.registry').ModulesStatusRequestOptions) => Promise<import('./shared/config/modules-capability.registry').ModulesCapabilitySnapshot>;
     quitApp: () => Promise<void>;
     writeClipboard: (text: string) => Promise<boolean>;
     dialogDeleteMessage: (id: number) => Promise<boolean>;
@@ -94,7 +99,14 @@ interface Window {
     objectiveDecomposeDraft?: (data: { objectiveId: string, taskDescriptionText?: string }) => Promise<any>;
     objectiveGetPendingDraft?: (data: { objectiveId: string }) => Promise<{ success: boolean; draft: any | null }>;
     objectiveApproveDraft?: (data: { objectiveId: string, draft?: any }) => Promise<any>;
-    tasksAiDecompose?: (data: { taskId: string; taskText: string }) => Promise<{ success: boolean; taskId: string; steps: string[]; error?: string }>;
+    tasksAiDecompose?: (data: { taskId: string; taskText: string }) => Promise<{
+      success: boolean;
+      taskId: string;
+      steps: string[];
+      source?: 'llm' | 'local_template';
+      fallbackReason?: import('./shared/types/models/task').TaskDecompositionFallbackReason;
+      error?: string;
+    }>;
     objectiveUpdateOutcomeValue: (data: { outcomeId: string, currentValue: number }) => Promise<boolean>;
     objectiveAddDependency: (data: { parentId: string, childId: string, weight: number }) => Promise<boolean>;
     objectiveEvaluateHealth: (objectiveId: string) => Promise<{ confidence: number, is_off_trajectory: boolean }>;
@@ -133,15 +145,50 @@ interface Window {
     onMediaVkStatus: (callback: (data: import('./shared/types/ipc').VkStatusPayload) => void) => () => void;
 
     // STT Model Management
-    listSttModels: () => Promise<Array<{ id: string; name: string; provider: string; downloaded: boolean; expectedSize: string; sizeBytes: number }>>;
-    downloadSttModel: (params: { modelId: string; provider: string }) => Promise<{ success: boolean }>;
-    cancelSttDownload: () => Promise<{ success: boolean }>;
+    listSttModels: () => Promise<
+      | Array<{
+          id: string;
+          name: string;
+          provider: string;
+          downloaded: boolean;
+          expectedSize: string;
+          sizeBytes: number;
+          source?: string;
+          integrity?: import('./shared/types/model-integrity').ModelIntegrityRecord;
+          provenance?: import('./shared/types/model-integrity').ModelProvenanceRecord;
+        }>
+      | {
+          sherpaAvailable: boolean;
+          isPending?: boolean;
+          models: Array<{
+            id: string;
+            name: string;
+            provider: string;
+            downloaded: boolean;
+            expectedSize: string;
+            sizeBytes: number;
+            source?: string;
+            integrity?: import('./shared/types/model-integrity').ModelIntegrityRecord;
+            provenance?: import('./shared/types/model-integrity').ModelProvenanceRecord;
+          }>;
+        }
+    >;
+    downloadSttModel: (params: { modelId: string; provider: string }) => Promise<{ success: boolean; cancelled?: boolean; status?: string; error?: string }>;
+    cancelSttDownload: (modelId?: string) => Promise<{ success: boolean; cancelled?: boolean; modelId?: string }>;
     reloadStt: (modelName?: string) => Promise<{ success: boolean; ready?: boolean; error?: string }>;
     switchSttModel: (modelId: string) => Promise<{ success?: boolean; ready: boolean; error?: string }>;
-    onSttDownloadProgress: (callback: (data: { modelId: string; percent: number; status: string }) => void) => () => void;
+    onSttDownloadProgress: (callback: (data: { modelId: string; percent: number; status: string; error?: string; bytes_done?: number; total_bytes?: number }) => void) => () => void;
     onSttFallback: (callback: (info: { model: string; message: string }) => void) => () => void;
     onSttReady: (callback: (data: { model: string }) => void) => () => void;
     onSttEngineReady: (callback: (data: { engine: string }) => void) => () => void;
+    getTtsServerStatus?: () => Promise<{
+      status: string;
+      port?: number | null;
+      online?: boolean;
+      integrity?: import('./shared/types/model-integrity').PythonBundleIntegrityReport | null;
+      dependencies?: any;
+      dictionaries?: any;
+    }>;
 
     // Transcription APIs
     transcriptionCheckModel: (modelName: string) => Promise<boolean>;
@@ -163,9 +210,37 @@ interface Window {
 
     // Storage Management & Reset
     getStorageInfo: () => Promise<{ dataDir: string; isPortable: boolean; folders: Record<string, { path: string; sizeBytes: number; exists: boolean }>; appDataLegacyPath: string }>;
-    getDbStatus: () => Promise<{ mode?: string; engine?: string; storageStatus?: string; isSafeMode?: boolean; security?: { available?: boolean; backend?: string } }>;
+    getDbStatus: () => Promise<{
+      mode?: string;
+      engine?: string;
+      storageStatus?: string;
+      isSafeMode?: boolean;
+      readOnly?: boolean;
+      schemaVersion?: number;
+      userNotice?: string;
+      lastRecovery?: { quarantined?: boolean; reason?: string; quarantineDir?: string; timestamp?: string } | null;
+      capabilities?: {
+        persistent: boolean;
+        supportsTransactions: boolean;
+        supportsRollback: boolean;
+        supportsFts5: boolean;
+        supportsForeignKeys: boolean;
+        supportsSqlIndexes: boolean;
+      };
+      limitations?: string[];
+      security?: { available?: boolean; backend?: string; secretsStorageMode?: string; unreadableKeysCount?: number };
+    }>;
     openDataFolder: () => Promise<{ success: boolean; error?: string }>;
-    resetSystem: (options?: { clearModels?: boolean }) => Promise<{ success: boolean; error?: string }>;
+    resetSystem: (options?: { clearModels?: boolean }) => Promise<{
+      success: boolean;
+      mode?: 'app_data_and_config';
+      clearModels?: boolean;
+      removedTargets?: string[];
+      preservedAssets?: string[];
+      failedTargets?: Array<{ target: string; error: string }>;
+      relaunched?: boolean;
+      error?: string;
+    }>;
     exportDiagnostics: () => Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
     exportDataArchive: () => Promise<{ success: boolean; filePath?: string; sizeBytes?: number; entriesCount?: number; canceled?: boolean; error?: string }>;
     getAppVersion: () => Promise<string>;
@@ -180,16 +255,40 @@ interface Window {
     }>;
     getTtsActiveEngine: () => Promise<{
       provider: 'auto' | 'silero' | 'edge' | 'native';
-      activeEngine: 'silero' | 'edge' | 'system' | null;
+      activeEngine: 'silero' | 'edge' | 'system' | 'unavailable' | null;
+      allowCloudTtsFallback?: boolean;
+      forcedOfflineMode?: boolean;
+      fallbackPolicy?: 'local-only' | 'cloud-allowed' | 'offline-locked';
+      lastErrorReason?: string | null;
     }>;
     setTtsProvider: (provider: string) => Promise<{
       provider: 'auto' | 'silero' | 'edge' | 'native';
-      activeEngine: 'silero' | 'edge' | 'system' | null;
+      activeEngine: 'silero' | 'edge' | 'system' | 'unavailable' | null;
+      allowCloudTtsFallback?: boolean;
+      forcedOfflineMode?: boolean;
+      fallbackPolicy?: 'local-only' | 'cloud-allowed' | 'offline-locked';
+      lastErrorReason?: string | null;
+    }>;
+    setTtsPolicy: (policy: {
+      provider?: string;
+      allowCloudTtsFallback?: boolean;
+      forcedOfflineMode?: boolean;
+    }) => Promise<{
+      provider: 'auto' | 'silero' | 'edge' | 'native';
+      activeEngine: 'silero' | 'edge' | 'system' | 'unavailable' | null;
+      allowCloudTtsFallback?: boolean;
+      forcedOfflineMode?: boolean;
+      fallbackPolicy?: 'local-only' | 'cloud-allowed' | 'offline-locked';
+      lastErrorReason?: string | null;
     }>;
     onTtsEngineChanged: (
       callback: (data: {
         provider: 'auto' | 'silero' | 'edge' | 'native';
-        activeEngine: 'silero' | 'edge' | 'system' | null;
+        activeEngine: 'silero' | 'edge' | 'system' | 'unavailable' | null;
+        allowCloudTtsFallback?: boolean;
+        forcedOfflineMode?: boolean;
+        fallbackPolicy?: 'local-only' | 'cloud-allowed' | 'offline-locked';
+        lastErrorReason?: string | null;
       }) => void
     ) => () => void;
     onTtsMeta?: (
@@ -200,5 +299,11 @@ interface Window {
         textHash?: string;
       }) => void
     ) => () => void;
+    getVoiceSetupStatus?: (options?: { includeWhisper?: boolean; includeGigaam?: boolean; includeTts?: boolean }) => Promise<any>;
+    setVoiceSetupMode?: (mode: 'setup_now' | 'later' | 'system_fallback') => Promise<any>;
+    startVoiceSetup?: (options?: { includeWhisper?: boolean; includeGigaam?: boolean; includeTts?: boolean }) => Promise<any>;
+    pauseVoiceSetup?: () => Promise<any>;
+    cancelVoiceSetup?: () => Promise<any>;
+    onVoiceSetupProgress?: (callback: (data: any) => void) => () => void;
   }
 }

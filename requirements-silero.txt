@@ -1,11 +1,15 @@
-torch>=2.0.0
-torchaudio>=2.0.0
-Flask>=2.0.0
-flask-cors>=3.0.10
-omegaconf>=2.3.post1,<3
-pyyaml>=6.0
-soundfile>=0.12.1
-numpy<2.0.0
-scipy
-onnxruntime>=1.16.0
-ruaccent>=1.4.0
+# Compatible Python 3.10 - 3.12 dependency specification for A.R.C. Silero TTS (Windows x64 / Linux)
+# --- CORE (required for base Silero TTS runtime) ---
+torch>=2.0.0,<2.6.0
+torchaudio>=2.0.0,<2.6.0
+Flask>=2.2.0,<3.2.0
+flask-cors>=3.0.10,<6.0.0
+omegaconf>=2.3.0,<2.4.0
+pyyaml>=6.0,<7.0
+soundfile>=0.12.1,<0.14.0
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0,<1.15.0
+
+# --- OPTIONAL ACCENT (best-effort; Silero TTS uses built-in accents if unavailable) ---
+onnxruntime>=1.16.0,<1.21.0
+ruaccent>=1.4.0,<1.6.0

@@ -1,8 +1,7 @@
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import { sttService } from '../services/stt.service';
 import { ttsService } from '../services/tts.service';
 import { PythonServerService } from '../services/python_server.service';
-import { BrowserWindow } from 'electron';
 import { adaptiveService } from '../services/adaptive.service';
 import { cacheService } from '../services/cache.service';
 import { LocalClassifier } from '../services/local-classifier';
@@ -11,12 +10,15 @@ import { vkWebSocketServer } from '../services/media/vk-websocket-server';
 import { BuiltInWhisperService } from '../services/built-in-whisper.service';
 import { BuiltInLlmService } from '../services/built-in-llm.service';
 import { llmCacheService } from '../services/llm-cache.service';
-import { SHERPA_MODELS_CONFIG, sherpaDownloaderService } from '../services/sherpa-downloader.service';
+import { sherpaDownloaderService } from '../services/sherpa-downloader.service';
+import { isCancellationError } from '../services/sherpa-download-task.helper';
 import { hfRateLimiter } from '../services/hf-rate-limiter.service';
 import { FALLBACK_STT_MODELS_LIST, fetchFullSttModelsList } from '../services/stt-models-list.helper';
-import { STT_CHECK_TIMEOUT_MS } from '../config/timeouts';
 import { sanitizeError } from '../../shared/utils/log-sanitizer';
 import { SystemMediaController } from '../services/media/system-media';
+import { voiceSetupService, VoiceSetupChoiceMode, VoiceSetupStartOptions } from '../services/voice-setup.service';
+import { evaluateSileroModelWithReport } from '../services/python_integrity.util';
+import { verifyPythonBundleFiles } from '../services/python_sync.util';
 
 export function registerVoiceIpc() {
   SystemMediaController.warmUp();
@@ -34,14 +36,17 @@ export function registerVoiceIpc() {
     try {
       const axios = require('axios');
       const response = await axios.post('http://127.0.0.1:8002/reload_dicts');
-      return { success: true, data: response.data };
-    } catch (e) {
+      const data = response.data || {};
+      const ok = data.status !== 'error' && data.pronunciationState !== 'ERROR';
+      return { success: ok, data };
+    } catch (e: any) {
+      const responseData = e?.response?.data;
       console.error(`[VoiceIPC] tts:reload-dictionaries error: ${sanitizeError(e)}`);
-      return { success: false, error: sanitizeError(e) };
+      return { success: false, data: responseData, error: sanitizeError(e) };
     }
   });
 
-  ipcMain.handle('voice:start-listening', async (event, modelName?: string) => {
+  ipcMain.handle('voice:start-listening', async (_event, modelName?: string) => {
     try {
       const ok = await sttService.startListening(modelName);
       return { success: ok && sttService.getStatus().ready };
@@ -58,8 +63,13 @@ export function registerVoiceIpc() {
 
   ipcMain.handle('voice:speak', async (_event, payload = {}) => {
     try {
-      const { text, style, speed, pitch, sampleRate, putAccent, putYo, speaker, autoClearCache, force, queryId } = payload;
-      // Fire-and-forget async invocation: does not block the Electron IPC channel while synthesizing audio
+      const { text, style, speed, pitch, sampleRate, putAccent, putYo, speaker, autoClearCache, force, queryId, allowCloudTtsFallback, forcedOfflineMode } = payload;
+      if (typeof allowCloudTtsFallback === 'boolean' || typeof forcedOfflineMode === 'boolean') {
+        ttsService.setPolicy({
+          ...(typeof allowCloudTtsFallback === 'boolean' ? { allowCloudTtsFallback } : {}),
+          ...(typeof forcedOfflineMode === 'boolean' ? { forcedOfflineMode } : {}),
+        });
+      }
       void ttsService.speak(text, style, speaker || 'eugene', speed, pitch, sampleRate, putAccent, putYo, autoClearCache, Boolean(force), queryId)
         .catch(e => console.warn(`[VoiceIPC] Async ttsService.speak warning: ${sanitizeError(e)}`));
       return { success: true };
@@ -74,9 +84,7 @@ export function registerVoiceIpc() {
     return { success: true };
   });
 
-  ipcMain.handle('tts:get-active-engine', async () => {
-    return ttsService.getActiveEngine();
-  });
+  ipcMain.handle('tts:get-active-engine', async () => ttsService.getActiveEngine());
 
   ipcMain.handle('tts:set-provider', async (_event, provider: string) => {
     const normalized = (provider === 'piper' || provider === 'kokoro') ? 'auto' : provider;
@@ -87,36 +95,26 @@ export function registerVoiceIpc() {
     return ttsService.getActiveEngine();
   });
 
-  ipcMain.handle('vk:control', async (event, action, data) => {
-    return LocalClassifier.controlVk(action, data);
+  ipcMain.handle('tts:set-policy', async (_event, policy: { provider?: string; allowCloudTtsFallback?: boolean; forcedOfflineMode?: boolean } = {}) => {
+    const rawProvider = policy?.provider;
+    const normalized = (rawProvider === 'piper' || rawProvider === 'kokoro') ? 'auto' : rawProvider;
+    return ttsService.setPolicy({
+      ...(normalized !== undefined ? { provider: normalized } : {}),
+      ...(typeof policy?.allowCloudTtsFallback === 'boolean' ? { allowCloudTtsFallback: policy.allowCloudTtsFallback } : {}),
+      ...(typeof policy?.forcedOfflineMode === 'boolean' ? { forcedOfflineMode: policy.forcedOfflineMode } : {}),
+    });
   });
 
-  ipcMain.handle('vk:get-connection-status', async () => {
-    return vkWebSocketServer.getConnectionStatus();
-  });
+  ipcMain.handle('vk:control', async (_event, action, data) => LocalClassifier.controlVk(action, data));
+  ipcMain.handle('vk:get-connection-status', async () => vkWebSocketServer.getConnectionStatus());
 
-  // Streaming chunks
-  ipcMain.on('voice:stream-chunk', (_evt, samples: Float32Array) => {
-    sttService.feedChunk(samples);
-  });
-  
-  ipcMain.on('voice:stream-end', () => {
-    sttService.endStream();
-  });
-
-  ipcMain.on('voice:reset-buffer', () => {
-    sttService.resetBuffer();
-  });
-
+  ipcMain.on('voice:stream-chunk', (_evt, samples: Float32Array) => sttService.feedChunk(samples));
+  ipcMain.on('voice:stream-end', () => sttService.endStream());
+  ipcMain.on('voice:reset-buffer', () => sttService.resetBuffer());
   ipcMain.on('voice:set-busy', async (_evt, busy: boolean) => {
-    try {
-      BuiltInLlmService.getInstance().setVoiceBusy(Boolean(busy));
-    } catch (e) {
-      console.warn('[VoiceIPC] Failed to update voice busy state:', e);
-    }
+    try { BuiltInLlmService.getInstance().setVoiceBusy(Boolean(busy)); } catch (e) { console.warn('[VoiceIPC] Failed to update voice busy state:', e); }
   });
 
-  // STT status, set-engine & reload
   ipcMain.handle('stt:status', () => sttService.getStatus());
   ipcMain.handle('stt:set-engine', async (_event, engine: 'gigaam' | 'legacy') => {
     sttService.setEngine(engine);
@@ -125,60 +123,58 @@ export function registerVoiceIpc() {
   ipcMain.handle('stt:reload', async (_event, modelName?: string) => {
     try {
       const res = await sttService.switchModel(modelName || 'zipformer-ru', 'user_switch');
-      if (res && !res.ready && res.error) {
-        if (/4294967295|-1|worker process exited/i.test(res.error)) {
-          res.error = 'Критический сбой движка STT. Попробуйте другую модель или перезапустите приложение';
-        }
+      if (res && !res.ready && res.error && /4294967295|-1|worker process exited/i.test(res.error)) {
+        res.error = 'Критический сбой движка STT. Попробуйте другую модель или перезапустите приложение';
       }
       return res;
     } catch (err: any) {
       console.warn('[Voice IPC] stt:reload error:', err?.message || err);
-      return {
-        ready: false,
-        error: 'Критический сбой движка STT. Попробуйте другую модель или перезапустите приложение'
-      };
+      return { ready: false, error: 'Критический сбой движка STT. Попробуйте другую модель или перезапустите приложение' };
     }
   });
-  ipcMain.handle('stt:switch-model', async (_event, modelId: string) => {
-    return sttService.switchModel(modelId, 'user_switch');
-  });
-  ipcMain.handle('stt:cancel-download', async () => {
-    sherpaDownloaderService.cancelDownload();
-    return { success: true };
+  ipcMain.handle('stt:switch-model', async (_event, modelId: string) => sttService.switchModel(modelId, 'user_switch'));
+  ipcMain.handle('stt:cancel-download', async (_event, modelId?: unknown) => {
+    const targetId = typeof modelId === 'string' && modelId.trim().length > 0 ? modelId.trim() : undefined;
+    if (targetId) {
+      const sherpaCancelled = await sherpaDownloaderService.cancelDownload(targetId);
+      const whisperCancelled = BuiltInWhisperService.getInstance().abort(targetId);
+      return { success: true, cancelled: sherpaCancelled || whisperCancelled, modelId: targetId };
+    }
+    await sherpaDownloaderService.cancelAllDownloads();
+    BuiltInWhisperService.getInstance().abort();
+    return { success: true, cancelled: true };
   });
 
-  sttService.on('fallback', (info) => {
-    try {
-      const { BrowserWindow } = require('electron');
-      BrowserWindow.getAllWindows().forEach((w: any) => {
-        w.webContents.send('stt:fallback', info);
-      });
-    } catch (err) {
-      console.warn('[Voice IPC] Failed to broadcast fallback:', err);
+  ipcMain.handle('voice:setup-status', (_event, options?: VoiceSetupStartOptions) => voiceSetupService.getStatus(options));
+  ipcMain.handle('voice:setup-mode', (_event, mode: VoiceSetupChoiceMode) => {
+    const mainWin = BrowserWindow.getAllWindows()[0] || null;
+    if (mode === 'system_fallback') {
+      ttsService.setPolicy({ provider: 'native' });
     }
+    return voiceSetupService.setMode(mode, mainWin);
+  });
+  ipcMain.handle('voice:setup-start', (_event, options?: VoiceSetupStartOptions) => {
+    const mainWin = BrowserWindow.getAllWindows()[0] || null;
+    return voiceSetupService.startSetup(options || {}, mainWin);
+  });
+  ipcMain.handle('voice:setup-pause', () => {
+    const mainWin = BrowserWindow.getAllWindows()[0] || null;
+    return voiceSetupService.pauseSetup(mainWin);
+  });
+  ipcMain.handle('voice:setup-cancel', () => {
+    const mainWin = BrowserWindow.getAllWindows()[0] || null;
+    return voiceSetupService.cancelSetup(mainWin);
   });
 
-  sttService.on('ready', (info) => {
-    try {
-      const { BrowserWindow } = require('electron');
-      BrowserWindow.getAllWindows().forEach((w: any) => {
-        w.webContents.send('stt:ready', info);
-      });
-    } catch (err) {
-      console.warn('[Voice IPC] Failed to broadcast stt:ready:', err);
-    }
-  });
-
-  sttService.on('engine-ready', (info) => {
-    try {
-      const { BrowserWindow } = require('electron');
-      BrowserWindow.getAllWindows().forEach((w: any) => {
-        w.webContents.send('stt:engine-ready', info);
-      });
-    } catch (err) {
-      console.warn('[Voice IPC] Failed to broadcast stt:engine-ready:', err);
-    }
-  });
+  for (const eventName of ['fallback', 'ready', 'engine-ready'] as const) {
+    sttService.on(eventName, (info) => {
+      try {
+        BrowserWindow.getAllWindows().forEach((w: any) => w.webContents.send(`stt:${eventName}`, info));
+      } catch (err) {
+        console.warn(`[Voice IPC] Failed to broadcast stt:${eventName}:`, err);
+      }
+    });
+  }
 
   ipcMain.handle('stt:list-models', async () => {
     try {
@@ -189,10 +185,7 @@ export function registerVoiceIpc() {
       if (raceResult === 'timeout') {
         fullPromise.then((finalRes) => {
           try {
-            const { BrowserWindow } = require('electron');
-            BrowserWindow.getAllWindows().forEach((w: any) => {
-              w.webContents.send('stt:models-updated', finalRes);
-            });
+            BrowserWindow.getAllWindows().forEach((w: any) => w.webContents.send('stt:models-updated', finalRes));
           } catch {}
         });
         return FALLBACK_STT_MODELS_LIST;
@@ -201,20 +194,13 @@ export function registerVoiceIpc() {
       return raceResult;
     } catch (err: any) {
       console.warn('[stt:list-models] Fallback returned:', err?.message || err);
-      return {
-        ...FALLBACK_STT_MODELS_LIST,
-        sherpaAvailable: false,
-        isPending: false
-      };
+      return { ...FALLBACK_STT_MODELS_LIST, sherpaAvailable: false, isPending: false };
     }
   });
 
-  ipcMain.handle('stt:download-model', async (event, { modelId, provider }) => {
-    const { BrowserWindow } = require('electron');
+  ipcMain.handle('stt:download-model', async (_event, { modelId, provider }) => {
     const wins = BrowserWindow.getAllWindows();
-    const sendProgress = (data: any) => {
-      wins.forEach((w: any) => w.webContents.send('stt:download-progress', data));
-    };
+    const sendProgress = (data: any) => wins.forEach((w: any) => w.webContents.send('stt:download-progress', data));
 
     if (provider === 'whisper') {
       try {
@@ -224,17 +210,25 @@ export function registerVoiceIpc() {
           sendProgress({ modelId, percent, status: 'downloading', bytes_done: loaded, total_bytes: total });
         });
         sendProgress({ modelId, percent: 100, status: 'completed' });
-        return { success: true };
+        return { success: true, status: 'completed' };
       } catch (e: any) {
-        sendProgress({ modelId, status: 'error', error: e?.message || String(e) });
-        return { success: false, error: e?.message || String(e) };
+        if (isCancellationError(e)) {
+          sendProgress({ modelId, percent: 0, status: 'cancelled' });
+          return { success: false, cancelled: true, status: 'cancelled' };
+        }
+        sendProgress({ modelId, percent: 0, status: 'error', error: e?.message || String(e) });
+        return { success: false, status: 'error', error: e?.message || String(e) };
       }
     } else {
       try {
         return await sherpaDownloaderService.downloadModel(modelId, sendProgress);
       } catch (e: any) {
-        sendProgress({ modelId, status: 'error', error: e?.message || String(e) });
-        return { success: false, error: e?.message || String(e) };
+        if (isCancellationError(e)) {
+          sendProgress({ modelId, percent: 0, status: 'cancelled' });
+          return { success: false, cancelled: true, status: 'cancelled' };
+        }
+        sendProgress({ modelId, percent: 0, status: 'error', error: e?.message || String(e) });
+        return { success: false, status: 'error', error: e?.message || String(e) };
       }
     }
   });
@@ -251,36 +245,65 @@ export function registerVoiceIpc() {
       await PythonServerService.start(wins[0]);
     }
   });
-  
+
   ipcMain.handle('tts:server-status', async () => {
+    const dictsPaths = PythonServerService.resolveTtsDictsPaths();
+    const depsReadiness = PythonServerService.getLastDependencyReadiness();
+    const installerState = PythonServerService.getDependencyInstallerState();
+    const sileroModelPath = PythonServerService.resolveSileroModelPath();
+    const pythonExe = PythonServerService.resolvePythonExe();
+    let integrity = PythonServerService.getLastIntegrityReport();
+    if (!integrity || !integrity.modelFile) {
+      const baseReport = integrity || verifyPythonBundleFiles((rel) => PythonServerService.getPath(rel));
+      integrity = evaluateSileroModelWithReport(sileroModelPath, baseReport).report;
+    }
+    const modelInstalled = Boolean(sileroModelPath);
+    const pythonInstalled = Boolean(pythonExe);
     try {
       const axios = require('axios');
       const r = await axios.get('http://127.0.0.1:8002/status', { timeout: 2000 });
-      return { online: true, ...r.data };
-    } catch {
-      return { online: false };
+      return {
+        online: true,
+        modelInstalled,
+        pythonInstalled,
+        dictsPaths,
+        integrity,
+        ...r.data,
+        dependencies: {
+          ...(depsReadiness || {}),
+          ...(r.data?.dependencies || {}),
+          phase: installerState.inProgress ? installerState.phase : (depsReadiness?.phase ?? r.data?.dependencies?.state ?? 'READY'),
+          activePackage: installerState.activePackage
+        }
+      };
+    } catch (e: any) {
+      const degradedData = e?.response?.status === 503 && e?.response?.data ? e.response.data : {};
+      const dependencies =
+        depsReadiness || degradedData?.dependencies || installerState.inProgress
+          ? {
+              ...(depsReadiness || {}),
+              ...(degradedData?.dependencies || {}),
+              phase: installerState.inProgress ? installerState.phase : (depsReadiness?.phase ?? degradedData?.dependencies?.state ?? 'IDLE'),
+              activePackage: installerState.activePackage
+            }
+          : null;
+      return { online: false, modelInstalled, pythonInstalled, dictsPaths, integrity, ...degradedData, dependencies };
     }
   });
 
-  // Adaptive
-  ipcMain.handle('adaptive:get-state', () => {
-    return {
-      currentTier: adaptiveService.getCurrentTier(),
-      manualPreset: adaptiveService.getManualPreset()
-    };
-  });
-
-  ipcMain.handle('adaptive:force-tier', (event, preset) => {
+  ipcMain.handle('adaptive:get-state', () => ({
+    currentTier: adaptiveService.getCurrentTier(),
+    manualPreset: adaptiveService.getManualPreset()
+  }));
+  ipcMain.handle('adaptive:force-tier', (_event, preset) => {
     adaptiveService.setManualPreset(preset);
     return { success: true };
   });
-
-  ipcMain.handle('adaptive:add-process', (event, name) => {
+  ipcMain.handle('adaptive:add-process', (_event, name) => {
     adaptiveService.addProcess(name);
     return { success: true };
   });
 
-  // Cache
   ipcMain.handle('voice:get-cache-stats', async () => {
     try {
       const stats = cacheService.getStats();
@@ -293,7 +316,7 @@ export function registerVoiceIpc() {
         }
       } catch (e: any) { console.warn(`[Voice IPC] cache-stats failed: ${e.code || 'ERR'} ${e.message || 'Unknown'}`); }
       return stats;
-    } catch(e) {
+    } catch {
       return { entries: 0, sizeBytes: 0, hits: 0, misses: 0, evictions: 0 };
     }
   });
@@ -310,44 +333,34 @@ export function registerVoiceIpc() {
       const axios = require('axios');
       void Promise.resolve(axios.post('http://127.0.0.1:8002/clear-cache', {}, { timeout: 200 })).catch(() => {});
       return { success: true, ...result };
-    } catch(e) {
+    } catch (e) {
       return { success: false, error: String(e) };
     }
   });
 
-  // Calibration (stub for UI)
-  ipcMain.handle('voice:calibration-start', () => { return { success: true }; });
-  ipcMain.handle('voice:calibration-done', (event, audioBuffer) => { return { ok: true }; });
-  ipcMain.handle('voice:calibration-reset', () => { return { ok: true }; });
+  ipcMain.handle('voice:calibration-start', () => ({ success: true }));
+  ipcMain.handle('voice:calibration-done', () => ({ ok: true }));
+  ipcMain.handle('voice:calibration-reset', () => ({ ok: true }));
 
-  // TTS
   ipcMain.handle('tts:get-presets', async () => {
     try {
       const axios = require('axios');
       const res = await axios.get('http://127.0.0.1:8002/presets');
       return res.data.presets;
-    } catch(e) {
+    } catch {
       return [];
     }
   });
 
-  ipcMain.handle('tts:get-tier', () => {
-    return adaptiveService.getCurrentTier();
-  });
+  ipcMain.handle('tts:get-tier', () => adaptiveService.getCurrentTier());
 
-  // Forward wake-word events to renderer
   sttService.on('wake', () => {
-    const wins = require('electron').BrowserWindow.getAllWindows();
-    wins.forEach((win: any) => win.webContents.send('voice:wake'));
+    BrowserWindow.getAllWindows().forEach((win: any) => win.webContents.send('voice:wake'));
   });
-
   sttService.on('partial', (text: string) => {
-    const wins = require('electron').BrowserWindow.getAllWindows();
-    wins.forEach((win: any) => win.webContents.send('stt:partial', text));
+    BrowserWindow.getAllWindows().forEach((win: any) => win.webContents.send('stt:partial', text));
   });
-
   sttService.on('final', (text: string, meta?: any) => {
-    const wins = require('electron').BrowserWindow.getAllWindows();
-    wins.forEach((win: any) => win.webContents.send('stt:final', text, meta));
+    BrowserWindow.getAllWindows().forEach((win: any) => win.webContents.send('stt:final', text, meta));
   });
 }

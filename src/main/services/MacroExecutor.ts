@@ -1,4 +1,5 @@
 import { safeEval } from '../../shared/utils/safeExpressionParser';
+import { maskSecrets } from '../../shared/utils/log-sanitizer';
 import { shell, Notification } from 'electron';
 import { exec, spawn } from 'child_process';
 import path from 'path';
@@ -10,6 +11,7 @@ import { executeShellCommand } from './commands/shell-executor';
 import { ObjectiveEngine } from './objective/ObjectiveEngine';
 import { DecisionEngine } from './decision/DecisionEngine';
 import { ttsService } from './tts.service';
+import { computeTtsHash } from './tts-text.util';
 
 interface LiteGraphLink {
     id: number;
@@ -245,7 +247,7 @@ export class MacroExecutor {
             case 'actions/speak':
                 if (props.text && props.text.trim() !== '') {
                     const cleanText = props.text.trim();
-                    console.log('Main Process executing Speak Text via ttsService:', cleanText);
+                    console.log(`Main Process executing Speak Text via ttsService: [${cleanText.length} chars, id=${computeTtsHash(cleanText)}]`);
                     try {
                         await ttsService.speak(cleanText);
                     } catch (err) {
@@ -255,19 +257,21 @@ export class MacroExecutor {
                 return [0];
 
 
-            case 'actions/shell':
-                if (props.command && props.command.trim() !== '') {
-                    const cmd = props.command.trim();
-                    console.log('Main Process executing Shell command via ShellExecutor:', cmd);
-                    const result = await executeShellCommand(cmd, {
-                        macroId: this.currentMacro?.id,
-                        reason: 'Выполнение shell команды в макросе'
-                    });
-                    if (!result.success) {
-                        return [1];
-                    }
+            case 'actions/shell': {
+                const shellInput =
+                    typeof props.executable === 'string' && props.executable.trim()
+                        ? { executable: props.executable.trim(), args: Array.isArray(props.args) ? props.args.map(String) : undefined, cwd: props.cwd, purpose: props.purpose }
+                        : props.command && String(props.command).trim()
+                            ? String(props.command).trim()
+                            : null;
+                if (shellInput) {
+                    const purpose = typeof props.purpose === 'string' && props.purpose.trim() ? props.purpose.trim() : 'Выполнение команды в макросе';
+                    console.log('Main Process executing Shell command via ShellExecutor:', typeof shellInput === 'string' ? maskSecrets(shellInput) : maskSecrets(shellInput.executable));
+                    const result = await executeShellCommand(shellInput, { macroId: this.currentMacro?.id, reason: purpose, purpose, cwd: props.cwd });
+                    if (!result.success) return [1];
                 }
                 return [0];
+            }
 
             case 'logic/delay':
                 const ms = parseInt(props.ms) || 1000;

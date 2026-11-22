@@ -133,7 +133,8 @@ export function registerMacroNodes(
   }
   SpeakAction.title = 'Озвучить текст';
   SpeakAction.prototype.onAction = function(this: any) {
-    console.log('Action: Speak', this.properties.text);
+    const len = typeof this.properties?.text === 'string' ? this.properties.text.length : 0;
+    console.log(`Action: Speak [${len} chars]`);
     this.triggerSlot(0);
   };
   SpeakAction.prototype.onMouseDown = handleNodeMouseDown;

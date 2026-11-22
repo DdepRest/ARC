@@ -8,22 +8,30 @@ import re
 import tempfile
 import subprocess
 import shutil
+import platform
+import importlib.util
 import torch
 torch.set_num_threads(2)
 import torchaudio
 import numpy as np
 import soundfile as sf
 import warnings
-from scipy.signal import fftconvolve
+try:
+    from scipy.signal import fftconvolve
+    HAS_SCIPY_SIGNAL = True
+except Exception:
+    fftconvolve = None
+    HAS_SCIPY_SIGNAL = False
 from flask import Flask, request, send_file, jsonify
 import threading
 from silero_text_prep import normalize_text
+import tts_dict_loader
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 def get_ffmpeg_bin():
-    env_path = os.environ.get('ARC_FFMPEG_PATH')
-    if env_path and os.path.exists(env_path):
+    env_path = os.environ.get('ARC_FFMPEG_PATH', '').strip()
+    if env_path and os.path.isfile(env_path):
         return env_path
     which_bin = shutil.which('ffmpeg')
     if which_bin:
@@ -157,6 +165,8 @@ def make_ir(sr=48000, seconds=0.12):
 IR = make_ir(sample_rate, 0.12)
 
 def reverb_mix(dry, ir, wet=0.02):
+    if not HAS_SCIPY_SIGNAL or fftconvolve is None:
+        return dry
     rev = fftconvolve(dry, ir, mode="full")
     dry_rms = np.sqrt(np.mean(dry**2))
     rev_rms = np.sqrt(np.mean(rev**2))
@@ -173,6 +183,7 @@ def reverb_mix(dry, ir, wet=0.02):
 ruaccent_instance = None
 _ruaccent_init_attempted = False
 _ruaccent_init_in_progress = False
+_ruaccent_last_error = None
 _ruaccent_ready_event = threading.Event()
 _ruaccent_lock = threading.Lock()
 
@@ -185,7 +196,7 @@ def _load_ruaccent_instance(accentizer, workdir):
         accentizer.load(omograph_model_size="small", use_cuda=False)
 
 def _init_ruaccent_worker():
-    global ruaccent_instance, _ruaccent_init_attempted, _ruaccent_init_in_progress
+    global ruaccent_instance, _ruaccent_init_attempted, _ruaccent_init_in_progress, _ruaccent_last_error
     try:
         import ruaccent
         import onnxruntime as ort
@@ -234,12 +245,15 @@ def _init_ruaccent_worker():
                     gc.collect()
 
             ruaccent_instance = accentizer
+            _ruaccent_last_error = None
             print("RUAccent loaded (int8)", flush=True)
         except Exception as load_err:
+            _ruaccent_last_error = str(load_err)
             print(f"[RUAccent] Initialization error/fallback: {load_err}", file=sys.stderr, flush=True)
             print(f"[RUAccent] Initialization info/fallback: {load_err}", flush=True)
             ruaccent_instance = None
     except Exception as import_err:
+        _ruaccent_last_error = str(import_err)
         print(f"[RUAccent] Module not available ({import_err}), using built-in dictionaries", flush=True)
         ruaccent_instance = None
     finally:
@@ -317,11 +331,58 @@ def clear_cache():
     threading.Thread(target=_purge_cache_files, args=(files_to_remove,), daemon=True).start()
     return {"success": True}
 
+def get_runtime_capabilities():
+    ffmpeg_ready = bool(get_ffmpeg_bin())
+    scipy_ready = bool(HAS_SCIPY_SIGNAL)
+    ruaccent_spec = importlib.util.find_spec("ruaccent") is not None
+    ort_spec = importlib.util.find_spec("onnxruntime") is not None
+    accent_ready = bool(ruaccent_spec and ort_spec and (_ruaccent_last_error is None))
+    dsp_ready = bool(ffmpeg_ready and scipy_ready)
+    state = "READY" if (accent_ready and dsp_ready) else "DEGRADED"
+    errors = []
+    if not ffmpeg_ready:
+        errors.append("ffmpeg_unavailable")
+    if not scipy_ready:
+        errors.append("scipy_unavailable")
+    if not accent_ready:
+        errors.append(_ruaccent_last_error or "ruaccent_or_onnxruntime_unavailable")
+    return {
+        "state": state,
+        "coreReady": True,
+        "dspReady": dsp_ready,
+        "accentReady": accent_ready,
+        "ffmpegReady": ffmpeg_ready,
+        "scipyReady": scipy_ready,
+        "ruaccentLoaded": ruaccent_instance is not None,
+        "onnxruntimeAvailable": ort_spec,
+        "ruaccentAvailable": ruaccent_spec,
+        "pythonVersion": f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}",
+        "arch": platform.machine(),
+        "errors": errors,
+    }
+
+
 @app.route("/status", methods=["GET"])
 def status():
+    dict_diag = tts_dict_loader.get_diagnostics()
+    pronunciation_state = dict_diag.get("state", "ERROR")
+    deps_diag = get_runtime_capabilities()
     if model is None and not try_load_model():
-        return {"status": "degraded", "error": "model_not_found", "model": "silero_v5_6_ru"}, 503
-    return {"status": "online", "model": "silero_v5_6_ru"}
+        return {
+            "status": "degraded",
+            "error": "model_not_found",
+            "model": "silero_v5_6_ru",
+            "pronunciationState": pronunciation_state,
+            "dictionaries": dict_diag,
+            "dependencies": deps_diag,
+        }, 503
+    return {
+        "status": "online",
+        "model": "silero_v5_6_ru",
+        "pronunciationState": pronunciation_state,
+        "dictionaries": dict_diag,
+        "dependencies": deps_diag,
+    }
 
 @app.route('/tts_stream', methods=['POST'])
 def tts_stream():
@@ -627,20 +688,35 @@ def tts_endpoint():
 @app.route('/reload_dicts', methods=['POST'])
 def reload_dicts():
     try:
-        import tts_dict_loader
-        tts_dict_loader.reload()
-        return jsonify({"status": "ok", "message": "Dictionaries reloaded"}), 200
+        diag = tts_dict_loader.reload()
+        state = diag.get("state", "ERROR")
+        status_str = "error" if state == "ERROR" else ("degraded" if state == "DEGRADED" else "ok")
+        http_code = 500 if state == "ERROR" else 200
+        return jsonify({
+            "status": status_str,
+            "pronunciationState": state,
+            "dictionaries": diag,
+            "message": "Dictionaries reloaded"
+        }), http_code
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "pronunciationState": "ERROR",
+            "error": str(e)
+        }), 500
 
 if __name__ == '__main__':
     print(f"[SILERO SERVER BUILD: 2026-09-08 22:00:00]", flush=True)
     print("Server starting...", flush=True)
 
     def self_test_normalization():
-        import tts_dict_loader
+        diag = tts_dict_loader.get_diagnostics()
         count = len(tts_dict_loader.get_it_dict_compiled())
-        print(f"[DictLoader] Loaded {count} entries", flush=True)
+        print(
+            f"[DictLoader] State={diag.get('state')} Loaded {count} IT entries "
+            f"(bundledDir={diag.get('bundledDir')}, userDir={diag.get('userDir')}, overrides={diag.get('userOverrideCounts', {}).get('totalOverrides', 0)})",
+            flush=True,
+        )
         tests = {
             "PayPal": "пэйпэл",
             "Tesla": "тесла",
@@ -660,26 +736,24 @@ if __name__ == '__main__':
                 print(f"[DictLoader-Test] OK: {word} -> {res}", flush=True)
 
     def self_test_dsp():
+        ffmpeg_bin = get_ffmpeg_bin()
+        if not ffmpeg_bin:
+            print("[DSP v2] ffmpeg not found; DSP disabled (raw WAV mode)", flush=True)
+            return
         try:
-            import subprocess
-            import tempfile
-            import os
-            import numpy as np
-            import soundfile as sf
-            
             with tempfile.TemporaryDirectory() as tmpdir:
                 raw_path = os.path.join(tmpdir, "test_raw.wav")
                 out_path = os.path.join(tmpdir, "test_out.wav")
-                
+
                 sr = 24000
                 silence = np.zeros(sr, dtype=np.float32)
                 sf.write(raw_path, silence, sr)
-                
+
                 subprocess.run([
-                    "ffmpeg", "-y", "-i", raw_path, 
+                    ffmpeg_bin, "-y", "-i", raw_path,
                     "-af", "highpass=f=60", out_path
                 ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                
+
                 print("[DSP v2] selftest OK", flush=True)
         except Exception as e:
             print(f"[DSP v2] selftest FAILED: {e}", flush=True)

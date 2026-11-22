@@ -1,3 +1,15 @@
+import type {
+  TaskDecompositionSource,
+  TaskDecompositionFallbackReason,
+  TasksAiDecomposeResponse
+} from '../../../shared/types/models/task';
+
+export type {
+  TaskDecompositionSource,
+  TaskDecompositionFallbackReason,
+  TasksAiDecomposeResponse
+};
+
 export interface TaskCategory {
   id: string;
   name: string;
@@ -9,6 +21,7 @@ export interface SubTask {
   text: string;
   completed: boolean;
   restSeconds?: number;
+  source?: TaskDecompositionSource;
 }
 
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'blocked' | 'deferred' | 'done';

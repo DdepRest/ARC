@@ -1,5 +1,7 @@
 # A.R.C. — Worklist Sweep Фазы 6 (Ликвидация остаточного долга)
 
+> **Статус документа: HISTORICAL / SUPERSEDED (21.11.2026).** Плановый sweep Фазы 6 завершён; актуальный аудит `npm run check-visual-constitution` фиксирует **0 нарушений** по всем счётчикам в незащищённых файлах. Документ сохранён в истории согласно `ARC_RELEASE_HARDENING_TZ.md` §10.
+
 Документ фиксирует реестр остаточных литералов (`literalAccentClasses` и `coloredStatusFills`) по 20 файлам после механического разведения УСЛОВИЯ 5 (Чанк 6).
 
 В Фазе 6 после снятия Scope Lock с пространств Chat и Tasks и планового sweep-а в Settings, Commands, Memory, Files, Modules, эти счётчики сводятся строго к **0**.

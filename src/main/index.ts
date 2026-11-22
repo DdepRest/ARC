@@ -13,14 +13,22 @@ import { PythonServerService } from './services/python_server.service';
 import { BuiltInLlmService } from './services/built-in-llm.service';
 import { vkWebSocketServer } from './services/media/vk-websocket-server';
 import { sttService } from './services/stt.service';
+import { sherpaDownloaderService } from './services/sherpa-downloader.service';
 import { resolveSherpaModelDir } from './services/sherpa-paths.util';
 import { aiCache } from './services/ai-cache';
 import { cacheService } from './services/cache.service';
 import { StorageManagerService } from './services/storage-manager.service';
-import { getCspPolicy, isTrustedOrigin } from '../shared/config/csp.config';
+import {
+  attachWindowSecurityGuards,
+  configureSessionSecurity,
+  isDevToolsAllowed,
+  resolveTrustedRendererRoot
+} from './services/security/electron-security.util';
 import { sanitizeError } from '../shared/utils/log-sanitizer';
 import { ipcLifecycle } from '../shared/utils/ipc-resilience';
 import { logger } from './utils/logger';
+import { resolveAppWindowIconPath } from './utils/app-icon.util';
+import { approvalService } from './services/approval.service';
 
 // Enforce Single Instance Lock to prevent duplicate background processes and port collisions
 const gotTheLock = app.requestSingleInstanceLock();
@@ -93,17 +101,38 @@ if (targetFpsSetting !== 'unlimited' && targetFpsSetting !== 'auto') {
 }
 
 function createWindow() {
+  const isDev = Boolean(process.env.ELECTRON_RENDERER_URL);
+  const trustedFileRoot = resolveTrustedRendererRoot(__dirname);
+  const allowDevTools = isDevToolsAllowed({
+    isDev,
+    isPackaged: app.isPackaged,
+    nodeEnv: process.env.NODE_ENV,
+    argv: process.argv,
+    env: process.env
+  });
+
+  const appIconPath = resolveAppWindowIconPath({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    mainDir: __dirname
+  });
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     show: false,
     backgroundColor: '#000000',
+    icon: appIconPath,
     frame: false,
     titleBarStyle: 'hidden', // User might have turned it off, ensure solid black background
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      webviewTag: false,
+      devTools: allowDevTools,
       backgroundThrottling: false,
       offscreen: false,
       webgl: true,
@@ -112,6 +141,7 @@ function createWindow() {
       hardwareAcceleration: true
     },
   });
+  approvalService.setTrustedWindow(mainWindow, trustedFileRoot);
 
   // Track window focus state for Smart Focus Throttling (Background Eco Mode)
   mainWindow.on('blur', () => {
@@ -131,73 +161,53 @@ function createWindow() {
   mainWindow.setMenu(null);
   
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.focus();
+    const win = mainWindow;
+    if (!win || win.isDestroyed()) return;
+    win.show();
+    win.focus();
     
     // Send app:modules-loaded immediately to allow instant window interactivity
-    mainWindow.webContents.send('app:modules-loaded');
+    win.webContents.send('app:modules-loaded');
 
     const dbHealth = DatabaseService.getHealthStatus();
     if (
       (dbHealth.mode === 'DB_SAFE_MODE' || dbHealth.mode === 'RECOVERED_FROM_CORRUPTION') &&
       dbHealth.userNotice
     ) {
-      mainWindow.webContents.send('ui:show-toast', {
+      win.webContents.send('ui:show-toast', {
         message: dbHealth.userNotice,
         type: dbHealth.isSafeMode ? 'error' : 'info',
         duration: dbHealth.isSafeMode ? 15000 : 9000
       });
     }
     
-    // Start Python TTS server (Silero v5.6) completely asynchronously in the background
-    PythonServerService.start(mainWindow).catch(err => {
+    // Start Python TTS server (Silero v5.6) only if already provisioned locally (never auto-install venv/pip/weights on startup)
+    PythonServerService.start(win, { allowProvisioning: false }).catch(err => {
       console.error(`[TTS Startup] Error in background startup: ${sanitizeError(err)}`);
     });
 
-    // Verify and start STT models (Whisper Small or Zipformer RU)
+    // Initialize STT only if a local model is already installed (no surprise startup downloads)
     const whisperRes = resolveSherpaModelDir('whisper-small');
     const zipformerRes = resolveSherpaModelDir('zipformer-ru');
+    const gigaRes = resolveSherpaModelDir('gigaam-ctc');
 
-    if (whisperRes.isComplete || zipformerRes.isComplete) {
-      console.log('[STT] Base models verified, initializing STT service...');
+    if (whisperRes.isComplete || zipformerRes.isComplete || gigaRes.isComplete) {
+      console.log('[STT] Installed model verified, initializing STT service...');
       sttService.initializeModels().catch(() => {});
     } else {
-      console.log('[STT] Base model missing, auto-downloading base STT models...');
-      sttService.autoDownloadMissingModels(false).then((res) => {
-        if (res.success) {
-          sttService.initializeModels().catch(() => {});
-        }
-      }).catch(err => {
-        console.warn(`[STT Startup] Auto-download error: ${sanitizeError(err)}`);
-      });
+      console.log('[STT] Startup check: no STT models installed yet; awaiting user consent/setup.');
     }
   });
 
-  const isDev = Boolean(process.env.ELECTRON_RENDERER_URL);
-
-  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details: any) => {
-    if (permission === 'media') {
-      const requestingUrl = details?.requestingUrl || (webContents && typeof webContents.getURL === 'function' ? webContents.getURL() : '');
-      const trusted = isTrustedOrigin(requestingUrl, isDev, process.env.ELECTRON_RENDERER_URL);
-      callback(trusted);
-    } else {
-      callback(false);
+  attachWindowSecurityGuards(mainWindow, {
+    isDev,
+    rendererUrl: process.env.ELECTRON_RENDERER_URL,
+    trustedFileRoot,
+    allowDevTools,
+    openExternal: (url) => shell.openExternal(url),
+    onBlockedNavigation: (blockedUrl) => {
+      console.warn(`[Security] Blocked untrusted navigation attempt: ${sanitizeError(blockedUrl)}`);
     }
-  });
-
-  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
-    if (permission === 'media') {
-      return isTrustedOrigin(requestingOrigin, isDev, process.env.ELECTRON_RENDERER_URL);
-    }
-    return false;
-  });
-
-  // Open external links in user's default browser instead of blank Electron popups
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url && url.startsWith('http')) {
-      shell.openExternal(url);
-    }
-    return { action: 'deny' };
   });
 
   // Renderer diagnostics & disaster observability
@@ -212,21 +222,15 @@ function createWindow() {
     }
   });
 
-  // Toggle DevTools on F12 or Ctrl+Shift+I in any environment for quick troubleshooting
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
-    if (input.type === 'keyDown' && (input.key === 'F12' || (input.control && input.shift && (input.key === 'I' || input.key === 'i')))) {
-      mainWindow.webContents.toggleDevTools();
-    }
-  });
-
   // Load Vite dev server if running locally, else load index.html
   console.log(`ARC Main: Loading URL ${process.env.ELECTRON_RENDERER_URL || 'from file system'}`);
   
   if (process.env.ELECTRON_RENDERER_URL) {
     const url = process.env.ELECTRON_RENDERER_URL.replace('localhost', '127.0.0.1');
     mainWindow.loadURL(url);
-    // Open DevTools in dev mode
-    mainWindow.webContents.openDevTools();
+    if (allowDevTools) {
+      mainWindow.webContents.openDevTools();
+    }
   } else {
     const indexPath = path.join(__dirname, '../renderer/index.html');
     mainWindow.loadFile(indexPath).catch((err) => {
@@ -249,24 +253,12 @@ app.whenReady().then(async () => {
     console.log('[Startup] Using existing caches (production mode).');
   }
 
-  // Настройка сетевых заголовков, CORS и Content-Security-Policy (вкл. https://fonts.googleapis.com и https://fonts.gstatic.com из csp.config.ts)
+  // Настройка сетевых заголовков, узкого HuggingFace CORS и Content-Security-Policy
   const isDevMode = Boolean(process.env.ELECTRON_RENDERER_URL);
-  const activeCsp = getCspPolicy(isDevMode);
-
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const responseHeaders = { ...details.responseHeaders };
-
-    // Set dynamic Content-Security-Policy (style-src https://fonts.googleapis.com, font-src https://fonts.gstatic.com)
-    responseHeaders['Content-Security-Policy'] = [activeCsp];
-
-    // Handle CORS for HuggingFace and mirrors in renderer web contexts
-    if (details.url.includes('hf-mirror.com') || details.url.includes('huggingface.co')) {
-      if (responseHeaders['access-control-allow-origin']) delete responseHeaders['access-control-allow-origin'];
-      if (responseHeaders['Access-Control-Allow-Origin']) delete responseHeaders['Access-Control-Allow-Origin'];
-      responseHeaders['Access-Control-Allow-Origin'] = ['*'];
-    }
-
-    callback({ responseHeaders });
+  configureSessionSecurity(session.defaultSession, {
+    isDev: isDevMode,
+    rendererUrl: process.env.ELECTRON_RENDERER_URL,
+    trustedFileRoot: resolveTrustedRendererRoot(__dirname)
   });
 
   // CSP Reporter Handler (active in dev / violation captures)
@@ -350,15 +342,12 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  sttService.shutdown();
+  void sherpaDownloaderService.cancelAllDownloads().catch(() => {});
   PythonServerService.stop();
   if (process.platform !== 'darwin') {
     app.quit();
   }
-});
-
-app.on('before-quit', () => {
-  macroScheduler.stop();
-  dialogTrashScheduler.stop();
 });
 
 let isQuitting = false;
@@ -369,10 +358,12 @@ app.on('before-quit', (e) => {
   e.preventDefault();
   isQuitting = true;
 
+  sttService.shutdown();
   PythonServerService.stop();
 
   Promise.race([
     Promise.allSettled([
+      sherpaDownloaderService.cancelAllDownloads(),
       ipcLifecycle.gracefulShutdown(BrowserWindow.getAllWindows(), 3000),
       BuiltInLlmService.getInstance().disposeAll()
     ]),

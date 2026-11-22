@@ -1,3 +1,5 @@
+import { getRuntimeBuildMetadata, UNKNOWN_BUILD_COMMIT } from '../../../../shared/config/build-metadata';
+
 export type ChangeType = 'feature' | 'improvement' | 'fix';
 
 export interface ReleaseChangeItem {
@@ -25,13 +27,15 @@ export interface ArcReleaseEntry {
   changes: ReleaseChangeItem[];
 }
 
-export const CURRENT_ARC_VERSION = '1.0.12';
-export const CURRENT_ARC_BUILD = '9048f71';
+const runtimeBuildMeta = getRuntimeBuildMetadata();
+export const CURRENT_ARC_VERSION =
+  runtimeBuildMeta.version !== UNKNOWN_BUILD_COMMIT ? runtimeBuildMeta.version : '1.0.12';
+export const CURRENT_ARC_BUILD = runtimeBuildMeta.commit;
 
 export const ARC_RELEASES: ArcReleaseEntry[] = [
   {
     version: '1.0.12',
-    buildHash: '9048f71',
+    buildHash: CURRENT_ARC_BUILD,
     dateRu: 'Ноябрь 2026',
     dateEn: 'November 2026',
     channel: 'stable',

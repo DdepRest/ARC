@@ -1,13 +1,13 @@
 import { vi, describe, it, expect, beforeAll } from 'vitest';
 
 const mockTables = vi.hoisted(() => ({
-    arc_objectives: [],
-    arc_outcomes: [],
-    arc_objective_risks: [],
-    arc_objective_dependencies: [],
-    arc_decisions: [],
-    arc_actions: [],
-    arc_artifacts: []
+    arc_objectives: [] as any[],
+    arc_outcomes: [] as any[],
+    arc_objective_risks: [] as any[],
+    arc_objective_dependencies: [] as any[],
+    arc_decisions: [] as any[],
+    arc_actions: [] as any[],
+    arc_artifacts: [] as any[]
   }));
 
 vi.mock('better-sqlite3', () => {

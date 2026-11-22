@@ -1,45 +1,40 @@
 import { app, safeStorage } from 'electron';
-import fs from 'fs';
 import path from 'path';
 import { sanitizeError } from '../../../shared/utils/log-sanitizer';
-import type { SecretReadStatus, SecretStorageMode, SystemSecurityStatus } from '../database-recovery.types';
+import {
+  CANONICAL_GEMINI_SECRET_KEY,
+  MASKED_SECRET_PLACEHOLDER,
+  SESSION_WARNING,
+  UNREADABLE_ERROR,
+  readRawVaultFileWithStatus,
+  writeVaultFileV2Atomic,
+  type SecretReadResult,
+  type SecretReadStatus,
+  type SecretStorageMode,
+  type SecretVaultEntryV2,
+  type SecretVaultFileV2,
+  type SecretWriteResult,
+  type SystemSecurityStatus
+} from './secret-vault.storage';
+import { runLegacyVaultMigration, type LegacyVaultMigrationResult } from './secret-vault.migration';
 
-export type { SecretReadStatus, SecretStorageMode, SystemSecurityStatus };
-
-export const MASKED_SECRET_PLACEHOLDER = '••••••••••••••••';
-const SESSION_WARNING = 'DPAPI (safeStorage) недоступен: секрет сохранён только в памяти текущей сессии и не записан на диск.';
-const UNREADABLE_ERROR = 'Секрет зашифрован под другим профилем Windows (DPAPI) или повреждён. Введите ключ заново.';
-
-export interface SecretVaultEntryV2 {
-  encrypted: true;
-  ciphertextBase64: string;
-  updatedAt: string;
-}
-
-export interface SecretVaultFileV2 {
-  schemaVersion: 2;
-  entries: Record<string, SecretVaultEntryV2>;
-}
-
-export interface SecretReadResult {
-  status: SecretReadStatus;
-  value: string | null;
-  storageMode: SecretStorageMode;
-  errorMessage?: string;
-}
-
-export interface SecretWriteResult {
-  success: boolean;
-  storageMode: SecretStorageMode;
-  isEncrypted: boolean;
-  warning?: string;
-  error?: string;
-}
+export {
+  CANONICAL_GEMINI_SECRET_KEY,
+  MASKED_SECRET_PLACEHOLDER,
+  type SecretReadResult,
+  type SecretReadStatus,
+  type SecretStorageMode,
+  type SecretVaultEntryV2,
+  type SecretVaultFileV2,
+  type SecretWriteResult,
+  type SystemSecurityStatus
+};
 
 export class SecretVaultService {
   private sessionMemorySecrets = new Map<string, string>();
   private unreadableKeys = new Set<string>();
   private customVaultPath?: string;
+  private tmpSeq = 0;
 
   constructor(customVaultPath?: string) {
     this.customVaultPath = customVaultPath;
@@ -47,7 +42,11 @@ export class SecretVaultService {
 
   public isSafeStorageAvailable(): boolean {
     try {
-      return Boolean(safeStorage && typeof safeStorage.isEncryptionAvailable === 'function' && safeStorage.isEncryptionAvailable());
+      return Boolean(
+        safeStorage &&
+          typeof safeStorage.isEncryptionAvailable === 'function' &&
+          safeStorage.isEncryptionAvailable()
+      );
     } catch {
       return false;
     }
@@ -58,13 +57,12 @@ export class SecretVaultService {
     try {
       if (app && typeof app.getPath === 'function') {
         const userDataDir = app.getPath('userData');
-        if (userDataDir) {
-          return path.join(userDataDir, 'secrets.json');
-        }
+        if (userDataDir) return path.join(userDataDir, 'secrets.json');
       }
-    } catch { /* fallback below */ }
-    const fallbackDir = path.join(process.cwd(), '.test-cache');
-    return path.join(fallbackDir, 'secrets.json');
+    } catch {
+      /* fallback below */
+    }
+    return path.join(process.cwd(), '.test-cache', 'secrets.json');
   }
 
   private getLegacySecureKeysPath(): string | null {
@@ -74,136 +72,62 @@ export class SecretVaultService {
         const userDataDir = app.getPath('userData');
         if (userDataDir) return path.join(userDataDir, 'config', 'secure-keys.json');
       }
-    } catch { /* ignore */ }
-    return null;
-  }
-
-  private readRawFile(filePath: string): any | null {
-    try {
-      if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (err) {
-      console.error(`[SecretVault] Failed to read "${filePath}": ${sanitizeError(err)}`);
+    } catch {
+      /* ignore */
     }
     return null;
   }
 
-  private writeVaultFileV2(vault: SecretVaultFileV2): boolean {
-    try {
-      const filePath = this.getVaultFilePath();
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(filePath, JSON.stringify(vault, null, 2), { encoding: 'utf-8', mode: 0o600 });
-      try { fs.chmodSync(filePath, 0o600); } catch { /* Windows no-op */ }
-      return true;
-    } catch (err) {
-      console.error(`[SecretVault] Failed to write secrets.json: ${sanitizeError(err)}`);
-      return false;
-    }
+  private writeVaultFileV2(
+    vault: SecretVaultFileV2,
+    expectedPlainByKey?: Record<string, string>
+  ): { ok: boolean; error?: string } {
+    this.tmpSeq += 1;
+    return writeVaultFileV2Atomic(this.getVaultFilePath(), vault, this.tmpSeq, expectedPlainByKey);
   }
 
   public readVaultV2(): SecretVaultFileV2 {
-    const raw = this.readRawFile(this.getVaultFilePath());
+    const status = readRawVaultFileWithStatus(this.getVaultFilePath());
+    const raw = status.validJson ? status.data : null;
     if (raw && raw.schemaVersion === 2 && raw.entries && typeof raw.entries === 'object') {
-      return raw as SecretVaultFileV2;
+      return { schemaVersion: 2, entries: { ...raw.entries } } as SecretVaultFileV2;
     }
     return { schemaVersion: 2, entries: {} };
   }
 
-  public migrateLegacySecretsOnStartup(): { migratedCount: number; movedToSessionCount: number } {
-    let migratedCount = 0;
-    let movedToSessionCount = 0;
-    const isDpapi = this.isSafeStorageAvailable();
-    const vaultPath = this.getVaultFilePath();
-    const legacyConfigPath = this.getLegacySecureKeysPath();
-    const candidateFiles = [vaultPath];
-    if (legacyConfigPath && legacyConfigPath !== vaultPath && fs.existsSync(legacyConfigPath)) {
-      candidateFiles.push(legacyConfigPath);
-    }
-
-    const v2Vault = this.readVaultV2();
-    let v2Modified = false;
-
-    for (const filePath of candidateFiles) {
-      const raw = this.readRawFile(filePath);
-      if (!raw || typeof raw !== 'object' || raw.schemaVersion === 2) continue;
-
-      for (const [keyName, record] of Object.entries(raw)) {
-        if (!record || typeof record !== 'object') continue;
-        const rec = record as { encrypted?: boolean; data?: string; ciphertextBase64?: string };
-        if (rec.encrypted === true && typeof rec.ciphertextBase64 === 'string') {
-          v2Vault.entries[keyName] = {
-            encrypted: true,
-            ciphertextBase64: rec.ciphertextBase64,
-            updatedAt: new Date().toISOString()
-          };
-          v2Modified = true;
-          continue;
-        }
-        if (typeof rec.data !== 'string' || !rec.data) continue;
-
-        let plainText: string | null = null;
-        if (rec.encrypted === true) {
-          if (isDpapi) {
-            try {
-              const buf = /^[0-9a-fA-F]+$/.test(rec.data) && rec.data.length % 2 === 0
-                ? Buffer.from(rec.data, 'hex')
-                : Buffer.from(rec.data, 'base64');
-              plainText = safeStorage.decryptString(buf);
-            } catch {
-              this.unreadableKeys.add(keyName);
-            }
-          }
-        } else {
-          try { plainText = Buffer.from(rec.data, 'base64').toString('utf-8'); } catch { plainText = null; }
-        }
-
-        if (plainText && plainText.trim()) {
-          const clean = plainText.trim();
-          if (isDpapi) {
-            const encryptedBuf = safeStorage.encryptString(clean);
-            v2Vault.entries[keyName] = {
-              encrypted: true,
-              ciphertextBase64: encryptedBuf.toString('base64'),
-              updatedAt: new Date().toISOString()
-            };
-            migratedCount++;
-          } else {
-            this.sessionMemorySecrets.set(keyName, clean);
-            movedToSessionCount++;
-          }
-          v2Modified = true;
-        }
+  public migrateLegacySecretsOnStartup(): LegacyVaultMigrationResult {
+    return runLegacyVaultMigration({
+      isDpapi: this.isSafeStorageAvailable(),
+      vaultPath: this.getVaultFilePath(),
+      legacyConfigPath: this.getLegacySecureKeysPath(),
+      v2Vault: this.readVaultV2(),
+      unreadableKeys: this.unreadableKeys,
+      sessionMemorySecrets: this.sessionMemorySecrets,
+      nextTmpSeq: () => {
+        this.tmpSeq += 1;
+        return this.tmpSeq;
       }
-      if (filePath === vaultPath) v2Modified = true;
-    }
-
-    if (v2Modified) this.writeVaultFileV2(v2Vault);
-    if (legacyConfigPath && legacyConfigPath !== vaultPath && fs.existsSync(legacyConfigPath)) {
-      try { fs.unlinkSync(legacyConfigPath); } catch { /* ignore */ }
-    }
-    return { migratedCount, movedToSessionCount };
+    });
   }
 
   public setSecret(keyName: string, plainValue: string): SecretWriteResult {
+    const isDpapi = this.isSafeStorageAvailable();
     if (!keyName || !keyName.trim()) {
-      return { success: false, storageMode: 'dpapi', isEncrypted: false, error: 'Key name is required' };
+      return {
+        success: false,
+        storageMode: isDpapi ? 'dpapi' : 'session_memory_only',
+        isEncrypted: false,
+        error: 'Key name is required'
+      };
     }
     const normalizedKey = keyName.trim();
     const trimmedVal = (plainValue || '').trim();
 
     if (!trimmedVal) {
-      this.deleteSecret(normalizedKey);
-      const isDpapi = this.isSafeStorageAvailable();
-      return {
-        success: true,
-        storageMode: isDpapi ? 'dpapi' : 'session_memory_only',
-        isEncrypted: isDpapi
-      };
+      return this.deleteSecret(normalizedKey);
     }
 
-    this.unreadableKeys.delete(normalizedKey);
-
-    if (this.isSafeStorageAvailable()) {
+    if (isDpapi) {
       try {
         const encryptedBuf = safeStorage.encryptString(trimmedVal);
         const vault = this.readVaultV2();
@@ -212,8 +136,12 @@ export class SecretVaultService {
           ciphertextBase64: encryptedBuf.toString('base64'),
           updatedAt: new Date().toISOString()
         };
+        const writeCheck = this.writeVaultFileV2(vault, { [normalizedKey]: trimmedVal });
+        if (!writeCheck.ok) {
+          return { success: false, storageMode: 'dpapi', isEncrypted: false, error: writeCheck.error };
+        }
+        this.unreadableKeys.delete(normalizedKey);
         this.sessionMemorySecrets.delete(normalizedKey);
-        this.writeVaultFileV2(vault);
         return { success: true, storageMode: 'dpapi', isEncrypted: true };
       } catch (err: any) {
         console.error(`[SecretVault] Encryption failed for "${normalizedKey}": ${sanitizeError(err)}`);
@@ -221,6 +149,7 @@ export class SecretVaultService {
       }
     }
 
+    this.unreadableKeys.delete(normalizedKey);
     this.sessionMemorySecrets.set(normalizedKey, trimmedVal);
     return { success: true, storageMode: 'session_memory_only', isEncrypted: false, warning: SESSION_WARNING };
   }
@@ -268,16 +197,24 @@ export class SecretVaultService {
     }
   }
 
-  public deleteSecret(keyName: string): void {
-    if (!keyName) return;
+  public deleteSecret(keyName: string): SecretWriteResult {
+    const isDpapi = this.isSafeStorageAvailable();
+    const storageMode: SecretStorageMode = isDpapi ? 'dpapi' : 'session_memory_only';
+    if (!keyName || !keyName.trim()) {
+      return { success: false, storageMode, isEncrypted: isDpapi, error: 'Key name is required' };
+    }
     const normalizedKey = keyName.trim();
-    this.sessionMemorySecrets.delete(normalizedKey);
-    this.unreadableKeys.delete(normalizedKey);
     const vault = this.readVaultV2();
     if (vault.entries[normalizedKey]) {
       delete vault.entries[normalizedKey];
-      this.writeVaultFileV2(vault);
+      const writeCheck = this.writeVaultFileV2(vault);
+      if (!writeCheck.ok) {
+        return { success: false, storageMode, isEncrypted: false, error: writeCheck.error };
+      }
     }
+    this.sessionMemorySecrets.delete(normalizedKey);
+    this.unreadableKeys.delete(normalizedKey);
+    return { success: true, storageMode, isEncrypted: isDpapi };
   }
 
   public hasSecret(keyName: string): { hasKey: boolean; status: SecretReadStatus; storageMode: SecretStorageMode } {
@@ -304,29 +241,44 @@ export class SecretVaultService {
       };
     }
     if (!providerId) return { status: 'missing', value: null, storageMode: 'dpapi' };
-
-    const primary = this.getSecret(this.getProviderSecretKey(providerId));
-    if (primary.status !== 'missing') return primary;
-    if (providerId.toLowerCase().includes('gemini')) return this.resolveGeminiApiKey();
-    return primary;
+    if (providerId.toLowerCase().includes('gemini')) {
+      const canonical = this.resolveGeminiApiKey();
+      if (canonical.status !== 'missing') return canonical;
+    }
+    return this.getSecret(this.getProviderSecretKey(providerId));
   }
 
   public setProviderApiKey(providerId: string, plainKey: string, isGeminiProvider: boolean = false): SecretWriteResult {
-    const keyName = this.getProviderSecretKey(providerId);
-    const res = this.setSecret(keyName, plainKey);
-    if (isGeminiProvider || providerId.toLowerCase().includes('gemini')) {
-      this.setSecret('gemini_api_key', plainKey);
-      process.env.GEMINI_API_KEY = (plainKey || '').trim();
+    const isGemini = isGeminiProvider || providerId.toLowerCase().includes('gemini');
+    if (isGemini) {
+      const res = this.setSecret(CANONICAL_GEMINI_SECRET_KEY, plainKey);
+      if (res.success) {
+        this.deleteSecret(this.getProviderSecretKey(providerId));
+        if (providerId !== 'gemini') this.deleteSecret(this.getProviderSecretKey('gemini'));
+        const clean = (plainKey || '').trim();
+        if (clean) process.env.GEMINI_API_KEY = clean;
+        else delete process.env.GEMINI_API_KEY;
+      }
+      return res;
     }
-    return res;
+    return this.setSecret(this.getProviderSecretKey(providerId), plainKey);
   }
 
-  public deleteProviderApiKey(providerId: string): void {
-    this.deleteSecret(this.getProviderSecretKey(providerId));
+  public deleteProviderApiKey(providerId: string): SecretWriteResult {
+    const isGemini = providerId.toLowerCase().includes('gemini');
+    const aliasRes = this.deleteSecret(this.getProviderSecretKey(providerId));
+    if (!aliasRes.success) return aliasRes;
+    if (isGemini) {
+      const canonicalRes = this.deleteSecret(CANONICAL_GEMINI_SECRET_KEY);
+      if (!canonicalRes.success) return canonicalRes;
+      if (providerId !== 'gemini') this.deleteSecret(this.getProviderSecretKey('gemini'));
+      delete process.env.GEMINI_API_KEY;
+    }
+    return aliasRes;
   }
 
   public resolveGeminiApiKey(): SecretReadResult {
-    const direct = this.getSecret('gemini_api_key');
+    const direct = this.getSecret(CANONICAL_GEMINI_SECRET_KEY);
     if (direct.status === 'ok' && direct.value) return direct;
     const prov = this.getSecret(this.getProviderSecretKey('gemini'));
     if (prov.status === 'ok' && prov.value) return prov;

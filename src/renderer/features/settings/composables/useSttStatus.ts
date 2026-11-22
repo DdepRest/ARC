@@ -1,11 +1,15 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../stores/settings.store';
+import type { VoiceModelSetupState } from '../../../../shared/utils/voice-model-state-machine';
 
 const sttEngineReady = ref(false);
 const activeEngineName = ref('');
 const sttStatusChecked = ref(false);
 const sttStatusChecking = ref(false);
 const sttLastError = ref<string | null>(null);
+const sttModelsInstalled = ref<boolean | null>(null);
+const sttMissingReason = ref<string | null>(null);
+const sttSetupState = ref<VoiceModelSetupState | null>(null);
 
 let activeConsumers = 0;
 let unsubscribeEngineReady: (() => void) | null = null;
@@ -17,6 +21,9 @@ export function resetSttStatusStateForTests() {
   sttStatusChecked.value = false;
   sttStatusChecking.value = false;
   sttLastError.value = null;
+  sttModelsInstalled.value = null;
+  sttMissingReason.value = null;
+  sttSetupState.value = null;
   activeConsumers = 0;
   initializedOnce = false;
   unsubscribeEngineReady?.();
@@ -26,22 +33,49 @@ export function resetSttStatusStateForTests() {
 export function useSttStatus() {
   const settingsStore = useSettingsStore();
 
-  const applyEnginePayload = (payload: { ready?: boolean; activeEngine?: string; engine?: string; error?: string } | null | undefined) => {
+  const applyEnginePayload = (
+    payload: {
+      ready?: boolean;
+      activeEngine?: string;
+      engine?: string;
+      error?: string | null;
+      lastError?: string | null;
+      modelsInstalled?: boolean;
+      missingReason?: string | null;
+      setupState?: VoiceModelSetupState;
+    } | null | undefined
+  ) => {
     if (!payload) return;
     if (typeof payload.ready === 'boolean') {
       sttEngineReady.value = payload.ready;
     }
+    if (typeof payload.modelsInstalled === 'boolean') {
+      sttModelsInstalled.value = payload.modelsInstalled;
+    }
+    if (payload.missingReason !== undefined) {
+      sttMissingReason.value = payload.missingReason;
+    }
+    if (payload.setupState) {
+      sttSetupState.value = payload.setupState;
+    }
     const engine = payload.activeEngine || payload.engine;
-    if (engine) {
+    if (engine && engine !== 'none') {
       activeEngineName.value = engine;
       if (engine === 'gigaam') {
         settingsStore.sttEngine = 'gigaam';
         settingsStore.sttModel = 'gigaam-ctc';
       }
+    } else if (engine === 'none') {
+      activeEngineName.value = '';
     }
-    if (payload.error) {
-      sttLastError.value = payload.error;
-    } else if (payload.ready) {
+    const errText = payload.error || payload.lastError || null;
+    const isMissingResourceState =
+      payload.setupState === 'missing' ||
+      payload.setupState === 'consent_required' ||
+      payload.modelsInstalled === false;
+    if (errText && !isMissingResourceState) {
+      sttLastError.value = errText;
+    } else if (payload.ready || isMissingResourceState) {
       sttLastError.value = null;
     }
   };
@@ -56,12 +90,11 @@ export function useSttStatus() {
     try {
       const s = await api.getSttStatus();
       sttStatusChecked.value = true;
-      if (s?.ready) {
+      if (s) {
         applyEnginePayload(s);
-      } else {
-        sttEngineReady.value = false;
-        activeEngineName.value = s?.activeEngine || '';
-        sttLastError.value = s?.error || null;
+        if (!s.ready && !s.lastError && !s.error) {
+          sttLastError.value = null;
+        }
       }
     } catch (err: any) {
       sttStatusChecked.value = true;
@@ -75,15 +108,19 @@ export function useSttStatus() {
   onMounted(() => {
     activeConsumers++;
     const api = typeof window !== 'undefined' ? (window as any).api : null;
-
+    if (api) {
+      void refreshSttStatus();
+    }
     if (!initializedOnce && api) {
       initializedOnce = true;
-      void refreshSttStatus();
       if (typeof api.onSttEngineReady === 'function') {
         unsubscribeEngineReady = api.onSttEngineReady((data: any) => {
           sttEngineReady.value = true;
           sttStatusChecked.value = true;
           sttLastError.value = null;
+          sttModelsInstalled.value = true;
+          sttMissingReason.value = null;
+          sttSetupState.value = 'ready';
           applyEnginePayload(data);
         });
       }
@@ -105,6 +142,9 @@ export function useSttStatus() {
     sttStatusChecked,
     sttStatusChecking,
     sttLastError,
+    sttModelsInstalled,
+    sttMissingReason,
+    sttSetupState,
     refreshSttStatus,
     applyEnginePayload
   };

@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MacroExecutor } from './MacroExecutor';
 import { approvalService } from './approval.service';
@@ -18,13 +19,22 @@ vi.mock('electron', () => ({
 }));
 
 vi.mock('child_process', () => ({
-  exec: vi.fn((cmd, cb) => {
+  exec: vi.fn((_cmd, cb) => {
     if (cb) cb(null, 'ok', '');
   }),
-  spawn: vi.fn(() => ({
-    unref: vi.fn(),
-    on: vi.fn()
-  }))
+  spawn: vi.fn(() => {
+    const child = new EventEmitter() as any;
+    child.pid = 12345;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+    child.unref = vi.fn();
+    queueMicrotask(() => {
+      child.stdout.emit('data', Buffer.from('ok'));
+      child.emit('close', 0);
+    });
+    return child;
+  })
 }));
 
 vi.mock('./tts.service', () => ({
@@ -61,7 +71,23 @@ describe('MacroExecutor Approval & Security Tests', () => {
     await executor.execute(macroData);
 
     expect(requestApprovalSpy).not.toHaveBeenCalled();
+    expect(childProcess.spawn).not.toHaveBeenCalled();
     expect(childProcess.exec).not.toHaveBeenCalled();
+  });
+
+  it('rejects spoofed binary and metacharacter injection in actions/shell without asking approval', async () => {
+    const requestApprovalSpy = vi.spyOn(approvalService, 'requestApproval');
+
+    await executor.execute({
+      nodes: [
+        { id: 1, type: 'actions/shell', properties: { command: 'nodeevil -v' }, flags: {} },
+        { id: 2, type: 'actions/shell', properties: { command: 'node -e "console.log(1)" && calc.exe' }, flags: {} }
+      ],
+      links: []
+    });
+
+    expect(requestApprovalSpy).not.toHaveBeenCalled();
+    expect(childProcess.spawn).not.toHaveBeenCalled();
   });
 
   it('requests approval for allowed shell command and blocks execution if user rejects', async () => {
@@ -81,10 +107,11 @@ describe('MacroExecutor Approval & Security Tests', () => {
 
     await executor.execute(macroData);
 
+    expect(childProcess.spawn).not.toHaveBeenCalled();
     expect(childProcess.exec).not.toHaveBeenCalled();
   });
 
-  it('executes shell command when user approves', async () => {
+  it('executes shell command via spawn(shell: false) when user approves', async () => {
     approvalService.setInterceptor(() => true);
 
     const macroData = {
@@ -101,9 +128,14 @@ describe('MacroExecutor Approval & Security Tests', () => {
 
     await executor.execute(macroData);
 
-    expect(childProcess.exec).toHaveBeenCalledWith(
-      'node -e "console.log(1)"',
-      expect.any(Function)
+    expect(childProcess.exec).not.toHaveBeenCalled();
+    expect(childProcess.spawn).toHaveBeenCalledWith(
+      'node',
+      ['-e', 'console.log(1)'],
+      expect.objectContaining({
+        shell: false,
+        windowsHide: true
+      })
     );
   });
 
@@ -125,6 +157,7 @@ describe('MacroExecutor Approval & Security Tests', () => {
     await executor.execute(macroData);
 
     expect(childProcess.exec).not.toHaveBeenCalled();
+    expect(childProcess.spawn).not.toHaveBeenCalled();
   });
 
   it('Task 2.3 — actions/speak routes through ttsService.speak and awaits speech', async () => {

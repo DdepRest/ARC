@@ -97,16 +97,30 @@ export const useSettingsStore = defineStore('settings', () => {
     persistedTtsProvider = 'auto';
   }
   const ttsProvider = ref<'auto' | 'silero' | 'edge' | 'native' | 'piper' | 'kokoro'>(persistedTtsProvider as any);
-  if (typeof window !== 'undefined' && (window as any).api?.setTtsProvider) {
-    (window as any).api.setTtsProvider(ttsProvider.value).catch(() => {});
-  }
-  watch(ttsProvider, (val) => {
+  const allowCloudTtsFallback = ref<boolean>(
+    typeof localStorage !== 'undefined' && localStorage.getItem('arc_allow_cloud_tts_fallback') === 'true'
+  );
+  const syncTtsPolicyToMain = (safeProvider: string) => {
+    const api = typeof window !== 'undefined' ? (window as any).api : null;
+    if (api?.setTtsPolicy) {
+      api.setTtsPolicy({
+        provider: safeProvider,
+        allowCloudTtsFallback: Boolean(allowCloudTtsFallback.value),
+        forcedOfflineMode: Boolean(forcedOfflineMode.value)
+      }).catch(() => {});
+    } else if (api?.setTtsProvider) {
+      api.setTtsProvider(safeProvider).catch(() => {});
+    }
+  };
+  syncTtsPolicyToMain(ttsProvider.value);
+  watch([ttsProvider, allowCloudTtsFallback, forcedOfflineMode], ([val, cloudFallback]) => {
     const safeVal = !['auto', 'silero', 'edge', 'native'].includes(val as string) ? 'auto' : val;
     if (safeVal !== val) { ttsProvider.value = safeVal as any; return; }
-    if (typeof localStorage !== 'undefined') localStorage.setItem('arc_tts_provider', safeVal);
-    if (typeof window !== 'undefined' && (window as any).api?.setTtsProvider) {
-      (window as any).api.setTtsProvider(safeVal).catch(() => {});
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('arc_tts_provider', safeVal);
+      localStorage.setItem('arc_allow_cloud_tts_fallback', String(Boolean(cloudFallback)));
     }
+    syncTtsPolicyToMain(safeVal);
   });
   const enableWebSearch = ref(true);
   const searchProvider = ref<'duckduckgo' | 'tavily' | 'serper'>('duckduckgo');
@@ -438,11 +452,25 @@ export const useSettingsStore = defineStore('settings', () => {
     label: string;
     undo: () => void;
     isCritical?: boolean;
+    variant?: 'synced' | 'error' | 'warn';
+    actionLabel?: string;
+    hideAction?: boolean;
+    badgeLabel?: string;
   } | null>(null);
   const lastChangedToastVisible = ref(false);
   let toastTimer: any = null;
 
-  function triggerSyncToast(label: string, undoFn: () => void, isCritical = false) {
+  function triggerSyncToast(
+    label: string,
+    undoFn: () => void,
+    isCritical = false,
+    options?: {
+      variant?: 'synced' | 'error' | 'warn';
+      actionLabel?: string;
+      hideAction?: boolean;
+      badgeLabel?: string;
+    }
+  ) {
     if (toastTimer) clearTimeout(toastTimer);
     lastChangedState.value = {
       label,
@@ -450,10 +478,18 @@ export const useSettingsStore = defineStore('settings', () => {
         undoFn();
         lastChangedToastVisible.value = false;
       },
-      isCritical
+      isCritical,
+      variant: options?.variant || 'synced',
+      actionLabel: options?.actionLabel,
+      hideAction: options?.hideAction,
+      badgeLabel: options?.badgeLabel
     };
     lastChangedToastVisible.value = true;
-    const duration = isCritical ? 5000 : 3000;
+    const duration = options?.variant === 'error'
+      ? 7000
+      : options?.variant === 'warn'
+        ? 6000
+        : (isCritical ? 5000 : 3000);
     toastTimer = setTimeout(() => {
       lastChangedToastVisible.value = false;
     }, duration);
@@ -669,6 +705,7 @@ export const useSettingsStore = defineStore('settings', () => {
       llmStreamingEnabled: llmStreamingEnabled.value,
       smartCacheEnabled: smartCacheEnabled.value,
       autoDownloadLargeModels: autoDownloadLargeModels.value,
+      allowCloudTtsFallback: allowCloudTtsFallback.value,
       voicePresetId: voicePresetId.value,
       voiceCalibratedPitch: voiceCalibratedPitch.value,
       f5ttsServerUrl: f5ttsServerUrl.value,
@@ -762,6 +799,7 @@ export const useSettingsStore = defineStore('settings', () => {
     llmStreamingEnabled.value = true;
     smartCacheEnabled.value = false;
     autoDownloadLargeModels.value = false;
+    allowCloudTtsFallback.value = false;
     voicePresetId.value = 'eugene';
     voiceCalibratedPitch.value = 0;
     f5ttsServerUrl.value = 'http://localhost:8002';
@@ -880,6 +918,7 @@ export const useSettingsStore = defineStore('settings', () => {
         if (previous.llmStreamingEnabled !== undefined) llmStreamingEnabled.value = previous.llmStreamingEnabled;
         if (previous.smartCacheEnabled !== undefined) smartCacheEnabled.value = previous.smartCacheEnabled;
         if (previous.autoDownloadLargeModels !== undefined) autoDownloadLargeModels.value = previous.autoDownloadLargeModels;
+        if (previous.allowCloudTtsFallback !== undefined) allowCloudTtsFallback.value = previous.allowCloudTtsFallback;
         voicePresetId.value = previous.voicePresetId;
         voiceCalibratedPitch.value = previous.voiceCalibratedPitch;
         f5ttsServerUrl.value = previous.f5ttsServerUrl;
@@ -985,6 +1024,7 @@ export const useSettingsStore = defineStore('settings', () => {
     autoDownloadLargeModels,
     ollamaKeepAlive,
     ttsProvider,
+    allowCloudTtsFallback,
     enableWebSearch,
     searchProvider,
     ttsSpeed,

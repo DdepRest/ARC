@@ -235,8 +235,15 @@
                 <button @click="handleAction(() => tasksStore.duplicateTask(task.id))" class="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--arc-hover)] text-left text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition-colors cursor-pointer">
                   <Copy class="w-3.5 h-3.5 text-[var(--arc-text-muted)]" /> Дублировать
                 </button>
-                <button @click="handleAction(() => tasksStore.decomposeTaskWithAI(task.id))" class="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--arc-hover)] text-[var(--arc-text-primary)] text-left transition-colors font-medium cursor-pointer">
-                  <Zap class="w-3.5 h-3.5 text-[var(--accent)]" /> Шаги AI
+                <button
+                  type="button"
+                  :disabled="isDecomposing || decompSource === 'llm'"
+                  @click="handleAction(() => tasksStore.decomposeTaskWithAI(task.id))"
+                  class="flex items-center gap-2 px-3 py-1.5 text-left transition-colors font-medium"
+                  :class="isDecomposing || decompSource === 'llm' ? 'text-[var(--arc-text-muted)] opacity-55 cursor-not-allowed' : 'hover:bg-[var(--arc-hover)] text-[var(--arc-text-primary)] cursor-pointer'"
+                >
+                  <Zap class="w-3.5 h-3.5 shrink-0" :class="decompSource === 'local_template' ? 'text-[var(--status-warn)]' : 'text-[var(--accent)]'" />
+                  <span>{{ aiDecompLabel }}</span>
                 </button>
                 <div class="h-px bg-[var(--arc-divider)] my-1"></div>
                 <button @click="handleAction(() => tasksStore.deleteTask(task.id))" class="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--arc-hover)] text-[var(--status-err)] text-left transition-colors cursor-pointer">
@@ -265,6 +272,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useTasksStore } from '../stores/tasks.store';
+import { getTaskDecompositionSource } from '../composables/useAiDecomp';
 import { storeToRefs } from 'pinia';
 import TaskBadgeContainer from './TaskBadgeContainer.vue';
 import { Task } from '../types';
@@ -272,8 +280,11 @@ import { Sun, MoreHorizontal, Copy, Zap, Trash2, CheckCircle2, Check, ChevronDow
 
 const props = defineProps<{ task: Task }>();
 const tasksStore = useTasksStore();
-const { expandedTaskId, activeFocusTaskId, isSprintRunning } = storeToRefs(tasksStore);
+const { expandedTaskId, activeFocusTaskId, isSprintRunning, decomposingTaskId } = storeToRefs(tasksStore);
 
+const decompSource = computed(() => getTaskDecompositionSource(props.task));
+const isDecomposing = computed(() => decomposingTaskId.value === props.task.id);
+const aiDecompLabel = computed(() => isDecomposing.value ? 'Декомпозиция...' : decompSource.value === 'local_template' ? 'Повторить ИИ' : decompSource.value === 'llm' ? 'Шаги AI (готово)' : 'Шаги AI');
 const isSelected = computed(() => expandedTaskId.value === props.task.id);
 const isActiveFocus = computed(() => activeFocusTaskId.value === props.task.id);
 const isTaskRunningNow = computed(() => isActiveFocus.value && isSprintRunning.value);
@@ -343,14 +354,8 @@ const closeMenuOnOutside = (e: Event) => {
   showMenu.value = false;
 };
 
-onMounted(() => {
-  window.addEventListener('mousedown', closeMenuOnOutside);
-  window.addEventListener('scroll', closeMenuOnOutside, true);
-});
-onUnmounted(() => {
-  window.removeEventListener('mousedown', closeMenuOnOutside);
-  window.removeEventListener('scroll', closeMenuOnOutside, true);
-});
+onMounted(() => { window.addEventListener('mousedown', closeMenuOnOutside); window.addEventListener('scroll', closeMenuOnOutside, true); });
+onUnmounted(() => { window.removeEventListener('mousedown', closeMenuOnOutside); window.removeEventListener('scroll', closeMenuOnOutside, true); });
 
 const showInlineSubtasks = ref(false);
 const inlineSubtaskText = ref('');
@@ -361,32 +366,15 @@ const titleInputRef = ref<HTMLInputElement | null>(null);
 
 const handleHeaderClick = () => { if (!isEditingTitle.value) tasksStore.toggleExpand(props.task.id); };
 
-const openInlineSubtaskInput = async () => {
-  showInlineSubtasks.value = true;
-  await nextTick();
-  inlineSubtaskInputRef.value?.focus();
-};
-
-const handleAddInlineSubtask = () => {
-  const trimmed = inlineSubtaskText.value.trim();
-  if (trimmed) { tasksStore.addSubtask(props.task.id, trimmed); inlineSubtaskText.value = ''; }
-};
-
-const startEditTitle = async () => {
-  isEditingTitle.value = true;
-  editTitleText.value = props.task.text;
-  await nextTick();
-  titleInputRef.value?.focus();
-  titleInputRef.value?.select();
-};
-
+const openInlineSubtaskInput = async () => { showInlineSubtasks.value = true; await nextTick(); inlineSubtaskInputRef.value?.focus(); };
+const handleAddInlineSubtask = () => { const t = inlineSubtaskText.value.trim(); if (t) { tasksStore.addSubtask(props.task.id, t); inlineSubtaskText.value = ''; } };
+const startEditTitle = async () => { isEditingTitle.value = true; editTitleText.value = props.task.text; await nextTick(); titleInputRef.value?.focus(); titleInputRef.value?.select(); };
 const saveTitle = () => {
   if (!isEditingTitle.value) return;
   const trimmed = editTitleText.value.trim();
   if (trimmed && trimmed !== props.task.text) tasksStore.updateTaskTitle(props.task.id, trimmed);
   isEditingTitle.value = false;
 };
-
 const cancelTitle = () => { editTitleText.value = props.task.text; isEditingTitle.value = false; };
 const handleAction = (action: () => void) => { action(); showMenu.value = false; };
 </script>

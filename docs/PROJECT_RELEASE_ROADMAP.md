@@ -4,7 +4,8 @@
 > **Объект аудита**: **A.R.C. (Autonomous Reactor Core)** — локально-ориентированная Windows/Electron AI-среда вокруг живого 3D-Реактора  
 > **Версия кодовой базы**: `1.0.0` (ветка `main`, 495 файлов в `src/**`, ~63 975 строк кода)  
 > **Принцип приоритизации**: `Целостность данных и безопасность → Работоспособность установщика и ИИ → Голосовой контур и устранение бутафории → Оптимизация на основе замеров → Расширение функциональности`  
-> **Статус защищённых зон**: 3D-Реактор (`src/renderer/components/reactor/**`, `ReactorCore.vue`, `useReactor3D.ts`), `useVoice.ts`, `built-in-llm.service.ts`, `useMacroEditor.ts`, `ObjectiveEngine.ts`, а также UI-пространства `Chat` и `Tasks` соблюдаются согласно `AGENTS.md` Раздел 3 и **не подвергаются непрошеному рефакторингу ради формальных метрик размера файла**.
+> **Статус защищённых зон**: 3D-Реактор (`src/renderer/components/reactor/**`, `ReactorCore.vue`, `useReactor3D.ts`), `useVoice.ts`, `built-in-llm.service.ts`, `useMacroEditor.ts`, `ObjectiveEngine.ts`, а также UI-пространства `Chat` и `Tasks` соблюдаются согласно `AGENTS.md` Раздел 3 и **не подвергаются непрошеному рефакторингу ради формальных метрик размера файла**.  
+> **Синхронизация Release Hardening (21.11.2026, `v1.0.12 RC`):** исторический снимок блокеров ниже сохранён как исходный baseline аудита `v1.0.0`. Все кодовые, архитектурные, security, voice/model, DB-migration, CI/packaging, SBOM (`CycloneDX 1.5`) и repository-hygiene задачи гейтов **G1–G7** реализованы и проверены в Linux (`ARC_RELEASE_HARDENING_TZ.md`, Sprint 0–4 + §§9–11, `npm run gate` зелёный). **Gate G8 (живые прогоны на Windows 10/11 — soak, upgrade/DPAPI, Clean OS, UX-матрица, подпись артефактов `UNSIGNED` и release sign-off)** остаётся **`NOT RUN`** и выполняется по `docs/WINDOWS-RELEASE-QA-PROTOCOL.md`.
 
 ---
 

@@ -9,6 +9,15 @@ import {
   type DatabaseSnapshotResult
 } from './database-snapshot.service';
 import { buildDataBackupZipBuffer } from '../utils/zip-writer';
+import {
+  getAppDataPreservedAssetList,
+  normalizeResetOptions,
+  type ResetOptions,
+  type ResetSystemResult
+} from '../../shared/config/reset-policy';
+import { executeAppDataReset, type StorageResetFsOps } from './storage-reset.util';
+
+export type { ResetOptions, ResetSystemResult };
 
 export interface StorageFolderInfo {
   path: string;
@@ -29,10 +38,6 @@ export interface StorageInfo {
   appDataLegacyPath: string;
 }
 
-export interface ResetOptions {
-  clearModels?: boolean;
-}
-
 export interface DataArchiveExportResult {
   success: boolean;
   filePath?: string;
@@ -44,10 +49,27 @@ export interface DataArchiveExportResult {
 
 export class StorageManagerService {
   private static dataDir: string = '';
+  private static appDataDirOverride: string | null = null;
   private static isExportingArchive = false;
 
   public static setDataDirForTests(dir: string): void {
     StorageManagerService.dataDir = dir;
+  }
+
+  public static setAppDataDirForTests(dir: string | null): void {
+    StorageManagerService.appDataDirOverride = dir;
+  }
+
+  private static getDefaultAppDataDir(): string {
+    if (StorageManagerService.appDataDirOverride !== null) {
+      return StorageManagerService.appDataDirOverride;
+    }
+    return (
+      process.env.APPDATA ||
+      (process.platform === 'darwin'
+        ? path.join(os.homedir(), 'Library', 'Application Support')
+        : path.join(os.homedir(), '.config'))
+    );
   }
 
   public static getAppRoot(): string {
@@ -290,94 +312,46 @@ export class StorageManagerService {
     }
   }
 
-  public static async resetSystemData(options?: ResetOptions): Promise<{ success: boolean; error?: string }> {
-    console.log('[StorageManager] Executing full system reset...', options);
-    
-    // 1. Close database
-    try {
-      DatabaseService.close();
-    } catch (e) {
-      console.warn('[StorageManager] Error closing database during reset:', e);
+  public static async resetSystemData(
+    options?: ResetOptions,
+    fsOps?: StorageResetFsOps
+  ): Promise<ResetSystemResult> {
+    const parsed = normalizeResetOptions(options);
+    if (parsed.valid === false) {
+      return {
+        success: false,
+        mode: 'app_data_and_config',
+        clearModels: false,
+        removedTargets: [],
+        preservedAssets: getAppDataPreservedAssetList({ clearModels: false }),
+        failedTargets: [],
+        relaunched: false,
+        error: parsed.error
+      };
     }
 
-    // 2. Clear browser/electron session storage
-    try {
-      if (session?.defaultSession) {
-        await session.defaultSession.clearStorageData();
-      }
-    } catch (e) {
-      console.warn('[StorageManager] Error clearing electron session data:', e);
-    }
-
-    // 3. Clean %APPDATA%/a.r.c and %APPDATA%/A.R.C
-    const appData = process.env.APPDATA || (process.platform === 'darwin'
-      ? path.join(os.homedir(), 'Library', 'Application Support')
-      : path.join(os.homedir(), '.config'));
-
-    const legacyDirs = [
-      path.join(appData, 'a.r.c'),
-      path.join(appData, 'A.R.C'),
-      path.join(appData, 'arc')
-    ];
-
-    for (const lDir of legacyDirs) {
-      try {
-        if (fs.existsSync(lDir)) {
-          console.log(`[StorageManager] Removing legacy AppData directory: ${lDir}`);
-          fs.rmSync(lDir, { recursive: true, force: true });
+    return executeAppDataReset({
+      dataDir: StorageManagerService.getDataDir(),
+      appDataDir: StorageManagerService.getDefaultAppDataDir(),
+      clearModels: parsed.options.clearModels,
+      closeDatabase: () => DatabaseService.close(),
+      clearSessionStorage: async () => {
+        if (session?.defaultSession) {
+          await session.defaultSession.clearStorageData();
         }
-      } catch (err) {
-        console.warn(`[StorageManager] Failed to delete ${lDir}:`, err);
-      }
-    }
-
-    // 4. Clean local portable data/ directories
-    const dataDir = StorageManagerService.getDataDir();
-    const cleanTargets = [
-      path.join(dataDir, 'database'),
-      path.join(dataDir, 'config'),
-      path.join(dataDir, 'cache'),
-      path.join(dataDir, 'macros'),
-      path.join(dataDir, 'Partitions'),
-      path.join(dataDir, 'Local Storage'),
-      path.join(dataDir, 'IndexedDB'),
-      path.join(dataDir, 'Session Storage'),
-      path.join(dataDir, 'Network'),
-      path.join(dataDir, 'GPUCache'),
-      path.join(dataDir, 'arc.db'),
-      path.join(dataDir, 'arc.db-wal'),
-      path.join(dataDir, 'arc.db-shm'),
-      path.join(dataDir, 'arc-performance-settings.json')
-    ];
-
-    if (options?.clearModels) {
-      cleanTargets.push(path.join(dataDir, 'models'));
-    }
-
-    for (const target of cleanTargets) {
-      try {
-        if (fs.existsSync(target)) {
-          console.log(`[StorageManager] Removing target: ${target}`);
-          fs.rmSync(target, { recursive: true, force: true });
+      },
+      recreateBaseDirs: () => {
+        StorageManagerService.initPortablePaths();
+      },
+      relaunchApp: () => {
+        if (app && typeof app.relaunch === 'function') {
+          app.relaunch();
+          app.exit(0);
+          return true;
         }
-      } catch (err) {
-        console.warn(`[StorageManager] Failed to remove ${target}:`, err);
-      }
-    }
-
-    // Re-create necessary directory structure
-    StorageManagerService.initPortablePaths();
-
-    // 5. Relaunch application cleanly
-    try {
-      if (app && typeof app.relaunch === 'function') {
-        app.relaunch();
-        app.exit(0);
-      }
-      return { success: true };
-    } catch (err: any) {
-      console.error('[StorageManager] Error relaunching app after reset:', err);
-      return { success: false, error: err?.message || String(err) };
-    }
+        return false;
+      },
+      fsOps
+    });
   }
 }

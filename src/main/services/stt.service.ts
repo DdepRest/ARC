@@ -9,6 +9,7 @@ import { applyCorrections } from './stt-corrections.util';
 import { buildSttWorkerConfigs, broadcastSttToast, executeSttAutoDownload, isGigaamPreVerified, attemptGigaamHotSwap } from './stt-config.helper';
 import { sttCircuitBreaker } from './stt-circuit-breaker.util';
 import { ecoService } from './eco.service';
+import type { VoiceModelSetupState } from '../../shared/utils/voice-model-state-machine';
 
 export class STTService extends EventEmitter {
   private isListening: boolean = false;
@@ -16,9 +17,11 @@ export class STTService extends EventEmitter {
   private modelLoaded: boolean = false;
   private sttEngine: 'gigaam' | 'legacy' = 'gigaam';
   private activeEngine: 'gigaam' | 'whisper' | 'sherpa' | 'none' = 'none';
+  private loadedEngines: Set<'gigaam' | 'whisper' | 'sherpa'> = new Set();
   private activeGigaamSource: string = 'fussraider-multilingual';
   private downloadPromise: Promise<{ success: boolean; error?: string }> | null = null;
-  private intentionalRestart: boolean = false;
+  private intentionallyStoppedChildren = new WeakSet<cp.ChildProcess>();
+  private isShuttingDown: boolean = false;
   private crashTimestamps: number[] = [];
   private heartbeatIntervalTimer: NodeJS.Timeout | null = null;
   private heartbeatResetTimer: NodeJS.Timeout | null = null;
@@ -27,6 +30,7 @@ export class STTService extends EventEmitter {
   private activeInitPromise: Promise<{ ready: boolean; error?: string }> | null = null;
   private activeInitTimer: NodeJS.Timeout | null = null;
   public lastInitError: string = '';
+  private missingModelsReason: string | null = null;
 
   constructor() {
     super();
@@ -62,9 +66,9 @@ export class STTService extends EventEmitter {
 
         if (this.heartbeatResetTimer) clearTimeout(this.heartbeatResetTimer);
         this.heartbeatResetTimer = setTimeout(() => {
-          if (!this.isRecoveringHeartbeat) return;
+          if (!this.isRecoveringHeartbeat || this.isShuttingDown) return;
           console.error('[STT] Worker did not recover after reset_buffer. Force restarting via SIGTERM...');
-          this.terminateWorker();
+          this.terminateWorker(true);
           this.initializeModels('whisper-small').then(res => {
             if (res.ready) console.log('[STT] Voice: STT Listening started');
           }).catch(() => {});
@@ -82,7 +86,8 @@ export class STTService extends EventEmitter {
     }
   }
 
-  async startListening(modelName?: string): Promise<boolean> {
+  async startListening(modelName?: string, options?: { allowAutoDownload?: boolean }): Promise<boolean> {
+    this.isShuttingDown = false;
     if (this.isListening) return true;
     
     if (!this.modelLoaded) {
@@ -90,18 +95,20 @@ export class STTService extends EventEmitter {
       const whisperRes = resolveSherpaModelDir('whisper-small');
       const gigaRes = resolveSherpaModelDir('gigaam-ctc');
 
-      // STT Never Dead: non-blocking background download for GigaAM
-      if (!gigaRes.isComplete) {
-        console.log('[STT] GigaAM missing or updating, starting background download...');
-        this.autoDownloadMissingModels().catch((e) => console.warn('[STT] Background download warning:', e));
+      if (!sherpaRes.isComplete && !whisperRes.isComplete && !gigaRes.isComplete) {
+        if (options?.allowAutoDownload === true) {
+          console.log('[STT] Explicit auto-download consented during startListening...');
+          await this.autoDownloadMissingModels(false);
+        } else {
+          this.lastInitError = '';
+          this.missingModelsReason = 'Голосовые модели STT не установлены. Настройте голосовой контур в мастере первого запуска или в настройках.';
+          console.warn('[STT] Cannot start listening: no STT models installed and auto-download not consented.');
+          broadcastSttToast(this.missingModelsReason, 'warning', 5000);
+          return false;
+        }
       }
 
-      // If no base engine available, await download
-      if (!sherpaRes.isComplete && !whisperRes.isComplete) {
-        console.log('[STT] Base models missing. Awaiting auto-download...');
-        await this.autoDownloadMissingModels();
-      }
-
+      this.missingModelsReason = null;
       const initResult = await this.initializeModels(modelName);
       if (!initResult.ready) {
         this.lastInitError = initResult.error || 'Ошибка инициализации STT';
@@ -116,15 +123,15 @@ export class STTService extends EventEmitter {
   }
 
   async autoDownloadMissingModels(
-    includeGigaam: boolean | ((data: any) => void) = false,
+    includeGigaamOrOpts: boolean | { includeGigaam?: boolean; includeWhisper?: boolean; includeZipformer?: boolean } | ((data: any) => void) = false,
     onProgress?: (data: any) => void
-  ): Promise<{ success: boolean; error?: string }> {
-    const shouldIncludeGigaam = typeof includeGigaam === 'boolean' ? includeGigaam : false;
-    const progressCb = typeof includeGigaam === 'function' ? includeGigaam : onProgress;
+  ): Promise<{ success: boolean; cancelled?: boolean; error?: string }> {
+    const opts = typeof includeGigaamOrOpts === 'function' ? false : includeGigaamOrOpts;
+    const progressCb = typeof includeGigaamOrOpts === 'function' ? includeGigaamOrOpts : onProgress;
     if (this.downloadPromise) return this.downloadPromise;
     this.downloadPromise = (async () => {
       try {
-        return await executeSttAutoDownload(shouldIncludeGigaam, progressCb, async () => {
+        return await executeSttAutoDownload(opts, progressCb, async () => {
           if (this.child?.connected && this.activeEngine !== 'gigaam') await this.triggerGigaamHotSwapIfReady();
         });
       } finally {
@@ -138,8 +145,13 @@ export class STTService extends EventEmitter {
     this.isListening = false;
   }
 
+  shutdown(): void {
+    this.isShuttingDown = true;
+    this.isListening = false;
+    this.terminateWorker(true);
+  }
+
   private terminateWorker(intentional: boolean = false) {
-    if (intentional) this.intentionalRestart = true;
     if (this.activeInitTimer) {
       clearTimeout(this.activeInitTimer);
       this.activeInitTimer = null;
@@ -154,8 +166,14 @@ export class STTService extends EventEmitter {
       this.heartbeatResetTimer = null;
     }
     this.isRecoveringHeartbeat = false;
+    this.pendingAudioChunks = [];
+    this.pendingAudioSamples = 0;
+    this.ipcInFlightChunks = 0;
     if (this.child) {
       const proc = this.child;
+      if (intentional) {
+        this.intentionallyStoppedChildren.add(proc);
+      }
       this.child = null;
       try {
         if (proc.connected) proc.disconnect();
@@ -163,6 +181,8 @@ export class STTService extends EventEmitter {
       } catch (e) {}
     }
     this.modelLoaded = false;
+    this.activeEngine = 'none';
+    this.loadedEngines.clear();
   }
 
   async switchModel(modelId: string, reason: 'user_switch' | 'crash' = 'user_switch'): Promise<{ ready: boolean; error?: string; loading?: boolean; message?: string }> {
@@ -201,7 +221,7 @@ export class STTService extends EventEmitter {
       }
     }
 
-    if (reason === 'user_switch') this.intentionalRestart = true;
+    this.isShuttingDown = false;
     this.terminateWorker(reason === 'user_switch');
     return this.initializeModels(modelId);
   }
@@ -224,6 +244,8 @@ export class STTService extends EventEmitter {
           } else {
             broadcastSttToast('Модель загружена и готова к работе', 'success');
           }
+        } else if (res.cancelled) {
+          console.log(`[STT] Background download of ${modelKey} cancelled by user.`);
         } else {
           console.warn(`[STT] Background download error: ${res.error}`);
           broadcastSttToast(`Загрузка ${modelKey} прервана: ${res.error || 'сбой сети'}. Текущий движок активен.`, 'warning');
@@ -237,6 +259,7 @@ export class STTService extends EventEmitter {
   }
 
   async initializeModels(requestedModel?: string): Promise<{ ready: boolean; error?: string }> {
+    this.isShuttingDown = false;
     if (this.modelLoaded && this.child && this.child.connected) {
       return { ready: true };
     }
@@ -245,7 +268,7 @@ export class STTService extends EventEmitter {
     }
     
     this.activeInitPromise = new Promise<{ ready: boolean; error?: string }>((resolve) => {
-      this.terminateWorker();
+      this.terminateWorker(true);
       
       const gigaDirRes = resolveSherpaModelDir('gigaam-ctc');
       const whisperDirRes = resolveSherpaModelDir('whisper-small');
@@ -357,16 +380,27 @@ export class STTService extends EventEmitter {
             return;
           }
           if (msg.type === 'engine_ready') {
-            this.activeEngine = msg.engine || 'whisper';
+            const readyEngine = msg.engine || 'whisper';
+            this.activeEngine = readyEngine;
+            if (readyEngine === 'gigaam' || readyEngine === 'whisper' || readyEngine === 'sherpa') {
+              this.loadedEngines.add(readyEngine);
+            }
             console.log(`[STT] Engine ready: ${this.activeEngine}`);
             this.emit('engine-ready', { engine: this.activeEngine });
           } else if (msg.type === 'init_result' || msg.type === 'worker-ready') {
             if (!hasResolved) {
               if (msg.success) {
                 this.modelLoaded = true;
+                this.lastInitError = '';
+                this.missingModelsReason = null;
+                this.loadedEngines.clear();
+                if (msg.hasGigaam) this.loadedEngines.add('gigaam');
+                if (msg.hasWhisper) this.loadedEngines.add('whisper');
+                if (!msg.hasGigaam && !msg.hasWhisper) this.loadedEngines.add('sherpa');
                 if (!this.activeEngine || this.activeEngine === 'none') {
                   this.activeEngine = msg.hasGigaam ? 'gigaam' : (msg.hasWhisper ? 'whisper' : 'sherpa');
                 }
+                this.loadedEngines.add(this.activeEngine);
                 console.log(`[STT] Worker initialized successfully. Active: ${this.activeEngine}. GigaAM: ${msg.hasGigaam}, Whisper: ${msg.hasWhisper}, VAD: ${msg.hasVad}`);
                 this.emit('ready', { model: 'stt-v2', engine: this.activeEngine });
                 this.emit('engine-ready', { engine: this.activeEngine });
@@ -386,9 +420,9 @@ export class STTService extends EventEmitter {
               }
             }
           } else if (msg.type === 'zero_engines_error') {
-            console.error('[STT] Worker reported zero engines. Recovering floor Whisper Small...');
-            broadcastSttToast('Сбой движка STT: авто-восстановление базовой модели...', 'error');
-            this.autoDownloadMissingModels();
+            console.error('[STT] Worker reported zero engines available.');
+            this.lastInitError = 'Ни один движок STT не готов. Проверьте установленные модели в настройках.';
+            broadcastSttToast(this.lastInitError, 'error');
           } else if (msg.type === 'partial') {
             if (msg.text) this.emit('partial', msg.text);
           } else if (msg.type === 'final') {
@@ -410,8 +444,7 @@ export class STTService extends EventEmitter {
         });
 
         proc.on('exit', (code, signal) => {
-          const wasIntentional = this.intentionalRestart;
-          this.intentionalRestart = false;
+          const wasIntentional = this.isShuttingDown || this.intentionallyStoppedChildren.has(proc);
           if (wasIntentional || code === 0 || signal === 'SIGTERM') {
             console.log(`[STT] Worker exited cleanly (code: ${code}, signal: ${signal})`);
             if (this.child === proc) this.terminateWorker(true);
@@ -441,6 +474,8 @@ export class STTService extends EventEmitter {
           
           if (this.crashTimestamps.length >= 3) {
             const msg = `Критическая ошибка STT: циклическое падение (${code}, ${signal}). Микрофон отключен.`;
+            this.lastInitError = msg;
+            this.isListening = false;
             console.error(`[STT] ${msg}`);
             broadcastSttToast(msg, 'error');
             finishInit({ ready: false, error: msg });
@@ -449,7 +484,7 @@ export class STTService extends EventEmitter {
 
           if (!hasResolved) {
             finishInit({ ready: false, error: `Worker exited prematurely (code: ${code}, signal: ${signal})` });
-          } else {
+          } else if (!this.isShuttingDown) {
             console.log('[STT] Unexpected worker exit during runtime, recovering floor Whisper...');
             this.initializeModels('whisper-small').then(res => {
               if (res.ready) console.log('[STT] Voice: STT Listening started');
@@ -586,12 +621,33 @@ export class STTService extends EventEmitter {
   }
 
   getStatus() {
+    const zipInstalled = resolveSherpaModelDir('zipformer-ru').isComplete;
+    const whisperInstalled = resolveSherpaModelDir('whisper-small').isComplete;
+    const gigaInstalled = resolveSherpaModelDir('gigaam-ctc').isComplete;
+    const modelsInstalled = zipInstalled || whisperInstalled || gigaInstalled;
+    const mapEngineToModelId = (eng: 'gigaam' | 'whisper' | 'sherpa') =>
+      eng === 'gigaam' ? 'gigaam-ctc' : eng === 'whisper' ? 'whisper-small' : 'zipformer-ru';
+    const loadedModelIds = this.modelLoaded ? Array.from(this.loadedEngines).map(mapEngineToModelId) : [];
+    const activeModelId =
+      this.modelLoaded && this.activeEngine !== 'none' ? mapEngineToModelId(this.activeEngine) : null;
+    const setupState: VoiceModelSetupState = this.activeInitPromise
+      ? 'checking'
+      : this.lastInitError
+      ? 'failed'
+      : !modelsInstalled
+      ? (this.missingModelsReason ? 'consent_required' : 'missing')
+      : 'ready';
     return {
       ready: this.modelLoaded,
       modelLoaded: this.modelLoaded,
       engine: this.sttEngine,
       activeEngine: this.activeEngine,
-      lastError: this.lastInitError || null
+      lastError: this.lastInitError || null,
+      modelsInstalled,
+      missingReason: !modelsInstalled ? (this.missingModelsReason || 'Локальные модели STT ещё не скачаны') : null,
+      setupState,
+      loadedModelIds,
+      activeModelId
     };
   }
 

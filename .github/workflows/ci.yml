@@ -3,7 +3,6 @@ name: CI Gate
 on:
   push:
     branches: [ main, master ]
-    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
 
@@ -31,6 +30,12 @@ jobs:
       - name: Type Check (TypeScript)
         run: npm run lint
 
+      - name: Strict Type Check (Shared Contracts & Hardened Modules)
+        run: npm run lint:strict
+
+      - name: Static Vue / TS / IPC Boundary Checks
+        run: npm run check-boundaries
+
       - name: File Size Guard (AGENTS.md limits)
         run: npm run check-sizes
 
@@ -41,13 +46,21 @@ jobs:
         run: npm test
 
       - name: Build Electron & Renderer bundles
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+          ARC_REQUIRE_BUILD_COMMIT: 'true'
         run: npm run build
+
+      - name: Generate CycloneDX 1.5 SBOM
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: npm run generate:sbom
 
   package-win:
     name: Package Windows x64 (NSIS & Portable)
     needs: validate
     runs-on: windows-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 
     steps:
       - name: Checkout repository
@@ -73,6 +86,12 @@ jobs:
       - name: Type Check (TypeScript)
         run: npm run lint
 
+      - name: Strict Type Check (Shared Contracts & Hardened Modules)
+        run: npm run lint:strict
+
+      - name: Static Vue / TS / IPC Boundary Checks
+        run: npm run check-boundaries
+
       - name: Run Vitest Unit Tests on Windows
         run: npm test
 
@@ -88,12 +107,24 @@ jobs:
           }
 
       - name: Build & Package Windows x64 Installer
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+          ARC_REQUIRE_BUILD_COMMIT: 'true'
         run: npm run pack:win
+
+      - name: Run Windows Soak Harness Self-Test
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows-soak-harness.ps1 -SelfTest
 
       - name: Verify Artifacts & Generate SHA-256 Checksums
         id: verify
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-win-artifacts.ps1
+
+      - name: Generate CycloneDX 1.5 SBOM
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: npm run generate:sbom
 
       - name: Upload Windows Release Artifacts
         uses: actions/upload-artifact@v4
@@ -104,5 +135,7 @@ jobs:
             ${{ steps.verify.outputs.portable_path }}
             ${{ steps.verify.outputs.nsis_blockmap_path }}
             dist/SHA256SUMS.txt
+            dist/ARTIFACT_VERIFICATION.json
+            dist/sbom-cyclonedx.json
           if-no-files-found: error
           retention-days: 14

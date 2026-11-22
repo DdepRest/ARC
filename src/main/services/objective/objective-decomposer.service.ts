@@ -9,6 +9,10 @@ import {
   type DecomposedTaskItem,
   type DecomposedRiskItem
 } from './decomposition-validator';
+import type {
+  TaskDecompositionFallbackReason,
+  TaskDecompositionResult
+} from '../../../shared/types/models/task';
 
 const SYSTEM_DECOMPOSITION_PROMPT = `Ты — системный аналитик автономного ядра A.R.C. Твоя задача: декомпозировать цель оператора на проверяемые результаты (outcomes, 1..5), решения с действиями (decisions, 1..5), операционные задачи (tasks, 1..7) и системные риски (risks, 1..5).
 
@@ -201,31 +205,52 @@ export class ObjectiveDecomposerService {
   }
 
   /**
-   * Decomposes a single task into actionable subtasks (steps).
+   * Decomposes a single task into actionable subtasks (steps) with explicit source attribution.
    */
-  public async decomposeTask(taskText: string): Promise<string[]> {
+  public async decomposeTask(taskText: string): Promise<TaskDecompositionResult> {
     const cleanText = (taskText || '').trim();
-    if (!cleanText) return [];
+    if (!cleanText) {
+      return {
+        steps: [],
+        source: 'local_template',
+        fallbackReason: 'empty_task_text'
+      };
+    }
 
     const prompt = `Декомпозируй задачу оператора на 3-5 конкретных подшагов. Задача: "${cleanText}"\nВерни ТОЛЬКО JSON массив строк: ["Шаг 1", "Шаг 2", "Шаг 3"]`;
     const context = [{ role: 'system', content: 'Ты помощник по декомпозиции задач. Отвечай ТОЛЬКО JSON-массивом строк без пояснений.' }];
 
+    let fallbackReason: TaskDecompositionFallbackReason = 'llm_error';
+
     try {
       const raw = await this.requestLlmText(prompt, context);
-      const parsed = extractJsonFromText(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const steps: string[] = [];
-        for (const item of parsed) {
-          const s = typeof item === 'string' ? item.trim() : String(item?.text || '').trim();
-          if (s.length >= 3) {
-            steps.push(s.slice(0, 150));
+      try {
+        const parsed = extractJsonFromText(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const steps: string[] = [];
+          for (const item of parsed) {
+            const s = typeof item === 'string' ? item.trim() : String(item?.text || '').trim();
+            if (s.length >= 3) {
+              steps.push(s.slice(0, 150));
+            }
           }
+          if (steps.length > 0) {
+            return {
+              steps: steps.slice(0, 7),
+              source: 'llm'
+            };
+          }
+          fallbackReason = 'llm_empty_steps';
+        } else {
+          fallbackReason = 'llm_invalid_response';
         }
-        if (steps.length > 0) {
-          return steps.slice(0, 7);
-        }
+      } catch (parseErr) {
+        console.warn('[ObjectiveDecomposer] Task AI decomp response invalid, using offline fallback:', parseErr);
+        fallbackReason = 'llm_invalid_response';
       }
-    } catch (err) {
+    } catch (err: any) {
+      const msg = String(err?.message || '').toLowerCase();
+      fallbackReason = msg.includes('timed out') || msg.includes('timeout') ? 'llm_timeout' : 'llm_error';
       console.warn('[ObjectiveDecomposer] Task AI decomp failed, using offline fallback:', err);
     }
 
@@ -263,7 +288,11 @@ export class ObjectiveDecomposerService {
       ];
     }
 
-    return templateSteps.map(step => `[Локальный шаблон — ИИ офлайн] ${step}`);
+    return {
+      steps: templateSteps.map(step => `[Локальный шаблон — ИИ офлайн] ${step}`),
+      source: 'local_template',
+      fallbackReason
+    };
   }
 }
 

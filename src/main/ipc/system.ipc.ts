@@ -10,6 +10,8 @@ import { ecoService, type EcoState } from '../services/eco.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getAllowedRoots, isPathAllowed } from '../services/files.service';
+import { modulesCapabilityService } from '../services/modules-capability.service';
+import type { ModulesStatusRequestOptions } from '../../shared/config/modules-capability.registry';
 
 export interface PerfConfig {
   targetFps: string;
@@ -107,17 +109,19 @@ export function registerSystemIpc() {
   let lastVramCheckTime = 0;
   let inFlightVramPromise: Promise<number | null> | null = null;
 
-  let tempCache: {
+  interface HardwareTempsSnapshot {
     cpuTemp: number | null;
     gpuTemp: number | null;
     vramUsedMb: number | null;
     vramTotalMb: number | null;
     at: number;
-  } | null = null;
-  let inFlightTempsPromise: Promise<NonNullable<typeof tempCache>> | null = null;
+  }
+
+  let tempCache: HardwareTempsSnapshot | null = null;
+  let inFlightTempsPromise: Promise<HardwareTempsSnapshot> | null = null;
   const TEMP_TTL_MS = 5000;
 
-  async function readTempsCached() {
+  async function readTempsCached(): Promise<HardwareTempsSnapshot> {
     const now = Date.now();
     if (tempCache && now - tempCache.at < TEMP_TTL_MS) return tempCache;
     if (inFlightTempsPromise) return inFlightTempsPromise;
@@ -314,14 +318,8 @@ export function registerSystemIpc() {
     };
   });
 
-  ipcMain.handle('system:modules', async () => {
-    // Current state of logical modules
-    return {
-      'Assistant': 'Active',
-      'Voice': 'Idle',
-      'Memory': 'Active',
-      'Tasks': 'Active'
-    };
+  ipcMain.handle('system:modules', async (_event, options?: ModulesStatusRequestOptions) => {
+    return modulesCapabilityService.getSnapshot(options);
   });
 
   function getPerfConfigPath() {

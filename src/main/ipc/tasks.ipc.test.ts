@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DatabaseService } from '../services/database';
 import { tasksService } from '../services/tasks.service';
 import { registerTasksIpc } from './tasks.ipc';
+import { aiService } from '../services/ai.service';
 
 const ipcHandlers = new Map<string, (...args: any[]) => any>();
 
@@ -51,6 +52,7 @@ describe('tasks.ipc.ts — Granular Channels & Return Contracts', () => {
     expect(ipcHandlers.has('tasks:upsert')).toBe(true);
     expect(ipcHandlers.has('tasks:batch-upsert')).toBe(true);
     expect(ipcHandlers.has('tasks:clear-all')).toBe(true);
+    expect(ipcHandlers.has('tasks:ai-decompose')).toBe(true);
   });
 
   it('tasks:upsert returns { success, task, error } contract', async () => {
@@ -119,5 +121,41 @@ describe('tasks.ipc.ts — Granular Channels & Return Contracts', () => {
     const all = await listHandler({});
     expect(all).toHaveLength(2);
     expect(all.map((t: any) => t.id).sort()).toEqual(['added-2', 'keep-1']);
+  });
+
+  it('tasks:ai-decompose returns source=llm on valid model response and source=local_template with fallbackReason on failure', async () => {
+    const decomposeHandler = ipcHandlers.get('tasks:ai-decompose')!;
+
+    const emptyRes = await decomposeHandler({}, { taskId: 't-empty', taskText: '   ' });
+    expect(emptyRes.success).toBe(false);
+    expect(emptyRes.source).toBe('local_template');
+    expect(emptyRes.fallbackReason).toBe('empty_task_text');
+
+    const aiSpy = vi.spyOn(aiService, 'request').mockImplementationOnce(async (_prompt, _ctx, onChunk) => {
+      onChunk('["Шаг LLM 1", "Шаг LLM 2"]', true);
+    });
+
+    const llmRes = await decomposeHandler({}, { taskId: 't-llm', taskText: 'Оптимизировать кеш' });
+    expect(llmRes.success).toBe(true);
+    expect(llmRes.source).toBe('llm');
+    expect(llmRes.fallbackReason).toBeUndefined();
+    expect(llmRes.steps).toEqual(['Шаг LLM 1', 'Шаг LLM 2']);
+
+    aiSpy.mockRejectedValueOnce(new Error('LLM decomposition request timed out (15s)'));
+    const timeoutRes = await decomposeHandler({}, { taskId: 't-timeout', taskText: 'Проверить безопасность' });
+    expect(timeoutRes.success).toBe(true);
+    expect(timeoutRes.source).toBe('local_template');
+    expect(timeoutRes.fallbackReason).toBe('llm_timeout');
+    expect(timeoutRes.steps[0]).toContain('[Локальный шаблон — ИИ офлайн]');
+
+    aiSpy.mockImplementationOnce(async (_prompt, _ctx, onChunk) => {
+      onChunk('not valid json', true);
+    });
+    const invalidJsonRes = await decomposeHandler({}, { taskId: 't-bad', taskText: 'Настроить CI' });
+    expect(invalidJsonRes.success).toBe(true);
+    expect(invalidJsonRes.source).toBe('local_template');
+    expect(invalidJsonRes.fallbackReason).toBe('llm_invalid_response');
+
+    aiSpy.mockRestore();
   });
 });

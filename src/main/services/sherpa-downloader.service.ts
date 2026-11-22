@@ -1,56 +1,77 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as https from 'https';
-import * as http from 'http';
-import axios from 'axios';
-import { app } from 'electron';
 import { resolveSherpaModelDir } from './sherpa-paths.util';
 import { gigaamSourcesService } from './gigaam-sources.service';
+import {
+  abortTask,
+  abortableDelay,
+  createStagingSessionDir,
+  DownloadCancelledError,
+  isCancellationError,
+  publishStagedFiles,
+  removeStagingSessionDir,
+  type ActiveDownloadTask,
+  type SherpaDownloadResult,
+  type SherpaProgressEvent
+} from './sherpa-download-task.helper';
+import {
+  downloadFileWithSignal,
+  probeRemoteFileSizeSafe
+} from './sherpa-http-download.util';
+import { MODEL_SUPPLY_CHAIN_MANIFESTS } from './model-supply-chain.manifest';
+import {
+  buildVerifiedMetaRecord,
+  computeFileSha256Sync,
+  verifyStagedFileDigest
+} from './model-integrity.util';
+import {
+  isLoopbackDownloadTestHarnessEnabled,
+  isSecurityError
+} from '../utils/network-security.util';
 
 export interface SherpaFileSpec {
   name: string;
   url: string;
   size: number;
+  sha256: string;
 }
 
-const ZIPFORMER_RU_REPO = ['csukuangfj/sherpa-onnx-streaming-zipformer-small-ru', 'vo' + 'sk', '2025-08-16'].join('-');
+export interface SherpaModelConfigEntry {
+  manifestId: string;
+  repo: string;
+  sourceUrl: string;
+  revision: string;
+  licenseUrl: string;
+  locale: string;
+  engineCompatibility: string[];
+  files: SherpaFileSpec[];
+}
 
-export const SHERPA_MODELS_CONFIG: Record<string, { repo: string; files: SherpaFileSpec[] }> = {
-  'silero-vad': {
-    repo: 'csukuangfj/sherpa-onnx-silero-vad',
-    files: [
-      { name: 'silero_vad.onnx', url: 'https://huggingface.co/csukuangfj/sherpa-onnx-silero-vad/resolve/main/silero_vad.onnx', size: 1427845 }
-    ]
-  },
-  'gigaam-ctc': {
-    repo: 'csukuangfj/sherpa-onnx-nemo-ctc-giga-am-v3-russian-2025-12-16',
-    files: [
-      { name: 'model.int8.onnx', url: 'https://huggingface.co/csukuangfj/sherpa-onnx-nemo-ctc-giga-am-v3-russian-2025-12-16/resolve/main/model.int8.onnx', size: 224762204 },
-      { name: 'tokens.txt', url: 'https://huggingface.co/csukuangfj/sherpa-onnx-nemo-ctc-giga-am-v3-russian-2025-12-16/resolve/main/tokens.txt', size: 1540 }
-    ]
-  },
-  'zipformer-ru': {
-    repo: ZIPFORMER_RU_REPO,
-    files: [
-      { name: 'encoder.onnx', url: `https://huggingface.co/${ZIPFORMER_RU_REPO}/resolve/main/encoder.onnx`, size: 90994145 },
-      { name: 'decoder.onnx', url: `https://huggingface.co/${ZIPFORMER_RU_REPO}/resolve/main/decoder.onnx`, size: 2093080 },
-      { name: 'joiner.onnx', url: `https://huggingface.co/${ZIPFORMER_RU_REPO}/resolve/main/joiner.onnx`, size: 1026462 },
-      { name: 'tokens.txt', url: `https://huggingface.co/${ZIPFORMER_RU_REPO}/resolve/main/tokens.txt`, size: 6388 }
-    ]
-  },
-  'whisper-small': {
-    repo: 'csukuangfj/sherpa-onnx-whisper-small',
-    files: [
-      { name: 'small-encoder.int8.onnx', url: 'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/small-encoder.int8.onnx', size: 112442483 },
-      { name: 'small-decoder.int8.onnx', url: 'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/small-decoder.int8.onnx', size: 262226114 },
-      { name: 'small-tokens.txt', url: 'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/small-tokens.txt', size: 816730 }
-    ]
-  }
+function toConfigEntry(manifestIdKey: string): SherpaModelConfigEntry {
+  const m = MODEL_SUPPLY_CHAIN_MANIFESTS[manifestIdKey];
+  return {
+    manifestId: m.manifestId,
+    repo: m.source,
+    sourceUrl: m.sourceUrl,
+    revision: m.revision,
+    licenseUrl: m.licenseUrl,
+    locale: m.locale,
+    engineCompatibility: [...m.engineCompatibility],
+    files: m.files.map((f) => ({ name: f.name, url: f.url, size: f.size, sha256: f.sha256 }))
+  };
+}
+
+export const SHERPA_MODELS_CONFIG: Record<string, SherpaModelConfigEntry> = {
+  'silero-vad': toConfigEntry('silero-vad'),
+  'gigaam-ctc': toConfigEntry('gigaam-ctc'),
+  'zipformer-ru': toConfigEntry('zipformer-ru'),
+  'whisper-small': toConfigEntry('whisper-small')
 };
 
 export class SherpaDownloaderService {
   private static instance: SherpaDownloaderService;
-  private activeDownloads = new Map<string, Promise<{ success: boolean; error?: string }>>();
+  private activeTasks = new Map<string, ActiveDownloadTask>();
+  private activeStagingDirs = new Set<string>();
 
   public static getInstance(): SherpaDownloaderService {
     if (!SherpaDownloaderService.instance) {
@@ -59,305 +80,316 @@ export class SherpaDownloaderService {
     return SherpaDownloaderService.instance;
   }
 
+  public normalizeModelId(modelId: string): string {
+    if (modelId === 'gigaam') return 'gigaam-ctc';
+    if (modelId === 'sherpa-zipformer-ru' || modelId === 'sherpa-ru-archive.tar.bz2') return 'zipformer-ru';
+    if (modelId === 'sherpa-whisper-turbo') return 'whisper-base';
+    return modelId;
+  }
+
   public getModelDir(modelId: string = 'zipformer-ru'): string {
     return resolveSherpaModelDir(modelId).dir;
   }
 
-  public cancelDownload(modelId?: string): void {
-    if (!modelId || modelId === 'gigaam-ctc') {
-      gigaamSourcesService.cancelDownload();
+  public getActiveModelIds(): string[] {
+    return Array.from(this.activeTasks.keys());
+  }
+
+  public async cancelDownload(modelId?: string): Promise<boolean> {
+    if (!modelId) {
+      await this.cancelAllDownloads();
+      return true;
     }
-    this.activeDownloads.clear();
+
+    const normalizedId = this.normalizeModelId(modelId);
+    const task = this.activeTasks.get(normalizedId);
+    if (!task) {
+      return false;
+    }
+
+    await abortTask(task);
+    if (normalizedId === 'gigaam-ctc') {
+      await gigaamSourcesService.cancelDownload();
+    }
+    await task.promise.catch(() => {});
+    return true;
   }
 
-  private downloadSingleFile(
+  public async cancelAllDownloads(): Promise<void> {
+    const tasks = Array.from(this.activeTasks.values());
+    await Promise.allSettled(tasks.map((t) => abortTask(t)));
+    await gigaamSourcesService.cancelDownload();
+    await Promise.allSettled(tasks.map((t) => t.promise));
+  }
+
+  private async downloadSingleFile(
     url: string,
-    dest: string,
+    destPartPath: string,
     onProgressChunk: (bytesRead: number) => void,
-    retries = 3
+    retries = 3,
+    task?: ActiveDownloadTask,
+    maxBytes?: number
   ): Promise<void> {
-    const tempDest = `${dest}.tmp.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
-
-    const fetchUrl = (currentUrl: string, attempt: number): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        let isFinished = false;
-        let fileStream: fs.WriteStream | null = null;
-        const protocol = currentUrl.startsWith('https') ? https : http;
-
-        const cleanup = () => {
-          if (fileStream) {
-            try { fileStream.close(); } catch {}
-            fileStream = null;
-          }
-          try { if (fs.existsSync(tempDest)) fs.unlinkSync(tempDest); } catch {}
-        };
-
-        const req = protocol.get(
-          currentUrl,
-          { headers: { 'User-Agent': 'A.R.C.-SherpaDownloader/1.0' } },
-          (response) => {
-            if ([301, 302, 307, 308].includes(response.statusCode || 0)) {
-              const redirectUrl = response.headers.location;
-              if (!redirectUrl) {
-                isFinished = true;
-                cleanup();
-                return reject(new Error(`Redirect status ${response.statusCode} without location header`));
-              }
-              const resolvedUrl = new URL(redirectUrl, currentUrl).toString();
-              return fetchUrl(resolvedUrl, attempt).then(resolve).catch(reject);
-            }
-
-            if (response.statusCode !== 200) {
-              isFinished = true;
-              cleanup();
-              return reject(new Error(`HTTP ${response.statusCode} for ${currentUrl}`));
-            }
-
-            try {
-              fileStream = fs.createWriteStream(tempDest);
-            } catch (err) {
-              isFinished = true;
-              cleanup();
-              return reject(err);
-            }
-
-            fileStream.on('error', (err) => {
-              if (isFinished) return;
-              isFinished = true;
-              cleanup();
-              reject(err);
-            });
-
-            fileStream.on('finish', () => {
-              isFinished = true;
-              if (fileStream) {
-                fileStream.close(() => resolve());
-              } else {
-                resolve();
-              }
-            });
-
-            response.on('data', (chunk: Buffer) => {
-              onProgressChunk(chunk.length);
-            });
-
-            response.pipe(fileStream);
-          }
-        );
-
-        req.on('error', (err) => {
-          if (isFinished) return;
-          isFinished = true;
-          cleanup();
-          reject(err);
-        });
-
-        req.setTimeout(60000, () => {
-          if (isFinished) return;
-          isFinished = true;
-          cleanup();
-          req.destroy(new Error('Download request timed out'));
-        });
-      });
-    };
-
-    const tryDownload = async (attempt: number): Promise<void> => {
-      try {
-        const targetUrl = attempt > 1 ? url.replace('huggingface.co', 'hf-mirror.com') : url;
-        await fetchUrl(targetUrl, attempt);
-        if (fs.existsSync(dest)) {
-          try { fs.unlinkSync(dest); } catch {}
-        }
-        fs.renameSync(tempDest, dest);
-      } catch (err: any) {
-        try { if (fs.existsSync(tempDest)) fs.unlinkSync(tempDest); } catch {}
-        if (attempt >= retries) {
-          throw err;
-        }
-        await new Promise((r) => setTimeout(r, 1500));
-        return tryDownload(attempt + 1);
-      }
-    };
-
-    return tryDownload(1);
+    await downloadFileWithSignal({
+      url,
+      destPartPath,
+      onProgressChunk,
+      signal: task?.controller.signal,
+      task,
+      retries,
+      maxBytes,
+      resolveAttemptUrl: (baseUrl, attempt) =>
+        attempt > 1 ? baseUrl.replace('https://huggingface.co/', 'https://hf-mirror.com/') : baseUrl
+    });
   }
 
-  
-  public async getRemoteFileSize(url: string): Promise<number> {
+  public async getRemoteFileSize(url: string, signal?: AbortSignal): Promise<number> {
+    if (signal?.aborted) throw new DownloadCancelledError();
     try {
-      const targetUrl = url.replace('huggingface.co', 'hf-mirror.com');
-      const response = await axios.head(targetUrl, { maxRedirects: 5, timeout: 5000 });
-      const size = parseInt(String(response.headers['content-length'] || '0'), 10);
-      return size > 0 ? size : 0;
-    } catch (e) {
+      const targetUrl = url.replace('https://huggingface.co/', 'https://hf-mirror.com/');
+      return await probeRemoteFileSizeSafe(targetUrl, signal);
+    } catch (e: any) {
+      if (signal?.aborted || isCancellationError(e)) throw new DownloadCancelledError();
+      if (isSecurityError(e)) throw e;
       try {
-         const response = await axios.head(url, { maxRedirects: 5, timeout: 5000 });
-         const size = parseInt(String(response.headers['content-length'] || '0'), 10);
-         return size > 0 ? size : 0;
-      } catch(e2) {
-         return 0;
+        return await probeRemoteFileSizeSafe(url, signal);
+      } catch (e2: any) {
+        if (signal?.aborted || isCancellationError(e2)) throw new DownloadCancelledError();
+        if (isSecurityError(e2)) throw e2;
+        return 0;
       }
     }
   }
 
   public async downloadModel(
     modelId: string,
-    onProgress: (data: { modelId: string; percent: number; status: string; error?: string }) => void
-  ): Promise<{ success: boolean; error?: string }> {
-    const normalizedId = modelId === 'sherpa-zipformer-ru' || modelId === 'sherpa-ru-archive.tar.bz2'
-      ? 'zipformer-ru'
-      : (modelId === 'sherpa-whisper-turbo' ? 'whisper-base' : modelId);
-
-    const active = this.activeDownloads.get(normalizedId);
-    if (active) {
-      return active;
+    onProgress: (data: SherpaProgressEvent | { modelId: string; percent: number; status: string; error?: string }) => void
+  ): Promise<SherpaDownloadResult> {
+    const normalizedId = this.normalizeModelId(modelId);
+    const existing = this.activeTasks.get(normalizedId);
+    if (existing) {
+      if (existing.state === 'cancelling') {
+        await existing.promise.catch(() => {});
+      } else {
+        return existing.promise;
+      }
     }
 
-    const downloadTask = (async () => {
+    const controller = new AbortController();
+    const task: ActiveDownloadTask = {
+      modelId,
+      normalizedId,
+      sessionId: `${normalizedId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      controller,
+      state: 'downloading',
+      modelDir: this.getModelDir(normalizedId),
+      stagingDir: null,
+      tempFiles: new Set(),
+      activeRequests: new Set(),
+      activeResponses: new Set(),
+      activeFileStreams: new Set(),
+      promise: Promise.resolve({ success: false })
+    };
+
+    const runPromise = (async (): Promise<SherpaDownloadResult> => {
       try {
-        return await this.executeDownloadModel(normalizedId, modelId, onProgress);
+        return await this.executeDownloadModel(task, onProgress);
       } finally {
-        this.activeDownloads.delete(normalizedId);
+        await removeStagingSessionDir(task.stagingDir, this.activeStagingDirs, task);
+        task.stagingDir = null;
+        if (this.activeTasks.get(normalizedId) === task) {
+          this.activeTasks.delete(normalizedId);
+        }
       }
     })();
 
-    this.activeDownloads.set(normalizedId, downloadTask);
-    return downloadTask;
+    task.promise = runPromise;
+    this.activeTasks.set(normalizedId, task);
+    return runPromise;
+  }
+
+  private createSafeEmitter(
+    task: ActiveDownloadTask,
+    onProgress: (data: SherpaProgressEvent) => void
+  ): (ev: SherpaProgressEvent) => void {
+    let terminalSent = false;
+    return (ev: SherpaProgressEvent) => {
+      if (terminalSent) return;
+      if (task.controller.signal.aborted && ev.status !== 'cancelled') return;
+      if (ev.status === 'cancelled' || ev.status === 'completed' || ev.status === 'error') {
+        terminalSent = true;
+      }
+      onProgress(ev);
+    };
   }
 
   private async executeDownloadModel(
-    normalizedId: string,
-    modelId: string,
-    onProgress: (data: { modelId: string; percent: number; status: string; error?: string }) => void
-  ): Promise<{ success: boolean; error?: string }> {
-
-    if (normalizedId === 'gigaam-ctc') {
-      const gigaDir = this.getModelDir('gigaam-ctc');
-      return gigaamSourcesService.downloadWithFallbackChain(gigaDir, onProgress);
-    }
-
-    if (normalizedId === 'silero-vad') {
-      const vadDirRes = resolveSherpaModelDir('silero-vad');
-      if (vadDirRes.isComplete) {
-        onProgress({ modelId, percent: 100, status: 'completed' });
-        return { success: true };
-      }
-      console.warn('[SherpaDownloader] Silero VAD not in bundle, activating RMS fallback mode (zero network)');
-      onProgress({ modelId, percent: 100, status: 'completed' });
-      return { success: true };
-    }
-
-    const config = SHERPA_MODELS_CONFIG[normalizedId];
-    if (!config) {
-      const err = `Unknown modelId: ${modelId}`;
-      onProgress({ modelId, percent: 0, status: 'error', error: err });
-      return { success: false, error: err };
-    }
-
-    // Resolve real sizes
-    for (const fileSpec of config.files) {
-      const realSize = await this.getRemoteFileSize(fileSpec.url);
-      if (realSize > 0) {
-        fileSpec.size = realSize;
-      }
-    }
-
-    const modelDir = this.getModelDir(normalizedId);
-    if (!fs.existsSync(modelDir)) {
-      fs.mkdirSync(modelDir, { recursive: true });
-    }
-
-    const totalSize = config.files.reduce((acc, f) => acc + f.size, 0);
-    let overallLoaded = 0;
-
-    onProgress({ modelId, percent: 0, status: 'downloading' });
+    task: ActiveDownloadTask,
+    onProgress: (data: SherpaProgressEvent | { modelId: string; percent: number; status: string; error?: string }) => void
+  ): Promise<SherpaDownloadResult> {
+    const { normalizedId, modelId } = task;
+    const signal = task.controller.signal;
+    const emit = this.createSafeEmitter(task, onProgress as (data: SherpaProgressEvent) => void);
 
     try {
-      for (const fileSpec of config.files) {
-        const filePath = path.join(modelDir, fileSpec.name);
+      if (normalizedId === 'gigaam-ctc') {
+        const res = await gigaamSourcesService.downloadWithFallbackChain(task.modelDir, (ev) => emit(ev as SherpaProgressEvent), { signal, task });
+        task.state = res.cancelled ? 'cancelled' : (res.success ? 'completed' : 'failed');
+        return res;
+      }
 
+      if (normalizedId === 'silero-vad') {
+        await abortableDelay(0, signal);
+        const vadCfgUrl = SHERPA_MODELS_CONFIG['silero-vad']?.files[0]?.url || '';
+        const isLocalTest = isLoopbackDownloadTestHarnessEnabled() && /^http:\/\/(127\.0\.0\.1|localhost)/i.test(vadCfgUrl);
+        if (!isLocalTest) {
+          const vadDirRes = resolveSherpaModelDir('silero-vad');
+          if (vadDirRes.isComplete) {
+            task.state = 'completed';
+            emit({ modelId, percent: 100, status: 'completed' });
+            return { success: true, status: 'completed' };
+          }
+        }
+      }
+
+      const config = SHERPA_MODELS_CONFIG[normalizedId];
+      if (!config) {
+        const err = `Unknown modelId: ${modelId}`;
+        task.state = 'failed';
+        emit({ modelId, percent: 0, status: 'error', error: err });
+        return { success: false, status: 'error', error: err };
+      }
+
+      // Fail-closed: refuse automatic download if any file lacks a valid pinned SHA-256
+      for (const fileSpec of config.files) {
+        if (!fileSpec.sha256 || !/^[a-f0-9]{64}$/i.test(fileSpec.sha256)) {
+          throw new Error(`Supply-chain manifest missing trusted SHA-256 for ${normalizedId}/${fileSpec.name}`);
+        }
+      }
+
+      const resolvedSpecs: SherpaFileSpec[] = config.files.map((f) => ({ ...f }));
+      if (!fs.existsSync(task.modelDir)) {
+        fs.mkdirSync(task.modelDir, { recursive: true });
+      }
+
+      const totalSize = resolvedSpecs.reduce((acc, f) => acc + f.size, 0) || 1;
+      let overallLoaded = 0;
+      const filesToDownload: SherpaFileSpec[] = [];
+      const verifiedFileDigests: Record<string, { size: number; sha256: string }> = {};
+
+      emit({ modelId, percent: 0, status: 'downloading', bytes_done: 0, total_bytes: totalSize });
+
+      for (const fileSpec of resolvedSpecs) {
+        if (signal.aborted) throw new DownloadCancelledError();
+        const filePath = path.join(task.modelDir, fileSpec.name);
+        let upToDate = false;
         if (fs.existsSync(filePath)) {
-          let stats: fs.Stats | null = null;
           try {
-            stats = fs.statSync(filePath);
-          } catch (e) {
-            stats = null;
-          }
-
-          if (stats && stats.size > 0) {
-            if (Math.abs(stats.size - fileSpec.size) > 500) {
-              console.warn(`[Sherpa] size differs from HF registry (${stats.size} vs ${fileSpec.size}); redownloading corrupted file...`);
-              // Break out to redownload
-            } else {
-              overallLoaded += stats.size;
-              const pct = Math.min(99, Math.round((overallLoaded / totalSize) * 100));
-              onProgress({ modelId, percent: pct, status: 'downloading', bytes_done: overallLoaded, total_bytes: totalSize } as any);
-              continue;
+            const stats = fs.statSync(filePath);
+            if (stats && stats.size > 0 && (fileSpec.size <= 0 || stats.size === fileSpec.size)) {
+              const diskSha = computeFileSha256Sync(filePath, true);
+              if (diskSha && diskSha.toLowerCase() === fileSpec.sha256.toLowerCase()) {
+                overallLoaded += stats.size;
+                upToDate = true;
+                verifiedFileDigests[fileSpec.name] = { size: stats.size, sha256: diskSha };
+                const pct = Math.min(99, Math.round((overallLoaded / totalSize) * 100));
+                emit({ modelId, percent: pct, status: 'downloading', bytes_done: overallLoaded, total_bytes: totalSize });
+              }
             }
-          }
+          } catch {}
         }
-
-        let fileLoadedThisAttempt = 0;
-        const tryDownloadWithSizeCheck = async (isRetry: boolean = false): Promise<void> => {
-          fileLoadedThisAttempt = 0;
-          await this.downloadSingleFile(
-            fileSpec.url,
-            filePath,
-            (chunkSize) => {
-              fileLoadedThisAttempt += chunkSize;
-              const currentTotal = overallLoaded + fileLoadedThisAttempt;
-              const pct = Math.min(99, Math.round((currentTotal / totalSize) * 100));
-              onProgress({ modelId, percent: pct, status: 'downloading', bytes_done: currentTotal, total_bytes: totalSize } as any);
-            }
-          );
-
-          const finalStats = fs.statSync(filePath);
-          if (finalStats.size > 0 && Math.abs(finalStats.size - fileSpec.size) > 500) {
-            console.warn(`[Sherpa] Downloaded file ${fileSpec.name} size (${finalStats.size}) mismatch with expected (${fileSpec.size}).`);
-            if (!isRetry) {
-              console.log(`[Sherpa] Retrying download for ${fileSpec.name}...`);
-              return tryDownloadWithSizeCheck(true);
-            } else {
-              throw new Error(`Size mismatch for ${fileSpec.name} after retry. Expected ${fileSpec.size}, got ${finalStats.size}`);
-            }
-          }
-        };
-
-        await tryDownloadWithSizeCheck();
-
-        const finalStats = fs.statSync(filePath);
-        overallLoaded += finalStats.size;
+        if (!upToDate) filesToDownload.push(fileSpec);
       }
 
-      // Update download_meta.json
-      const metaPath = path.join(modelDir, 'download_meta.json');
-      let existingMeta: any = { files: {} };
-      if (fs.existsSync(metaPath)) {
-        try {
-          existingMeta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
-          if (!existingMeta.files) existingMeta.files = {};
-        } catch (e) { console.warn('Ignored error in catch', e); }
-      }
+      const stagedPairs: Array<{ tempPath: string; finalPath: string }> = [];
 
-      for (const fileSpec of config.files) {
-        const filePath = path.join(modelDir, fileSpec.name);
-        if (fs.existsSync(filePath)) {
-          const stats = fs.statSync(filePath);
-          existingMeta.files[fileSpec.name] = {
-            size: stats.size,
-            downloadedAt: new Date().toISOString()
+      if (filesToDownload.length > 0) {
+        task.stagingDir = createStagingSessionDir(task.modelDir, normalizedId, this.activeStagingDirs);
+
+        for (const fileSpec of filesToDownload) {
+          if (signal.aborted) throw new DownloadCancelledError();
+          const finalPath = path.join(task.modelDir, fileSpec.name);
+          const stagedPart = path.join(task.stagingDir, `${fileSpec.name}.part`);
+
+          const downloadWithIntegrityCheck = async (isRetry = false): Promise<{ size: number; sha256: string }> => {
+            if (signal.aborted) throw new DownloadCancelledError();
+            let fileLoadedThisAttempt = 0;
+            await this.downloadSingleFile(
+              fileSpec.url,
+              stagedPart,
+              (chunkSize) => {
+                if (signal.aborted) return;
+                fileLoadedThisAttempt += chunkSize;
+                const currentTotal = overallLoaded + fileLoadedThisAttempt;
+                const pct = Math.min(99, Math.round((currentTotal / totalSize) * 100));
+                emit({ modelId, percent: pct, status: 'downloading', bytes_done: currentTotal, total_bytes: totalSize });
+              },
+              3,
+              task,
+              fileSpec.size > 0 ? fileSpec.size : undefined
+            );
+            if (signal.aborted) throw new DownloadCancelledError();
+
+            const check = verifyStagedFileDigest(stagedPart, fileSpec.size, fileSpec.sha256);
+            if (!check.ok || !check.actualSha256) {
+              try { if (fs.existsSync(stagedPart)) fs.unlinkSync(stagedPart); } catch {}
+              if (!isRetry && check.reason?.includes('Size mismatch')) {
+                await abortableDelay(400, signal);
+                return downloadWithIntegrityCheck(true);
+              }
+              throw new Error(check.reason || `Integrity check failed for ${fileSpec.name}`);
+            }
+            return { size: check.actualSize, sha256: check.actualSha256 };
           };
+
+          const verified = await downloadWithIntegrityCheck();
+          overallLoaded += verified.size;
+          verifiedFileDigests[fileSpec.name] = verified;
+          stagedPairs.push({ tempPath: stagedPart, finalPath });
         }
       }
 
-      fs.writeFileSync(metaPath, JSON.stringify(existingMeta, null, 2));
+      if (signal.aborted) throw new DownloadCancelledError();
+      task.state = 'verifying';
+      emit({ modelId, percent: 99, status: 'verifying', bytes_done: overallLoaded, total_bytes: totalSize });
 
-      onProgress({ modelId, percent: 100, status: 'completed' });
-      return { success: true };
+      for (const pair of stagedPairs) {
+        const spec = resolvedSpecs.find((f) => path.basename(pair.finalPath) === f.name);
+        if (!spec) throw new Error(`Unexpected staged file: ${pair.finalPath}`);
+        const check = verifyStagedFileDigest(pair.tempPath, spec.size, spec.sha256);
+        if (!check.ok) {
+          throw new Error(check.reason || `Staged verification failed for ${spec.name}`);
+        }
+      }
+
+      const metaPath = path.join(task.modelDir, 'download_meta.json');
+      const metaRecord = buildVerifiedMetaRecord(
+        {
+          manifestId: config.manifestId,
+          source: config.repo,
+          sourceUrl: config.sourceUrl,
+          revision: config.revision,
+          licenseUrl: config.licenseUrl
+        },
+        verifiedFileDigests
+      );
+
+      if (signal.aborted) throw new DownloadCancelledError();
+      publishStagedFiles(stagedPairs, metaPath, JSON.stringify(metaRecord, null, 2));
+
+      task.state = 'completed';
+      emit({ modelId, percent: 100, status: 'completed' });
+      return { success: true, status: 'completed' };
     } catch (error: any) {
+      if (signal.aborted || isCancellationError(error)) {
+        task.state = 'cancelled';
+        emit({ modelId, percent: 0, status: 'cancelled' });
+        return { success: false, cancelled: true, status: 'cancelled' };
+      }
       const errMsg = error?.message || String(error);
-      onProgress({ modelId, percent: 0, status: 'error', error: errMsg });
-      return { success: false, error: errMsg };
+      task.state = 'failed';
+      emit({ modelId, percent: 0, status: 'error', error: errMsg });
+      return { success: false, status: 'error', error: errMsg };
     }
   }
 }

@@ -175,12 +175,17 @@
         </div>
 
         <div class="space-y-2 py-1">
-          <div class="text-[11px] text-zinc-400">Будет очищено:</div>
+          <div class="text-[11px] text-zinc-400">Будет очищено (Вариант A):</div>
           <ul class="space-y-1 text-zinc-300 font-mono text-[11px] list-disc list-inside">
-            <li>База SQLite (arc.db: диалоги, сообщения, цели)</li>
-            <li>Конфигурация провайдеров и API-ключи</li>
+            <li>База SQLite (database/, arc.db*: диалоги, задачи, память, цели)</li>
+            <li>Конфигурации и макросы (config/, macros/, arc-performance-settings.json)</li>
             <li>Временные кэши и сессии Chromium</li>
-            <li>Устаревшие профили %APPDATA%/a.r.c</li>
+            <li>Устаревшие профили %APPDATA%/a.r.c (если не пересекаются с каталогом данных)</li>
+          </ul>
+          <div class="text-[11px] text-zinc-400 pt-1">Сохраняется без изменений:</div>
+          <ul class="space-y-1 text-zinc-400 font-mono text-[11px] list-disc list-inside">
+            <li>Secret Vault (secrets.json — API-ключи DPAPI)</li>
+            <li>Логи (logs/, csp-violations.log), бэкапы (backups/), словари и политика TTS</li>
           </ul>
         </div>
 

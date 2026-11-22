@@ -183,8 +183,9 @@ export const CURATED_MODELS: CuratedModel[] = [
     speedStars: 4,
     badges: ['Русский TTS', 'Точные ударения'],
     quants: [
-      { id: 'v5_6_ru.pt', name: 'FP32', expectedSizeStr: '55 MB', sizeBytes: 55 * 1024 * 1024, minRamGb: 1, downloadUrl: 'https://models.silero.ai/models/tts/ru/v5_6_ru.pt' }
-    ]
+      { id: 'v5_6_ru.pt', name: 'FP32', expectedSizeStr: '141 MB', sizeBytes: 147664410, minRamGb: 1, downloadUrl: 'https://models.silero.ai/models/tts/ru/v5_6_ru.pt' }
+    ],
+    hfUrl: 'https://github.com/snakers4/silero-models'
   }
 ];
 

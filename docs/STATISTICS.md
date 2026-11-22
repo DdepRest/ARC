@@ -34,7 +34,11 @@
 | T+25:00 | 64.30 | N/A (ист. симуляция: 166.70) | N/A (ист. симуляция: 187.00) | 7.15 | 8 334 |
 | T+30:00 (End) | **64.44** | **N/A** (ист. симуляция: 170.00) | **N/A** (ист. симуляция: 190.00) | **7.20** | **10 000** |
 
-**Вывод**: В однопроцессном синтетическом тесте Node.js + `better-sqlite3` отсутствуют признаки линейного накопления памяти (memory leak). Полный многопроцессный Soak-тест (`Electron Main + Chromium Renderer + Python Silero Server`) подлежит выполнению на целевом хосте Windows 10/11 x64 в режиме `--mode=real`.
+**Вывод**: В однопроцессном синтетическом тесте Node.js + `better-sqlite3` отсутствуют признаки линейного накопления памяти (memory leak). Синтетический прогон **не заменяет** реальный многопроцессный Soak-тест на Windows.
+
+### 1.4 Реальный многопроцессный Soak Harness на Windows (`S4-01`)
+- **Инструментарий:** `scripts/windows-soak-harness.ps1` (живой мониторинг дерева процессов `Electron Main`, `Chromium Renderer/GPU`, `Python Silero TTS`, `STT Worker`, `Local LLM`, `Download Workers`, размеров `arc.db`/`arc.db-wal`, дескрипторов, потоков, перезапусков и post-exit проверки orphan-процессов) + `scripts/soak-report-analyzer.cjs` (расчёт `p50`/`p95` задержек, линейного наклона памяти после warmup в МБ/час и полноты 11 обязательных сценариев).
+- **Статус живого 2–4-часового прогона на Windows 10/11:** **`NOT RUN`** (выполняется владельцем на целевом Windows-оборудовании; лимиты RAM фиксируются по фактическому low-end hardware baseline из `soak-meta.json`).
 
 ---
 
@@ -47,3 +51,30 @@
 - **Подавление сибилянтов (De-esser)**: Полоса 6–9.5 кГц: снижение **+0.8…+3.1 дБ**.
 - **Интегральная громкость**: Стабильно −16.1…−16.8 LUFS (разброс **0.60 дБ**).
 - **Частота дискретизации**: 48 000 Гц (studio reference).
+
+---
+
+## 3. Анализ бандла и готовность к слабым ПК (`TZ §11`, `npm run analyze:bundle`)
+
+> **Скрипт замера:** `scripts/analyze-bundle.cjs` (`npm run analyze:bundle` → `dist/bundle-report.json`).  
+> После удаления 17 МБ неиспользуемых скриншотов (`public/assets/aistudio/`) итоговый каталог сборки `out/` содержит **53 файла**: **`8 892.31 KB` raw** / **`2 014.81 KB` gzip** / **`1 848.73 KB` brotli**.
+
+| Артефакт / Чанк | Загрузка | Raw (KB) | Gzip (KB) | Brotli (KB) |
+|---|---|---:|---:|---:|
+| `renderer/assets/index-*.js` | Initial entry (Vue + Three.js Reactor + Core UI) | 3 963.23 | 772.05 | 695.82 |
+| `renderer/assets/whisper.worker-*.js` | **Lazy Web Worker** (только при запуске локального Whisper) | 1 401.06 | 253.75 | 230.37 |
+| `main/index.js` | Electron Main Process | 1 196.76 | 277.36 | 244.58 |
+| `renderer/assets/SettingsPanel-*.js` | **Lazy View** (`defineResilientAsyncView`) | 799.64 | 142.52 | 124.60 |
+| `renderer/assets/TasksView-*.js` | **Lazy View** | 287.62 | 48.26 | 43.91 |
+| `renderer/assets/index-*.css` | Initial CSS (Tailwind + A.R.C. tokens) | 217.93 | 31.14 | 28.41 |
+| `renderer/assets/ChatView-*.js` | **Lazy View** | 205.68 | 38.24 | 35.58 |
+| `renderer/assets/ObjectivesView-*.js` | **Lazy View** | 121.94 | 22.58 | 20.92 |
+| `renderer/assets/TranscriptionView-*.js` | **Lazy View** | 67.78 | 14.70 | 14.05 |
+| `renderer/assets/MemoryView-*.js` | **Lazy View** | 65.01 | 12.33 | 11.90 |
+| `renderer/assets/CommandsView-*.js` | **Lazy View** | 57.70 | 10.67 | 10.27 |
+| `renderer/assets/ModulesView-*.js` | **Lazy View** | 29.17 | 5.83 | 5.54 |
+
+- **Проверка lazy-loading (`allHeavyViewsLazyLoaded`):** **PASS** (все 9 тяжёлых представлений и `whisper.worker` вынесены в отдельные async-чанки и не блокируют первичный рендер).
+- **Контроль мусорных ассетов (`zeroForbiddenDeadAssets`):** **PASS** (`0` файлов `assets/aistudio/` и `vosk_server`).
+- **Натурные замеры на слабом Windows-ПК (cold/warm startup, RAM/VRAM/CPU, Eco mode):** **`NOT RUN`** в Linux-контейнере; фиксируются при живом Windows QA по `docs/WINDOWS-RELEASE-QA-PROTOCOL.md` и `scripts/windows-soak-harness.ps1` до назначения целевых RAM-порогов.
+

@@ -329,5 +329,295 @@ describe('Task 1.2 — SecretVaultService & ProviderManager DPAPI Policy', () =>
       storageMode: 'dpapi'
     });
   });
+
+  it('8. S1-01 Fail-closed on EACCES / EROFS / ENOSPC: returns success=false, no RAM fallback, no secret leak, no leftover .tmp', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    const vault = new SecretVaultService(secretsPath);
+    expect(vault.setSecret('existing_key', 'EXISTING_VAL_123').success).toBe(true);
+    const initialRaw = fs.readFileSync(secretsPath, 'utf-8');
+
+    for (const errCode of ['EACCES', 'EROFS'] as const) {
+      const secretVal = `sk-secret-${errCode}-DO-NOT-LEAK`;
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const openSpy = vi.spyOn(fs, 'openSync').mockImplementation(() => {
+        throw Object.assign(new Error(`Simulated ${errCode} containing ${secretVal}`), { code: errCode });
+      });
+      try {
+        const res = vault.setSecret('failing_key', secretVal);
+        expect(res.success).toBe(false);
+        expect(res.isEncrypted).toBe(false);
+        expect(res.error).toContain(errCode);
+        expect(res.error).not.toContain(secretVal);
+        expect(vault.getSecret('failing_key').status).toBe('missing');
+        expect(vault.getSecurityStatus().secretsStorageMode).toBe('dpapi');
+        const logged = errSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+        expect(logged).not.toContain(secretVal);
+      } finally {
+        openSpy.mockRestore();
+        errSpy.mockRestore();
+      }
+    }
+
+    const enospcSecret = 'sk-secret-ENOSPC-DO-NOT-LEAK';
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const writeSpy = vi.spyOn(fs, 'writeSync').mockImplementation(() => {
+      throw Object.assign(new Error('No space left on device'), { code: 'ENOSPC' });
+    });
+    try {
+      const res = vault.setSecret('failing_enospc_key', enospcSecret);
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('ENOSPC');
+      expect(res.error).not.toContain(enospcSecret);
+      expect(vault.getSecret('failing_enospc_key').status).toBe('missing');
+    } finally {
+      writeSpy.mockRestore();
+      errSpy.mockRestore();
+    }
+
+    expect(fs.readFileSync(secretsPath, 'utf-8')).toBe(initialRaw);
+    const leftoverTmp = fs.readdirSync(tmpDir).filter((f) => f.includes('.tmp.'));
+    expect(leftoverTmp).toEqual([]);
+  });
+
+  it('9. S1-01 Crash between staging .tmp write and renameSync: cleans up .tmp and preserves previous secrets.json', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    const vault = new SecretVaultService(secretsPath);
+    expect(vault.setSecret('stable_key', 'STABLE_VALUE_1').success).toBe(true);
+    const originalContent = fs.readFileSync(secretsPath, 'utf-8');
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => {
+      throw Object.assign(new Error('Simulated power loss before rename'), { code: 'EIO' });
+    });
+    try {
+      const res = vault.setSecret('new_key_during_crash', 'CRASH_SECRET_999');
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('EIO');
+      expect(vault.getSecret('new_key_during_crash').status).toBe('missing');
+      expect(vault.getSecret('stable_key').value).toBe('STABLE_VALUE_1');
+      expect(fs.readFileSync(secretsPath, 'utf-8')).toBe(originalContent);
+      expect(fs.readdirSync(tmpDir).filter((f) => f.includes('.tmp.'))).toEqual([]);
+    } finally {
+      renameSpy.mockRestore();
+      errSpy.mockRestore();
+    }
+
+    // Torn temp file left behind from an external hard crash does not break vault reads
+    fs.writeFileSync(path.join(tmpDir, 'secrets.json.tmp.9999.1'), '{"schemaVersion":2,"entries":{"broken":', 'utf-8');
+    expect(vault.getSecret('stable_key').value).toBe('STABLE_VALUE_1');
+  });
+
+  it('10. S1-01 Malformed/torn secrets.json: quarantines corrupt file to .corrupt.*.bak before atomic recovery', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    fs.writeFileSync(secretsPath, '{"schemaVersion": 2, "entries": { truncated', 'utf-8');
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const vault = new SecretVaultService(secretsPath);
+      expect(vault.readVaultV2()).toEqual({ schemaVersion: 2, entries: {} });
+
+      const writeRes = vault.setSecret('recovered_key', 'RECOVERED_SECRET');
+      expect(writeRes.success).toBe(true);
+      expect(vault.getSecret('recovered_key').value).toBe('RECOVERED_SECRET');
+
+      const backups = fs.readdirSync(tmpDir).filter((f) => f.startsWith('secrets.json.corrupt.') && f.endsWith('.bak'));
+      expect(backups.length).toBe(1);
+    } finally {
+      errSpy.mockRestore();
+    }
+  });
+
+  it('11. S1-01 Read-back DPAPI verification failure returns success=false without RAM fallback', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    const vault = new SecretVaultService(secretsPath);
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSafeStorage.decryptString.mockImplementationOnce(() => 'WRONG_DECRYPTED_VALUE');
+    try {
+      const res = vault.setSecret('verify_fail_key', 'EXPECTED_VALUE');
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('VERIFY_DECRYPT');
+      expect(vault.getSecret('verify_fail_key').status).toBe('missing');
+    } finally {
+      errSpy.mockRestore();
+    }
+  });
+
+  it('12. S1-01 Legacy migration: preserves config/secure-keys.json on write failure or skipped entries, and unlinks only after verified migration + Gemini consolidation', async () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    const { app } = await import('electron');
+    const customUserData = path.join(tmpDir, 'app-userdata');
+    const legacyDir = path.join(customUserData, 'config');
+    fs.mkdirSync(legacyDir, { recursive: true });
+    const legacyPath = path.join(legacyDir, 'secure-keys.json');
+    const mainVaultPath = path.join(customUserData, 'secrets.json');
+
+    vi.mocked(app.getPath).mockReturnValue(customUserData);
+
+    fs.writeFileSync(
+      legacyPath,
+      JSON.stringify({
+        'provider:gemini:api_key': {
+          encrypted: false,
+          data: Buffer.from('AIzaLegacyConfigGeminiKey', 'utf-8').toString('base64')
+        }
+      }),
+      'utf-8'
+    );
+
+    const vault = new SecretVaultService();
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementationOnce(() => {
+      throw Object.assign(new Error('Permission denied'), { code: 'EACCES' });
+    });
+    try {
+      const failMig = vault.migrateLegacySecretsOnStartup();
+      expect(failMig.success).toBe(false);
+      expect(failMig.error).toContain('EACCES');
+      expect(fs.existsSync(legacyPath)).toBe(true);
+    } finally {
+      renameSpy.mockRestore();
+      errSpy.mockRestore();
+    }
+
+    // Verified migration removes legacy config/secure-keys.json and consolidates Gemini to canonical slot
+    const okMig = vault.migrateLegacySecretsOnStartup();
+    expect(okMig.success).toBe(true);
+    expect(okMig.migratedCount).toBe(1);
+    expect(fs.existsSync(legacyPath)).toBe(false);
+    const diskV2 = JSON.parse(fs.readFileSync(mainVaultPath, 'utf-8'));
+    expect(diskV2.entries.gemini_api_key).toBeDefined();
+    expect(diskV2.entries['provider:gemini:api_key']).toBeUndefined();
+    expect(vault.resolveGeminiApiKey().value).toBe('AIzaLegacyConfigGeminiKey');
+  });
+
+  it('13. S1-01 Canonical Gemini storage & ProviderManager fail-closed persistence', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    const vault = new SecretVaultService(secretsPath);
+    const pm = new ProviderManager(providersPath, vault);
+
+    const saveOk = pm.saveProvider({
+      id: 'gemini',
+      name: 'Google Gemini',
+      type: 'cloud',
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      apiKey: 'AIzaSingleSourceTruthKey',
+      model: 'gemini-2.5-flash',
+      maxTokens: 4096,
+      temperature: 0.7,
+      enabled: true,
+      priority: 1
+    });
+    expect(saveOk.success).toBe(true);
+
+    const diskV2 = JSON.parse(fs.readFileSync(secretsPath, 'utf-8'));
+    expect(diskV2.entries.gemini_api_key).toBeDefined();
+    expect(diskV2.entries['provider:gemini:api_key']).toBeUndefined();
+
+    // Fail-closed: if secrets.json write fails, saveProvider aborts without replacing provider config or losing old secret
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const openSpy = vi.spyOn(fs, 'openSync').mockImplementation(() => {
+      throw Object.assign(new Error('Disk full'), { code: 'ENOSPC' });
+    });
+    try {
+      const saveFail = pm.saveProvider({
+        id: 'gemini',
+        name: 'Google Gemini Changed',
+        type: 'cloud',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+        apiKey: 'AIzaShouldNotOverwriteOnFail',
+        model: 'gemini-2.5-pro',
+        maxTokens: 4096,
+        temperature: 0.7,
+        enabled: true,
+        priority: 1
+      });
+      expect(saveFail.success).toBe(false);
+      expect(saveFail.error).toContain('ENOSPC');
+    } finally {
+      openSpy.mockRestore();
+      errSpy.mockRestore();
+    }
+
+    const providersAfterFail = JSON.parse(fs.readFileSync(providersPath, 'utf-8'));
+    const geminiRow = providersAfterFail.find((p: any) => p.id === 'gemini');
+    expect(geminiRow.name).toBe('Google Gemini');
+    expect(pm.resolveProviderKey('gemini').value).toBe('AIzaSingleSourceTruthKey');
+
+    // Restart + DPAPI decrypt check, including fsync ENOTSUP tolerance
+    const fsyncSpy = vi.spyOn(fs, 'fsyncSync').mockImplementationOnce(() => {
+      throw Object.assign(new Error('ENOTSUP'), { code: 'ENOTSUP' });
+    });
+    try {
+      expect(vault.setSecret('post_fsync_enotsup', 'SECRET_AFTER_ENOTSUP').success).toBe(true);
+    } finally {
+      fsyncSpy.mockRestore();
+    }
+    const restarted = new SecretVaultService(secretsPath);
+    expect(restarted.getSecret('post_fsync_enotsup').value).toBe('SECRET_AFTER_ENOTSUP');
+    expect(restarted.resolveGeminiApiKey().value).toBe('AIzaSingleSourceTruthKey');
+  });
+
+  it('14. S1-01 Partial unreadable legacy secure-keys.json & ProviderManager startup migration fail keep legacy keys intact', async () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    const { app } = await import('electron');
+    const customUserData = path.join(tmpDir, 'partial-mig-userdata');
+    const legacyDir = path.join(customUserData, 'config');
+    fs.mkdirSync(legacyDir, { recursive: true });
+    const legacyPath = path.join(legacyDir, 'secure-keys.json');
+    vi.mocked(app.getPath).mockReturnValue(customUserData);
+
+    fs.writeFileSync(
+      legacyPath,
+      JSON.stringify({
+        readable_key: { encrypted: false, data: Buffer.from('READABLE_VAL', 'utf-8').toString('base64') },
+        foreign_dpapi_key: { encrypted: true, data: Buffer.from('FOREIGN_BLOB', 'utf-8').toString('base64') }
+      }),
+      'utf-8'
+    );
+
+    const vault = new SecretVaultService();
+    const res = vault.migrateLegacySecretsOnStartup();
+    expect(res.success).toBe(true);
+    expect(res.migratedCount).toBe(1);
+    expect(vault.getSecret('readable_key').value).toBe('READABLE_VAL');
+    expect(fs.existsSync(legacyPath)).toBe(true);
+
+    // ProviderManager startup migration failure preserves legacy p.apiKey in ai-providers.json
+    const pmSecretsPath = path.join(tmpDir, 'pm-fail-secrets.json');
+    const pmProvidersPath = path.join(tmpDir, 'pm-fail-providers.json');
+    fs.writeFileSync(
+      pmProvidersPath,
+      JSON.stringify([
+        {
+          id: 'openrouter_boot',
+          name: 'OpenRouter Boot',
+          type: 'cloud',
+          endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+          apiKey: 'sk-boot-legacy-keep-me',
+          model: 'qwen/qwen3-coder:free',
+          enabled: true,
+          priority: 1
+        }
+      ]),
+      'utf-8'
+    );
+
+    const pmVault = new SecretVaultService(pmSecretsPath);
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const openSpy = vi.spyOn(fs, 'openSync').mockImplementation(() => {
+      throw Object.assign(new Error('Permission denied'), { code: 'EACCES' });
+    });
+    try {
+      new ProviderManager(pmProvidersPath, pmVault);
+    } finally {
+      openSpy.mockRestore();
+      errSpy.mockRestore();
+    }
+
+    const diskProviders = JSON.parse(fs.readFileSync(pmProvidersPath, 'utf-8'));
+    expect(diskProviders[0].apiKey).toBe('sk-boot-legacy-keep-me');
+  });
 });
+
+
 

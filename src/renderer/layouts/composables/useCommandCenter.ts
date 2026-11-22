@@ -220,7 +220,7 @@ export function useCommandCenter() {
     isMediaCommandPending.value = true;
     uiStore.musicLastLocalCommandAt = Date.now();
     try {
-      if (window.api?.vkControl) {
+      if (typeof window.api?.vkControl === 'function') {
         const action = uiStore.musicState === 'playing' ? 'pause' : 'play';
         const res = await vkControlWithTimeout(action);
         if (res && res.success) {
@@ -250,7 +250,7 @@ export function useCommandCenter() {
     }
     isMediaCommandPending.value = true;
     try {
-      if (window.api?.vkControl) {
+      if (typeof window.api?.vkControl === 'function') {
         const res = await vkControlWithTimeout('next');
         if (res && res.success) {
           uiStore.setMusicState('playing');
@@ -279,7 +279,7 @@ export function useCommandCenter() {
     }
     isMediaCommandPending.value = true;
     try {
-      if (window.api?.vkControl) {
+      if (typeof window.api?.vkControl === 'function') {
         const res = await vkControlWithTimeout('prev');
         if (res && res.success) {
           uiStore.setMusicState('playing');
@@ -309,7 +309,7 @@ export function useCommandCenter() {
     }
     isMediaCommandPending.value = true;
     try {
-      if (uiStore.vkActive && window.api?.vkControl) {
+      if (uiStore.vkActive && typeof window.api?.vkControl === 'function') {
         const res = await vkControlWithTimeout('seek', { percentage: clampedPct });
         if (res && res.success) {
           uiStore.musicLastSeekTime = Date.now();
@@ -338,7 +338,7 @@ export function useCommandCenter() {
     if (isMediaCommandPending.value) return;
     isMediaCommandPending.value = true;
     try {
-      if (uiStore.vkActive && window.api?.vkControl) {
+      if (uiStore.vkActive && typeof window.api?.vkControl === 'function') {
         const nextVal = !uiStore.musicShuffled;
         const res = await vkControlWithTimeout('shuffle');
         if (res && res.success) {
@@ -364,7 +364,7 @@ export function useCommandCenter() {
     if (isMediaCommandPending.value) return;
     isMediaCommandPending.value = true;
     try {
-      if (uiStore.vkActive && window.api?.vkControl) {
+      if (uiStore.vkActive && typeof window.api?.vkControl === 'function') {
         let nextMode: 'off' | 'track' | 'playlist' = 'off';
         const current = uiStore.musicRepeated;
         if (current === 'off' || current === false) {
@@ -402,7 +402,7 @@ export function useCommandCenter() {
     }
     isMediaCommandPending.value = true;
     try {
-      if (window.api?.vkControl) {
+      if (typeof window.api?.vkControl === 'function') {
         const nextVal = !uiStore.musicLiked;
         const action = nextVal ? 'save' : 'remove';
         const res = await vkControlWithTimeout(action);
@@ -430,7 +430,7 @@ export function useCommandCenter() {
     if (isMediaCommandPending.value) return;
     isMediaCommandPending.value = true;
     try {
-      if (uiStore.vkActive && window.api?.vkControl) {
+      if (uiStore.vkActive && typeof window.api?.vkControl === 'function') {
         if (uiStore.musicVolume > 0) {
           const oldVol = uiStore.musicVolume;
           prevVolume.value = oldVol;

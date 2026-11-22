@@ -4,14 +4,14 @@ import path from 'path';
 import os from 'os';
 
 const mockTables = vi.hoisted(() => ({
-  arc_objectives: [],
-  arc_decisions: [],
-  arc_actions: [],
-  behavioral_events: [],
-  arc_coherence_history: [],
-  arc_outcomes: [],
-  arc_objective_risks: [],
-  arc_objective_dependencies: [],
+  arc_objectives: [] as any[],
+  arc_decisions: [] as any[],
+  arc_actions: [] as any[],
+  behavioral_events: [] as any[],
+  arc_coherence_history: [] as any[],
+  arc_outcomes: [] as any[],
+  arc_objective_risks: [] as any[],
+  arc_objective_dependencies: [] as any[],
 }));
 
 vi.mock('../ai.service', () => ({
@@ -139,11 +139,14 @@ describe('Atomic Rollback System Integration Tests', () => {
     expect(result.errors.length).toBe(0);
 
     const obj = mockTables.arc_objectives.find((o: any) => o.id === objectiveId);
-    expect(obj.status).toBe(ObjectiveStatus.ROLLED_BACK);
+    expect(obj).toBeDefined();
+    expect(obj!.status).toBe(ObjectiveStatus.ROLLED_BACK);
     const dec = mockTables.arc_decisions.find((d: any) => d.id === decisionId);
-    expect(dec.status).toBe('ROLLED_BACK');
+    expect(dec).toBeDefined();
+    expect(dec!.status).toBe('ROLLED_BACK');
     const act = mockTables.arc_actions.find((a: any) => a.id === 'act-1');
-    expect(act.status).toBe('ROLLED_BACK');
+    expect(act).toBeDefined();
+    expect(act!.status).toBe('ROLLED_BACK');
 
     const content = await fsp.readFile(originalFilePath, 'utf8');
     expect(content).toBe('.body { color: blue; }');
@@ -189,7 +192,8 @@ describe('Atomic Rollback System Integration Tests', () => {
     expect(result.errors.length).toBe(0);
 
     const obj = mockTables.arc_objectives.find((o: any) => o.id === objectiveId);
-    expect(obj.status).toBe(ObjectiveStatus.ROLLED_BACK);
+    expect(obj).toBeDefined();
+    expect(obj!.status).toBe(ObjectiveStatus.ROLLED_BACK);
   });
 
   it('Scenario 3: rolling back an already rolled-back objective should throw an error', async () => {

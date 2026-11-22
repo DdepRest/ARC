@@ -4,7 +4,7 @@ import { generateArcIdentityResponse, generateGratitudeResponse, levenshteinDist
 import { normalizeRussianNumbers, normalizeMediaPhonetics } from '../../../shared/utils/ru-number-parser';
 import { resolveSiteQueryToUrl } from '../../../shared/utils/url-normalizer';
 
-export async function executeCommandRegistry(rawText: string, stores: any): Promise<{ handled: boolean; response?: string }> {
+export async function executeCommandRegistry(rawText: string, stores: any): Promise<{ handled: boolean; response?: string } | null> {
   const { uiStore, settingsStore, tasksStore } = stores;
   const {
     tasks, recommendedTask, totalSpentMinutes, activeCount,
@@ -608,7 +608,7 @@ export async function executeCommandRegistry(rawText: string, stores: any): Prom
     ) {
       uiStore.setActiveTab('tasks');
       const taskCount = tasks.value.length;
-      tasks.value.forEach(t => deleteTask(t.id));
+      tasks.value.forEach((t: Task) => deleteTask(t.id));
       return logAndReturn(isEn ? `All ${taskCount} tasks cleared from list.` : `Все задачи (${taskCount}) удалены из оперативного списка.`);
     }
 
@@ -635,7 +635,7 @@ export async function executeCommandRegistry(rawText: string, stores: any): Prom
       if (query === 'все' || query === 'все задачи' || query === 'список' || query === 'список задач') {
         uiStore.setActiveTab('tasks');
         const count = tasks.value.length;
-        tasks.value.forEach(t => deleteTask(t.id));
+        tasks.value.forEach((t: Task) => deleteTask(t.id));
         return logAndReturn(isEn ? `All ${count} tasks cleared from list.` : `Все задачи (${count}) удалены из списка.`);
       }
       if (!query || query === 'задачу' || query === 'задача' || query === 'подзадачу') {
@@ -697,8 +697,8 @@ export async function executeCommandRegistry(rawText: string, stores: any): Prom
 
     if (text.includes('очисти выполненные задачи') || text.includes('удали сделанные задачи')) {
       uiStore.setActiveTab('tasks');
-      const completedList = tasks.value.filter(t => t.completed || t.status === 'done');
-      completedList.forEach(t => deleteTask(t.id));
+      const completedList = tasks.value.filter((t: Task) => t.completed || t.status === 'done');
+      completedList.forEach((t: Task) => deleteTask(t.id));
       return {
         handled: true,
         response: isEn ? `Cleared ${completedList.length} completed tasks.` : `Очищено ${completedList.length} выполненных задач.`

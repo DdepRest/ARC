@@ -2,6 +2,7 @@ import { getMockTranscriptionHandlers } from './mock-transcription';
 import { getMockObjectiveHandlers } from './mock-objectives';
 import { createMockDialogTrashHandlers, purgeExpiredMockSessions } from './mock-dialog-trash';
 import { synthesizeMockWorkflowChunks } from '../../shared/utils/auto-workflow';
+import { createPendingCapabilitySnapshot } from '../../shared/config/modules-capability.registry';
 
 export function getMockSessions(): any[] {
   if ((window as any)._mockSessions) return (window as any)._mockSessions;
@@ -96,7 +97,7 @@ export function setupElectronApiMock() {
       setEcoState: (state: string) => { console.log('ARC Mock Eco State:', state); },
       isWindowFocused: async () => true,
       onFocusChanged: (_callback: (focused: boolean) => void) => { return () => {}; },
-      getModulesStatus: async () => ({ database: 'online', voice: 'online', ai: 'online', memory: 'online' }),
+      getModulesStatus: async () => createPendingCapabilitySnapshot('IPC Electron недоступен в браузерном режиме превью', 'unknown'),
       speak: async (text: string, style?: string) => {
         console.log(`ARC Mock Speak [${style || 'default'}]:`, text);
         const ttsMetaCbs = (window as any)._mockTtsMetaCallbacks || [];
@@ -485,23 +486,10 @@ export function setupElectronApiMock() {
       downloadBuiltinModel: async (modelName?: string) => { const list = new Set<string>(JSON.parse(localStorage.getItem('arc_mock_downloaded_gguf_models') || '["qwen2.5-1.5b-instruct-q4_k_m.gguf"]')); list.add(modelName || 'qwen2.5-1.5b-instruct-q4_k_m.gguf'); localStorage.setItem('arc_mock_downloaded_gguf_models', JSON.stringify(Array.from(list))); localStorage.setItem('arc_mock_builtin_model_downloaded', 'true'); return { success: true }; },
       cancelBuiltinModelDownload: async () => ({ success: true }),
       listFiles: async () => ['arc_kernel_v5.ts', 'system_config.json', 'neural_weights_opt.bin', 'reactor_core.vue', 'security_audit_log.txt', 'holographic_projection.css', 'cognitive_models.zip', 'boot_sequence.md', 'voice_dsp.wav', 'satellite_feed.mp4'],
-      objectiveGetAll: async () => [],
-      objectiveGetEntropyState: async () => ({ entropy: 0, state: 'STABLE', autoApprove: false }),
-      objectiveCreate: async () => ({ id: 'new-obj' }),
-      objectiveGetGraph: async () => ({ nodes: [], links: [] }),
-      objectiveDecompose: async () => ({}),
       objectiveAddOutcome: async () => ({}),
-      objectiveUpdateOutcomeValue: async () => true,
       objectiveAddDependency: async () => true,
       objectiveEvaluateHealth: async () => ({ confidence: 1.0, is_off_trajectory: false }),
-      objectiveGenerateRouteMap: async () => ({}),
-      objectiveApproveRoute: async () => ({}),
-      objectiveModifyRoute: async () => ({}),
-      objectiveDeclineRoute: async () => ({}),
-      objectiveRollback: async () => ({ success: true, rolledBackActions: 0, skippedActions: 0, errors: [] }),
       objectiveSaveLayout: async () => ({}),
-      objectiveSetAutoApprove: async () => true,
-      decisionGetAll: async () => [],
       decisionCreate: async () => ({ id: 'new-dec' }),
       savePerfConfig: async (config: any) => {
         localStorage.setItem('arc_mock_perf_config', JSON.stringify(config));
@@ -512,22 +500,6 @@ export function setupElectronApiMock() {
         return stored ? JSON.parse(stored) : { targetFps: 'unlimited', disableVsync: false };
       },
       // Transcription APIs Mock
-      transcriptionCheckModel: async (modelName: string) => {
-        if (!(window as any)._mockDownloadedModels) (window as any)._mockDownloadedModels = new Set();
-        return (window as any)._mockDownloadedModels.has(modelName);
-      },
-      transcriptionDownloadModel: async (modelName: string, device?: string) => {
-        console.log('Mock download model started for:', modelName, 'on device:', device);
-        if (!(window as any)._mockDownloadedModels) (window as any)._mockDownloadedModels = new Set();
-        const steps = 10;
-        for (let i = 1; i <= steps; i++) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          const callbacks = (window as any)._mockDownloadProgressCallbacks || [];
-          callbacks.forEach((cb: any) => cb({ modelName, bytes_done: i * 10, total_bytes: 100, filename: `model.safetensors` }));
-        }
-        (window as any)._mockDownloadedModels.add(modelName);
-        return { success: true };
-      },
       ...getMockTranscriptionHandlers(),
       
       dialogCreateSession: async (name?: string) => {

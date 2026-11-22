@@ -76,6 +76,14 @@ export class TaskManagementTool implements ToolInstance {
           status: 'todo'
         }, 'ai_tool');
 
+        if (!created) {
+          return {
+            success: false,
+            error: 'Failed to create task in database',
+            toolName: this.definition.name
+          };
+        }
+
         return {
           success: true,
           data: `Task successfully created: "${created.text}" (ID: ${created.id}, Priority: ${created.priority}, Due: ${created.dueDate || 'none'})`,

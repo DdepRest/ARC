@@ -63,5 +63,40 @@ describe('ai.ipc Provider Allowlist Tests', () => {
     });
     expect(JSON.stringify(result)).not.toContain('SUPER_SECRET_KEY_DO_NOT_LEAK');
   });
+
+  it('S1-01: ai:save-provider propagates { success: false, error } without false toast when disk write fails', async () => {
+    const { ipcMain } = await import('electron');
+    const { registerAiIpc } = await import('./ai.ipc');
+    const { aiService } = await import('../services/ai.service');
+
+    vi.spyOn(aiService, 'saveProvider').mockReturnValue({
+      success: false,
+      storageMode: 'dpapi',
+      isEncrypted: false,
+      error: 'Ключ не сохранён: нет прав на запись (EACCES).'
+    });
+
+    registerAiIpc();
+    const handleCalls = (ipcMain.handle as any).mock.calls;
+    const saveCall = handleCalls.filter((c: any[]) => c[0] === 'ai:save-provider').pop();
+    expect(saveCall).toBeDefined();
+
+    const res = await saveCall[1](null, {
+      id: 'gemini',
+      name: 'Google Gemini',
+      type: 'cloud',
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      model: 'gemini-2.5-flash',
+      apiKey: 'AIzaFailKey',
+      priority: 1,
+      maxTokens: 2048,
+      temperature: 0.7,
+      enabled: true
+    });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('EACCES');
+  });
 });
+
 

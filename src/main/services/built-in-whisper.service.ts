@@ -2,6 +2,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { Worker } from 'worker_threads';
+import { DownloadCancelledError } from './sherpa-download-task.helper';
 
 export interface WhisperSegment {
   timestamp: [number, number] | null;
@@ -44,18 +45,12 @@ export class BuiltInWhisperService {
 
     console.log('[BuiltIn-Whisper-Parent] Initializing background Worker Thread for Whisper inference...');
     
-    // JS Worker code to execute in background thread
     const workerCode = `
       const { parentPort } = require('worker_threads');
-      
-      // Sharp mock removed as per TZ
-      
       let pipeline, env;
-      
       async function ensurePipeline() {
          if (!pipeline) {
-             let trans;
-             trans = await import('@xenova/transformers');
+             const trans = await import('@xenova/transformers');
              pipeline = trans.pipeline || (trans.default && trans.default.pipeline);
              env = trans.env || (trans.default && trans.default.env);
          }
@@ -367,21 +362,32 @@ export class BuiltInWhisperService {
     });
   }
 
-  /**
-   * Aborts current running model inference or loading
-   */
-  public abort() {
-    console.log('[BuiltIn-Whisper-Parent] Aborting active Whisper worker thread on user request...');
-    this.terminateWorker();
-    
-    // Also reject any pending transcription promises
-    const reject = this.pendingRejects.get('transcribe');
-    if (reject) {
-      reject(new Error('Transcription was cancelled by user.'));
-      this.pendingRejects.delete('transcribe');
+  public abort(targetModelName?: string): boolean {
+    let matched = false;
+    const cancelErr = new DownloadCancelledError('Model download or transcription cancelled by user.');
+    for (const [key, rejectFn] of Array.from(this.pendingRejects.entries())) {
+      if (key.startsWith('load-')) {
+        const keyModel = key.slice('load-'.length);
+        if (!targetModelName || keyModel === targetModelName) {
+          matched = true;
+          this.pendingRejects.delete(key);
+          this.pendingResolves.delete(key);
+          rejectFn(cancelErr);
+        }
+      }
     }
-    this.pendingResolves.delete('transcribe');
-    this.chunkCallback = null;
+    if (!targetModelName || this.currentModelName === targetModelName || matched) this.terminateWorker();
+    if (!targetModelName) {
+      const rejectTranscribe = this.pendingRejects.get('transcribe');
+      if (rejectTranscribe) {
+        matched = true;
+        rejectTranscribe(cancelErr);
+        this.pendingRejects.delete('transcribe');
+      }
+      this.pendingResolves.delete('transcribe');
+      this.chunkCallback = null;
+    }
+    return matched;
   }
 }
 

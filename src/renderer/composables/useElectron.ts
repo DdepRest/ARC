@@ -1,9 +1,16 @@
 import { ref, onMounted } from 'vue';
-import type { SystemInfo, ModuleStatus } from '../../shared/types/ipc';
+import type { SystemInfo, ModuleStatus, ModulesCapabilitySnapshot } from '../../shared/types/ipc';
+import {
+  createPendingCapabilitySnapshot,
+  normalizeModulesCapabilityResponse
+} from '../../shared/config/modules-capability.registry';
 
 export function useElectron() {
   const systemInfo = ref<SystemInfo | null>(null);
-  const modulesStatus = ref<Record<string, ModuleStatus>>({});
+  const modulesSnapshot = ref<ModulesCapabilitySnapshot>(
+    createPendingCapabilitySnapshot('Ожидание проверки подсистем')
+  );
+  const modulesStatus = ref<Record<string, ModuleStatus>>(modulesSnapshot.value.legacyStatusMap);
   const files = ref<string[]>([]);
 
   const fetchSystemInfo = async () => {
@@ -12,9 +19,20 @@ export function useElectron() {
     }
   };
 
-  const fetchModulesStatus = async () => {
+  const fetchModulesStatus = async (refresh = false) => {
     if (window.api) {
-      modulesStatus.value = await window.api.getModulesStatus();
+      try {
+        const res = await window.api.getModulesStatus(refresh ? { refresh: true } : undefined);
+        const normalized = normalizeModulesCapabilityResponse(res);
+        if (normalized) {
+          modulesSnapshot.value = normalized;
+          modulesStatus.value = normalized.legacyStatusMap;
+        }
+      } catch {
+        const fallback = createPendingCapabilitySnapshot('Ошибка получения статуса подсистем', 'unknown');
+        modulesSnapshot.value = fallback;
+        modulesStatus.value = fallback.legacyStatusMap;
+      }
     }
   };
 
@@ -33,6 +51,7 @@ export function useElectron() {
   return {
     systemInfo,
     modulesStatus,
+    modulesSnapshot,
     files,
     fetchSystemInfo,
     fetchModulesStatus,

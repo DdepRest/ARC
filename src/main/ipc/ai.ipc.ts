@@ -103,6 +103,12 @@ export function isProviderAllowed(providerIdOrType?: string): boolean {
 
 function speakSystemResponse(text: string, settings?: any, reqId?: string) {
   if (!text || !text.trim() || text.trim() === 'Остановлено.') return;
+  if (typeof settings?.allowCloudTtsFallback === 'boolean' || typeof settings?.forcedOfflineMode === 'boolean') {
+    ttsService.setPolicy({
+      ...(typeof settings?.allowCloudTtsFallback === 'boolean' ? { allowCloudTtsFallback: settings.allowCloudTtsFallback } : {}),
+      ...(typeof settings?.forcedOfflineMode === 'boolean' ? { forcedOfflineMode: settings.forcedOfflineMode } : {}),
+    });
+  }
   ttsService.speak(
     text, 'default', settings?.voicePresetId || 'eugene',
     settings?.ttsSpeed ?? 1.0, settings?.ttsPitch ?? 0, settings?.ttsSampleRate ?? 48000,
@@ -221,12 +227,15 @@ export function registerAiIpc() {
       return { success: false, error: 'PROVIDER_NOT_ALLOWED' };
     }
     const hadNewKey = Boolean(provider?.apiKey && provider.apiKey.trim() && provider.apiKey.trim() !== MASKED_SECRET_PLACEHOLDER);
-    aiService.saveProvider(provider);
-    if (hadNewKey && secretVault.getSecurityStatus().secretsStorageMode === 'session_memory_only') {
+    const saveRes = aiService.saveProvider(provider);
+    if (saveRes && saveRes.success === false) {
+      return saveRes;
+    }
+    if (hadNewKey && (saveRes?.storageMode === 'session_memory_only' || secretVault.getSecurityStatus().secretsStorageMode === 'session_memory_only')) {
       broadcastToast('DPAPI недоступен: ключ провайдера сохранён только в памяти текущей сессии (на диск не записан).', 'warning', 6500);
     }
     if (provider?.id) providerHealthManager.reset(provider.id);
-    return { success: true };
+    return saveRes || { success: true };
   });
   ipcMain.handle('ai:delete-provider', (_event, id: string) => { aiService.deleteProvider(id); return { success: true }; });
   ipcMain.handle('ai:test-connection', async (_event, provider: AiProvider) => {

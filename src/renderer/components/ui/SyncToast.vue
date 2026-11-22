@@ -9,22 +9,50 @@
       }"
     >
       <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse shadow-[0_0_8px_var(--accent)]"></span>
-        <span class="text-xs font-bold uppercase tracking-widest text-[var(--accent)] font-mono">✦ SYNCED</span>
+        <span
+          class="w-2 h-2 rounded-full"
+          :class="settingsStore.lastChangedState.variant === 'error'
+            ? 'bg-[var(--status-err)]'
+            : settingsStore.lastChangedState.variant === 'warn'
+              ? 'bg-[var(--status-warn)]'
+              : 'bg-[var(--accent)] animate-pulse shadow-[0_0_8px_var(--accent)]'"
+        ></span>
+        <span
+          class="text-xs font-bold uppercase tracking-widest font-mono"
+          :class="settingsStore.lastChangedState.variant === 'error'
+            ? 'text-[var(--status-err)]'
+            : settingsStore.lastChangedState.variant === 'warn'
+              ? 'text-[var(--status-warn)]'
+              : 'text-[var(--accent)]'"
+        >
+          {{ settingsStore.lastChangedState.badgeLabel
+            || (settingsStore.lastChangedState.variant === 'error'
+              ? (settingsStore.language === 'EN' ? '✦ SYNC FAIL' : '✦ ОШИБКА БД')
+              : settingsStore.lastChangedState.variant === 'warn'
+                ? (settingsStore.language === 'EN' ? '✦ LOCAL TEMPLATE' : '✦ ЛОКАЛЬНЫЙ ШАБЛОН')
+                : '✦ SYNCED') }}
+        </span>
       </div>
 
       <div class="h-4 w-[1px] bg-[var(--arc-divider)]"></div>
 
-      <div class="text-xs text-[var(--arc-text-primary)] font-medium max-w-[200px] truncate">
+      <div class="text-xs text-[var(--arc-text-primary)] font-medium max-w-[260px] truncate" :title="settingsStore.lastChangedState.label">
         {{ settingsStore.lastChangedState.label }}
       </div>
 
       <button
+        v-if="!settingsStore.lastChangedState.hideAction"
         @click="settingsStore.lastChangedState.undo()"
         class="ml-2 px-3 py-1 text-xs font-medium theme-accent-btn rounded-full transition duration-200 cursor-pointer flex items-center gap-1 active:scale-95 shrink-0"
       >
-        <Undo2 class="w-3 h-3" />
-        <span>{{ settingsStore.language === 'EN' ? 'Undo' : 'Отменить' }}</span>
+        <RotateCcw v-if="settingsStore.lastChangedState.variant === 'error' || settingsStore.lastChangedState.variant === 'warn'" class="w-3 h-3" />
+        <Undo2 v-else class="w-3 h-3" />
+        <span>
+          {{ settingsStore.lastChangedState.actionLabel
+            || (settingsStore.lastChangedState.variant === 'error'
+              ? (settingsStore.language === 'EN' ? 'Retry' : 'Повторить')
+              : (settingsStore.language === 'EN' ? 'Undo' : 'Отменить')) }}
+        </span>
       </button>
 
       <button
@@ -40,7 +68,7 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from '../../features/settings/stores/settings.store';
-import { Undo2, X } from 'lucide-vue-next';
+import { Undo2, RotateCcw, X } from 'lucide-vue-next';
 
 const settingsStore = useSettingsStore();
 </script>

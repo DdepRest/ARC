@@ -104,9 +104,13 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
   const lastTime = ref(0);
   const lastBytes = ref(0);
   const downloadSpeedBps = ref(0);
+  const speedSampleCount = ref(0);
+  const lastExplicitPercent = ref(0);
 
   const progressPercent = computed(() => {
-    if (totalBytes.value <= 0) return '0.0';
+    if (totalBytes.value <= 0) {
+      return Math.min(Math.max(lastExplicitPercent.value, 0), 100).toFixed(1);
+    }
     const p = (bytesDone.value / totalBytes.value) * 100;
     return Math.min(Math.max(p, 0), 100).toFixed(1);
   });
@@ -120,7 +124,7 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
   });
 
   const estimatedTimeFormatted = computed(() => {
-    if (downloadSpeedBps.value <= 0 || totalBytes.value <= 0) return '--:--';
+    if (speedSampleCount.value < 2 || downloadSpeedBps.value <= 0 || totalBytes.value <= 0) return '--:--';
     const remainingBytes = totalBytes.value - bytesDone.value;
     if (remainingBytes <= 0) return '00:00';
     
@@ -144,6 +148,7 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
       lastTime.value = now;
       lastBytes.value = done;
       downloadSpeedBps.value = 0;
+      speedSampleCount.value = 0;
       return;
     }
 
@@ -155,6 +160,7 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
         downloadSpeedBps.value = downloadSpeedBps.value === 0
           ? instantSpeed
           : Math.round(downloadSpeedBps.value * 0.35 + instantSpeed * 0.65);
+        speedSampleCount.value += 1;
         lastTime.value = now;
         lastBytes.value = done;
       } else if (bytesDiff === 0 && timeDiff >= 2500) {
@@ -169,6 +175,7 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
       statusText.value = `Error: ${error}`;
       isDownloading.value = false;
       downloadSpeedBps.value = 0;
+      speedSampleCount.value = 0;
       useUIStore().setHighComputeLoad(false);
       return;
     }
@@ -186,6 +193,7 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
       bytesDone.value = done;
       totalBytes.value = total;
       downloadSpeedBps.value = 0;
+      speedSampleCount.value = 0;
     } else {
       recordSpeed(done, total);
     }
@@ -229,30 +237,35 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
 
   const updateSttProgress = (data: { modelId: string; percent: number; status: string; error?: string; bytes_done?: number; total_bytes?: number }) => {
     if (completedClearTimer) clearTimeout(completedClearTimer);
-
+    if (data.status === 'cancelled') {
+      if (!currentFilename.value || currentFilename.value === data.modelId) finishDownload(false);
+      return;
+    }
     if (data.error || data.status === 'error') {
       errorText.value = data.error || 'Ошибка скачивания голосовой модели';
       isDownloading.value = false;
       downloadSpeedBps.value = 0;
+      speedSampleCount.value = 0;
       useUIStore().setHighComputeLoad(false);
       return;
     }
-
     if (data.status === 'completed' || data.percent >= 100) {
       completedMessage.value = `Голосовая модель ${data.modelId} готова`;
       finishDownload(true);
-      completedClearTimer = setTimeout(() => {
-        completedMessage.value = '';
-      }, 3500);
+      completedClearTimer = setTimeout(() => { completedMessage.value = ''; }, 3500);
       return;
     }
 
-    const estimatedTotal = data.total_bytes && data.total_bytes > 0 ? data.total_bytes : 235 * 1024 * 1024;
-    const done = data.bytes_done !== undefined && data.bytes_done > 0
+    lastExplicitPercent.value = typeof data.percent === 'number' ? data.percent : 0;
+    const isSameModel = currentFilename.value === data.modelId;
+    const knownTotal = data.total_bytes && data.total_bytes > 0
+      ? data.total_bytes
+      : (isSameModel && totalBytes.value > 0 ? totalBytes.value : 0);
+    const done = data.bytes_done !== undefined && data.bytes_done >= 0
       ? data.bytes_done
-      : Math.round((data.percent / 100) * estimatedTotal);
+      : (knownTotal > 0 ? Math.round((lastExplicitPercent.value / 100) * knownTotal) : (isSameModel ? bytesDone.value : 0));
 
-    const wasNotDownloading = !isDownloading.value;
+    const wasNotDownloading = !isDownloading.value || !isSameModel;
     if (wasNotDownloading) {
       isDownloading.value = true;
       taskType.value = 'stt-download';
@@ -263,44 +276,29 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
       lastTime.value = Date.now();
       lastBytes.value = done;
       bytesDone.value = done;
-      totalBytes.value = estimatedTotal;
+      totalBytes.value = knownTotal;
       downloadSpeedBps.value = 0;
+      speedSampleCount.value = 0;
     } else {
-      recordSpeed(done, estimatedTotal);
+      recordSpeed(done, knownTotal);
     }
 
     currentFilename.value = data.modelId;
-    statusText.value = `Загрузка STT: ${data.modelId}`;
+    statusText.value = data.status === 'verifying' ? `Проверка STT: ${data.modelId}` : `Загрузка STT: ${data.modelId}`;
   };
 
-  const closeOverlay = () => {
-    userDismissed.value = true;
-  };
+  const closeOverlay = () => { userDismissed.value = true; };
+  const toggleCollapse = () => { isCollapsed.value = !isCollapsed.value; };
+  const expand = () => { isCollapsed.value = false; userDismissed.value = false; };
+  const collapse = () => { isCollapsed.value = true; };
 
-  const toggleCollapse = () => {
-    isCollapsed.value = !isCollapsed.value;
-  };
-
-  const expand = () => {
-    isCollapsed.value = false;
-    userDismissed.value = false;
-  };
-
-  const collapse = () => {
-    isCollapsed.value = true;
-  };
-
-  const cancelDownload = async () => {
+  const cancelDownload = async (modelId?: string) => {
+    const targetSttId = modelId || (taskType.value === 'stt-download' ? currentFilename.value || undefined : undefined);
     try {
-      if (window.api && typeof (window.api as any).cancelBuiltinModelDownload === 'function') {
-        await (window.api as any).cancelBuiltinModelDownload();
-      }
-      if (window.api && typeof (window.api as any).cancelSttDownload === 'function') {
-        await (window.api as any).cancelSttDownload();
-      }
-    } catch (e) {
-      console.warn('Failed to cancel download via IPC:', e);
-    }
+      const api = window.api as any;
+      if (!modelId && taskType.value !== 'stt-download' && typeof api?.cancelBuiltinModelDownload === 'function') await api.cancelBuiltinModelDownload();
+      if (typeof api?.cancelSttDownload === 'function') await api.cancelSttDownload(targetSttId);
+    } catch (e) { console.warn('Failed to cancel download via IPC:', e); }
     finishDownload();
   };
 
@@ -308,8 +306,10 @@ export const useModelDownloadStore = defineStore('modelDownload', () => {
     isDownloading.value = false;
     bytesDone.value = 0;
     totalBytes.value = 0;
+    lastExplicitPercent.value = 0;
     currentFilename.value = '';
     downloadSpeedBps.value = 0;
+    speedSampleCount.value = 0;
     useUIStore().setHighComputeLoad(false);
     if (!preserveMessage) {
       userDismissed.value = false;

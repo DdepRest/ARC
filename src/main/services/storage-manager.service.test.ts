@@ -165,7 +165,8 @@ describe('StorageManagerService, DatabaseSnapshotService & ZipWriter', () => {
 
     const originalBackup = DatabaseService.db.backup.bind(DatabaseService.db);
     let concurrentWritesDone = 0;
-    vi.spyOn(DatabaseService.db, 'backup').mockImplementation(async (dest: string, opts?: any) => {
+    vi.spyOn(DatabaseService.db, 'backup').mockImplementation(async (...args: unknown[]) => {
+      const [dest, opts] = args as [string, any];
       // Interleave live concurrent transactions while backup executes
       DatabaseService.db
         .prepare('INSERT INTO ltm (id, category, key, value) VALUES (?, ?, ?, ?)')

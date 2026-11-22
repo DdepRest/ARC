@@ -93,12 +93,20 @@
             <button 
               v-if="!selectedTask.completed"
               type="button"
+              :disabled="isDecomposingSelected || selectedDecompSource === 'llm'"
               @click="tasksStore.decomposeTaskWithAI(selectedTask.id)" 
-              class="py-1.5 px-2 rounded-[var(--radius-control,8px)] text-[11px] font-mono font-medium bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border border-[var(--arc-hairline)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] transition cursor-pointer flex items-center gap-1"
-              title="AI Декомпозиция на шаги"
+              class="py-1.5 px-2 rounded-[var(--radius-control,8px)] text-[11px] font-mono font-medium border transition flex items-center gap-1"
+              :class="[
+                isDecomposingSelected || selectedDecompSource === 'llm'
+                  ? 'bg-[var(--arc-block)] border-[var(--arc-hairline)] text-[var(--arc-text-muted)] opacity-55 cursor-not-allowed'
+                  : selectedDecompSource === 'local_template'
+                    ? 'bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border-[var(--status-warn)] text-[var(--status-warn)] cursor-pointer'
+                    : 'bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] border-[var(--arc-hairline)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] cursor-pointer'
+              ]"
+              :title="aiDecompButtonTitle"
             >
-              <Zap class="w-3 h-3 text-[var(--accent)] shrink-0" />
-              <span>AI</span>
+              <Zap class="w-3 h-3 shrink-0" :class="selectedDecompSource === 'local_template' ? 'text-[var(--status-warn)]' : 'text-[var(--accent)]'" />
+              <span>{{ aiDecompButtonLabel }}</span>
             </button>
 
             <button 
@@ -114,13 +122,25 @@
 
         <!-- Subtasks List (Prominent Hierarchy right under Title) -->
         <div class="flex flex-col gap-1.5 bg-[var(--arc-plane)] border border-[var(--arc-hairline)] rounded-[var(--radius-card,12px)] p-2.5">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2">
             <span class="text-[10px] font-mono text-[var(--arc-text-machine)] uppercase tracking-widest flex items-center gap-1.5">
               <CheckSquare class="w-3.5 h-3.5 text-[var(--accent)]" /> Подзадачи и шаги
             </span>
-            <span v-if="selectedTask.subtasks?.length" class="text-[10px] font-mono text-[var(--arc-text-secondary)] font-semibold">
-              {{ tasksStore.getCompletedSubtasksCount(selectedTask) }}/{{ selectedTask.subtasks.length }}
-            </span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span
+                v-if="selectedDecompSource"
+                class="text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] border border-[var(--arc-hairline)] bg-[var(--arc-block)]"
+                :class="selectedDecompSource === 'local_template' ? 'text-[var(--status-warn)]' : 'text-[var(--arc-text-secondary)]'"
+                :title="selectedDecompSource === 'local_template'
+                  ? 'Шаги созданы локальным шаблоном (ИИ был офлайн)'
+                  : 'Шаги сгенерированы языковой моделью (LLM)'"
+              >
+                {{ selectedDecompSource === 'local_template' ? 'Шаблон · ИИ офлайн' : 'Источник: LLM' }}
+              </span>
+              <span v-if="selectedTask.subtasks?.length" class="text-[10px] font-mono text-[var(--arc-text-secondary)] font-semibold">
+                {{ tasksStore.getCompletedSubtasksCount(selectedTask) }}/{{ selectedTask.subtasks.length }}
+              </span>
+            </div>
           </div>
           <TaskSubtasksList :task="selectedTask" />
         </div>
@@ -149,6 +169,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useTasksStore } from '../stores/tasks.store';
+import { getTaskDecompositionSource } from '../composables/useAiDecomp';
 import { storeToRefs } from 'pinia';
 import { Sliders, X, CheckCircle2, Zap, CheckSquare, Play, Pause, Trash2 } from 'lucide-vue-next';
 import TaskItemMetadata from './TaskItemMetadata.vue';
@@ -162,11 +183,34 @@ const emit = defineEmits<{
 }>();
 
 const tasksStore = useTasksStore();
-const { tasks, expandedTaskId, activeFocusTaskId, isSprintRunning, viewMode } = storeToRefs(tasksStore);
+const { tasks, expandedTaskId, activeFocusTaskId, isSprintRunning, viewMode, decomposingTaskId } = storeToRefs(tasksStore);
 
 const selectedTask = computed(() => {
   if (!expandedTaskId.value) return null;
   return (tasks.value || []).find(t => t.id === expandedTaskId.value) || null;
+});
+
+const selectedDecompSource = computed(() => getTaskDecompositionSource(selectedTask.value));
+const isDecomposingSelected = computed(() =>
+  Boolean(selectedTask.value && decomposingTaskId.value === selectedTask.value.id)
+);
+
+const aiDecompButtonLabel = computed(() => {
+  if (isDecomposingSelected.value) return '...';
+  if (selectedDecompSource.value === 'local_template') return 'Повтор ИИ';
+  if (selectedDecompSource.value === 'llm') return 'LLM ✓';
+  return 'AI';
+});
+
+const aiDecompButtonTitle = computed(() => {
+  if (isDecomposingSelected.value) return 'Выполняется декомпозиция...';
+  if (selectedDecompSource.value === 'local_template') {
+    return 'ИИ был офлайн — повторить попытку через LLM (заменит шаблон)';
+  }
+  if (selectedDecompSource.value === 'llm') {
+    return 'Задача уже декомпозирована через LLM';
+  }
+  return 'AI Декомпозиция на шаги';
 });
 
 const isSelectedTaskStarted = computed(() => {

@@ -45,6 +45,7 @@ vi.mock('../services/python_server.service', () => ({
 vi.mock('../services/eco.service', () => ({
   ecoService: {
     getIntervalMs: vi.fn().mockReturnValue(60000),
+    getState: vi.fn().mockReturnValue('active'),
     on: vi.fn()
   }
 }));
@@ -165,5 +166,25 @@ describe('Task 1.3 & Task 3.2 — system.ipc.ts Sandbox Delegation & Real Sensor
     expect(resRejected.cpuTemperature).toBeNull();
     expect(resRejected.gpuTemperature).toBeNull();
     expect(resRejected.vramUsedMb).toBeNull();
+  });
+
+  it('5. system:modules returns unified ModulesCapabilitySnapshot and forwards refresh option', async () => {
+    const modulesHandler = handlers.get('system:modules')!;
+    expect(modulesHandler).toBeDefined();
+
+    const snap = await modulesHandler();
+    expect(snap.schemaVersion).toBe(1);
+    expect(Array.isArray(snap.capabilities)).toBe(true);
+    expect(snap.capabilities).toHaveLength(14);
+    expect(snap.summary.total).toBe(14);
+    expect(snap.summary.planned).toBe(4);
+    expect(snap.legacyStatusMap).toHaveProperty('Assistant');
+    expect(snap.legacyStatusMap).toHaveProperty('Voice');
+    expect(snap.legacyStatusMap).toHaveProperty('Memory');
+    expect(snap.legacyStatusMap).toHaveProperty('Tasks');
+
+    const refreshed = await modulesHandler({ refresh: true });
+    expect(refreshed.schemaVersion).toBe(1);
+    expect(typeof refreshed.checkedAt).toBe('string');
   });
 });

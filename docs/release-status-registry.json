@@ -1,0 +1,659 @@
+{
+  "schemaVersion": 1,
+  "project": "A.R.C. (Autonomous Reactor Core)",
+  "version": "1.0.12",
+  "releaseStatus": "RELEASE_CANDIDATE_UNSIGNED",
+  "signingStatus": "UNSIGNED",
+  "distributionPolicy": "non-commercial-open-source",
+  "auditBaselineCommit": "98098327e9b8761ecf855d0566e2c1f6c9b265c4",
+  "updatedAt": "2026-11-21",
+  "checkboxPolicy": "Keep [ ] unchecked until real Windows QA / GitHub Actions verification completes",
+  "handoffRunbook": "docs/WINDOWS-QA-HANDOFF.md",
+  "qaProtocol": "docs/WINDOWS-RELEASE-QA-PROTOCOL.md",
+  "tasks": [
+    {
+      "id": "S0-01",
+      "auditIds": ["P0-01"],
+      "sprint": "Sprint 0",
+      "title": "Disable implicit electron-builder publish in CI (--publish never)",
+      "status": "VERIFIED",
+      "linuxVerified": true,
+      "windowsQaStatus": "VERIFIED",
+      "testSuites": ["src/shared/config/packaging-identity.test.ts"],
+      "evidence": [
+        "https://github.com/DdepRest/ARC/actions/runs/43931936756",
+        "commit a3cd3ec"
+      ],
+      "notes": "Verified in GitHub Actions Run #8 without GH_TOKEN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S0-02",
+      "auditIds": ["P0-01"],
+      "sprint": "Sprint 0",
+      "title": "Separate NSIS and Portable Windows artifact filenames",
+      "status": "VERIFIED",
+      "linuxVerified": true,
+      "windowsQaStatus": "VERIFIED",
+      "testSuites": ["src/shared/config/packaging-identity.test.ts"],
+      "evidence": [
+        "https://github.com/DdepRest/ARC/actions/runs/43931936756",
+        "ARC-Setup-1.0.12-x64.exe",
+        "ARC-Portable-1.0.12-x64.exe"
+      ],
+      "notes": "Unique target-specific filenames verified with distinct SHA-256 checksums.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S0-03",
+      "auditIds": ["P0-01"],
+      "sprint": "Sprint 0",
+      "title": "Mandatory PE artifact verification, SHA256SUMS and artifact upload",
+      "status": "VERIFIED",
+      "linuxVerified": true,
+      "windowsQaStatus": "VERIFIED",
+      "testSuites": ["src/shared/config/packaging-identity.test.ts"],
+      "evidence": [
+        "https://github.com/DdepRest/ARC/actions/runs/43931936756/job/133527116076",
+        "scripts/verify-win-artifacts.ps1"
+      ],
+      "notes": "Verified in Run #8; upload-artifact runs only after PE/SHA-256 verification.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S0-04",
+      "auditIds": ["P0-01"],
+      "sprint": "Sprint 0",
+      "title": "Split CI validation and explicit GitHub Release publishing workflow",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/shared/config/sbom-provenance.test.ts"],
+      "evidence": [".github/workflows/ci.yml", ".github/workflows/release.yml"],
+      "notes": "Awaiting next GitHub Actions push run and explicit tag/manual release.yml run.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S0-05",
+      "auditIds": ["P0-02"],
+      "sprint": "Sprint 0",
+      "title": "Clean Windows 10/11 manual QA for NSIS and Portable EXE",
+      "status": "BLOCKED",
+      "linuxVerified": false,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [],
+      "evidence": ["docs/WINDOWS-QA-HANDOFF.md", "docs/WINDOWS-RELEASE-QA-PROTOCOL.md"],
+      "notes": "Blocked in Linux container; requires owner execution on clean Windows 10/11.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S1-01",
+      "auditIds": ["P1-01"],
+      "sprint": "Sprint 1",
+      "title": "Secret Vault atomic write, DPAPI read-back verification and safe migration",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/main/services/security/secret-vault.service.test.ts"],
+      "evidence": ["src/main/services/security/secret-vault.service.ts"],
+      "notes": "Linux Vitest negative tests pass; real Windows DPAPI / windows-latest CI NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S1-02",
+      "auditIds": ["P1-02"],
+      "sprint": "Sprint 1",
+      "title": "Sandbox FS symlink, junction and reparse-point escape protection",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/sandbox/SandboxedFS.test.ts",
+        "src/main/services/files.service.test.ts",
+        "src/main/ipc/files.ipc.test.ts"
+      ],
+      "evidence": ["src/main/services/sandbox/path-guard.ts"],
+      "notes": "Linux Vitest tests pass; real Windows NTFS junction CI run NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S1-03",
+      "auditIds": ["P1-03"],
+      "sprint": "Sprint 1",
+      "title": "Strict shell execution contract, exact allowlist, timeout and tree kill",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/sandbox/PolicyEngine.test.ts",
+        "src/main/services/commands/shell-executor.test.ts",
+        "src/main/services/security/shell-approval.service.test.ts",
+        "src/main/services/MacroExecutor.test.ts"
+      ],
+      "evidence": ["src/main/services/commands/shell-executor.ts"],
+      "notes": "Linux Vitest tests pass; Windows taskkill /T /F & .exe/.cmd CI run NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S1-04",
+      "auditIds": ["P1-03"],
+      "sprint": "Sprint 1",
+      "title": "Approval IPC trusted sender, origin, mainFrame and pending ID validation",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/ipc/approval.ipc.test.ts",
+        "src/main/services/approval.service.test.ts",
+        "src/renderer/components/security/ApprovalDialog.test.ts"
+      ],
+      "evidence": ["src/main/services/approval.service.ts"],
+      "notes": "Linux Vitest tests pass; live Electron/Windows QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S1-05",
+      "auditIds": ["P1-04"],
+      "sprint": "Sprint 1",
+      "title": "Tasks store ACK-gated sync snapshot, dirty journal and honest error toast",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/renderer/features/tasks/stores/tasks.store.test.ts",
+        "src/renderer/components/ui/SyncToast.test.ts",
+        "src/main/ipc/tasks.ipc.test.ts",
+        "src/main/services/tasks.service.test.ts"
+      ],
+      "evidence": ["src/renderer/features/tasks/utils/tasks-sync.helper.ts"],
+      "notes": "Linux Vitest tests pass; live Electron + SQLite Windows QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-01",
+      "auditIds": ["P1-05"],
+      "sprint": "Sprint 2",
+      "title": "Packaged TTS dictionaries in extraResources with read-only SQLite and user overlay",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/python_server.paths.test.ts",
+        "src/renderer/features/settings/logic/voice-status.test.ts"
+      ],
+      "evidence": ["tts_dict_loader.py", "src/main/services/python_sync.util.ts"],
+      "notes": "Linux unit and Python loader tests pass; Windows packaged QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-02",
+      "auditIds": ["P1-10"],
+      "sprint": "Sprint 2",
+      "title": "Truthful Python dependency readiness contract, pinned ranges and cancellation",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/python_deps.util.test.ts",
+        "src/main/services/python_server.service.test.ts",
+        "src/renderer/features/settings/logic/voice-status.test.ts"
+      ],
+      "evidence": ["src/main/services/python_deps.contract.ts", "requirements-silero.txt"],
+      "notes": "Linux unit & Python probe tests pass; live Windows x64 pip install NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-03",
+      "auditIds": ["P1-06"],
+      "sprint": "Sprint 2",
+      "title": "Real AbortController cancellation and isolated staging for Sherpa model downloads",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/sherpa-downloader-cancellation.test.ts",
+        "src/main/services/sherpa-downloader.service.test.ts",
+        "src/main/services/gigaam-sources.test.ts",
+        "src/renderer/features/modelDownload/stores/modelDownload.store.test.ts"
+      ],
+      "evidence": ["src/main/services/sherpa-downloader.service.ts"],
+      "notes": "Linux HTTP/FS cancellation tests pass; live HuggingFace/Windows UI QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-04",
+      "auditIds": ["P1-07"],
+      "sprint": "Sprint 2",
+      "title": "Model supply-chain manifest, strict SHA-256 verification and HTTPS/SSRF redirect allowlist",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/main/services/supply-chain-integrity.test.ts"],
+      "evidence": [
+        "src/main/services/model-supply-chain.manifest.ts",
+        "src/main/utils/network-security.util.ts"
+      ],
+      "notes": "Linux HTTP/FS/Python SHA-256 tests pass; live HF/Silero Windows download QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-05",
+      "auditIds": ["P1-08"],
+      "sprint": "Sprint 2",
+      "title": "Explicit opt-in for cloud Edge TTS fallback and local-only privacy enforcement",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/tts-policy.util.test.ts",
+        "src/main/services/tts.service.test.ts",
+        "src/renderer/features/settings/logic/voice-status.test.ts"
+      ],
+      "evidence": ["src/main/services/tts-policy.util.ts"],
+      "notes": "Linux Vitest policy/service tests pass; live Windows SAPI/Edge QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-06",
+      "auditIds": ["P1-09", "P2-12"],
+      "sprint": "Sprint 2",
+      "title": "Controlled first-run voice setup without surprise downloads and real progress/ETA",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/voice-setup.service.test.ts",
+        "src/renderer/features/modelDownload/stores/modelDownload.store.test.ts"
+      ],
+      "evidence": ["src/main/services/voice-setup.service.ts"],
+      "notes": "Linux Vitest tests pass; clean Windows first-run QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S2-07",
+      "auditIds": ["P2-06", "P2-12"],
+      "sprint": "Sprint 2",
+      "title": "Unified voice/model setup state machine and readiness layers",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/shared/utils/voice-model-state-machine.test.ts",
+        "src/renderer/features/settings/composables/useModelHubSession.s2-07.test.ts",
+        "src/main/services/stt.service.test.ts",
+        "src/main/services/stt-lifecycle.test.ts"
+      ],
+      "evidence": ["src/shared/utils/voice-model-state-machine.ts"],
+      "notes": "Linux Vitest tests pass; live Electron Settings UI QA on Windows NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-01",
+      "auditIds": ["P1-12"],
+      "sprint": "Sprint 3",
+      "title": "Versioned SQLite migrations (v1-v8), pre-migration VACUUM INTO backup and DB_SAFE_MODE",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/main/services/database-migrations.test.ts"],
+      "evidence": [
+        "src/main/services/database-migrations.registry.ts",
+        "src/main/services/database-migrations.runner.ts"
+      ],
+      "notes": "Real better-sqlite3 migration/rollback tests pass on Linux; live Windows upgrade QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-02",
+      "auditIds": ["P2-01"],
+      "sprint": "Sprint 3",
+      "title": "Honest JSONDatabase storage status and capabilities without SQLite masking",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/database-json-semantics.test.ts",
+        "src/renderer/features/settings/components/sections/system/storage-db-presentation.test.ts"
+      ],
+      "evidence": ["src/main/services/database-engine-metadata.ts"],
+      "notes": "Linux unit/SSR tests pass; live packaged Windows QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-03",
+      "auditIds": ["P1-11"],
+      "sprint": "Sprint 3",
+      "title": "Electron security boundary: canonical file root, sandbox, CSP and production DevTools gate",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/shared/config/csp.config.test.ts",
+        "src/main/services/security/electron-security.util.test.ts",
+        "src/main/ipc/approval.ipc.test.ts"
+      ],
+      "evidence": [
+        "src/shared/config/csp.config.ts",
+        "src/main/services/security/electron-security.util.ts",
+        "docs/security.md"
+      ],
+      "notes": "Linux security-boundary tests pass; live packaged Windows Electron QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-04",
+      "auditIds": ["P2-03", "P2-06"],
+      "sprint": "Sprint 3",
+      "title": "Unified 14-capability Modules registry and fault-isolated runtime health adapters",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/modules-capability.service.test.ts",
+        "src/main/ipc/system.ipc.test.ts",
+        "src/renderer/features/modules/components/ModulesView.test.ts"
+      ],
+      "evidence": ["src/shared/config/modules-capability.registry.ts"],
+      "notes": "Linux unit/IPC/SSR tests pass; live Windows ModulesView QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-05",
+      "auditIds": ["P2-04"],
+      "sprint": "Sprint 3",
+      "title": "Truthful AI task decomposition source (llm vs local_template) and warn toast",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/ipc/tasks.ipc.test.ts",
+        "src/renderer/features/tasks/composables/useAiDecomp.test.ts",
+        "src/renderer/components/ui/SyncToast.test.ts",
+        "src/main/services/objective/ObjectiveEngine.decomp.test.ts"
+      ],
+      "evidence": ["src/renderer/features/tasks/composables/useAiDecomp.ts"],
+      "notes": "Linux unit/IPC/template tests pass; live Windows LLM QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-06",
+      "auditIds": ["P2-05"],
+      "sprint": "Sprint 3",
+      "title": "First Run Wizard async verified save with single-flight lock and critical/optional split",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/renderer/components/onboarding/FirstRunWizardModal.test.ts",
+        "src/renderer/components/ui/SyncToast.test.ts"
+      ],
+      "evidence": ["src/renderer/components/onboarding/composables/useFirstRunWizard.ts"],
+      "notes": "Linux unit/SFC tests pass; live Windows restart QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-07",
+      "auditIds": ["P2-07", "P2-08"],
+      "sprint": "Sprint 3",
+      "title": "Fail-closed ZIP backup redaction and enforced ZIP32/CRC-32/size limits",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/utils/zip-writer.test.ts",
+        "src/main/services/storage-manager.service.test.ts"
+      ],
+      "evidence": [
+        "src/main/utils/backup-redaction.util.ts",
+        "src/main/utils/zip-codec.util.ts"
+      ],
+      "notes": "Linux unit/SQLite backup tests pass; live Windows backup QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-08",
+      "auditIds": ["P2-02"],
+      "sprint": "Sprint 3",
+      "title": "Variant A honest reset semantics separating UI reset and application data reset",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/storage-reset.test.ts",
+        "src/main/ipc/app.ipc.test.ts",
+        "src/renderer/features/settings/components/sections/system/storage-db-presentation.test.ts"
+      ],
+      "evidence": ["src/shared/config/reset-policy.ts", "src/main/services/storage-reset.util.ts"],
+      "notes": "Linux unit/IPC/SSR tests pass; live Windows reset/relaunch QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-09",
+      "auditIds": ["P2-09"],
+      "sprint": "Sprint 3",
+      "title": "Safe PowerShell/SAPI execution via env.ARC_TTS_TEXT_FILE and shell: false",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/system-tts.util.test.ts",
+        "src/main/services/tts.service.test.ts",
+        "src/main/services/env-degradation-and-paths.test.ts"
+      ],
+      "evidence": ["src/main/services/system-tts.util.ts"],
+      "notes": "Linux Vitest tests pass; live Windows SAPI Cyrillic/spaces QA NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-10",
+      "auditIds": ["P2-10"],
+      "sprint": "Sprint 3",
+      "title": "Accurate CI/release build commit SHA metadata with fail-closed gate",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/shared/config/build-metadata.test.ts",
+        "src/main/services/diagnostics.service.test.ts"
+      ],
+      "evidence": [
+        "src/shared/config/build-metadata.ts",
+        "src/shared/config/build-metadata.resolver.ts"
+      ],
+      "notes": "Linux unit/build-gate pass; Windows CI EXE commit SHA check NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-11",
+      "auditIds": ["P2-11"],
+      "sprint": "Sprint 3",
+      "title": "Staged strict TypeScript (Phase A/B/C) and static Vue/TS/IPC boundary checks",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/shared/config/static-boundaries.test.ts"],
+      "evidence": [
+        "tsconfig.strict.json",
+        "scripts/check-static-boundaries.js",
+        "docs/typescript-strictness-roadmap.md"
+      ],
+      "notes": "Phase A/B/C complete across all non-protected code and tests (195 strict files, 0 errors; repo --strict 125->6 with 0 non-protected production errors, 0 test errors, 6 protected-zone errors); RC runtime frozen for Windows QA handoff.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S3-12",
+      "auditIds": ["P0-01"],
+      "sprint": "Sprint 3",
+      "title": "Windows packaging identity, multi-size A.R.C. icon and honest Authenticode verification",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/shared/config/packaging-identity.test.ts"],
+      "evidence": [
+        "scripts/verify-win-signature.ps1",
+        "scripts/verify-win-artifacts.ps1",
+        "package.json"
+      ],
+      "notes": "Icons/metadata/verifier implemented; live Windows packaging & Authenticode check NOT RUN (UNSIGNED).",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S4-01",
+      "auditIds": [],
+      "sprint": "Sprint 4",
+      "title": "Real 2-4 hour multi-process Windows soak test harness and verdict analyzer",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/shared/config/soak-analyzer.test.ts",
+        "src/main/services/runtime-resilience.test.ts",
+        "src/renderer/features/settings/composables/useMicTest.test.ts"
+      ],
+      "evidence": [
+        "scripts/windows-soak-harness.ps1",
+        "scripts/soak-report-analyzer.cjs",
+        "docs/WINDOWS-QA-HANDOFF.md"
+      ],
+      "notes": "Harness and analyzer verified on Linux; live 2-4h Windows soak run NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S4-02",
+      "auditIds": [],
+      "sprint": "Sprint 4",
+      "title": "Upgrade, DPAPI data preservation and uninstall QA with automated snapshot diff",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/shared/config/release-status-registry.test.ts"],
+      "evidence": [
+        "scripts/windows-qa-preflight.ps1",
+        "scripts/compare-qa-snapshots.cjs",
+        "docs/WINDOWS-QA-HANDOFF.md"
+      ],
+      "notes": "Preflight collector and automated snapshot diff verified on Linux; live Windows upgrade/uninstall NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S4-03",
+      "auditIds": ["P0-02"],
+      "sprint": "Sprint 4",
+      "title": "Clean Windows 10/11 OS matrix (non-admin, Cyrillic/spaces, no Python/FFmpeg/models, offline)",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/main/services/env-degradation-and-paths.test.ts",
+        "src/main/services/offline-degraded-usability.test.ts"
+      ],
+      "evidence": ["docs/WINDOWS-RELEASE-QA-PROTOCOL.md", "docs/WINDOWS-QA-HANDOFF.md"],
+      "notes": "Linux degradation/path/offline suites pass; live Clean OS Windows 10/11 matrix NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S4-04",
+      "auditIds": [],
+      "sprint": "Sprint 4",
+      "title": "UX and accessibility screenshot matrix (1920x1080, 1366x768@100%/125%, 1280x720)",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/renderer/components/security/ApprovalDialog.test.ts",
+        "src/renderer/components/ui/ApprovalDialog.test.ts",
+        "src/renderer/features/settings/composables/useProviderInspectorDraft.test.ts"
+      ],
+      "evidence": ["docs/WINDOWS-RELEASE-QA-PROTOCOL.md", "docs/WINDOWS-QA-HANDOFF.md"],
+      "notes": "Focus/keyboard/draft tests pass on Linux; live Windows screenshot matrix NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S4-05",
+      "auditIds": [],
+      "sprint": "Sprint 4",
+      "title": "CycloneDX 1.5 SBOM generation and third-party/model license boundary audit",
+      "status": "VERIFIED",
+      "linuxVerified": true,
+      "windowsQaStatus": "N/A",
+      "testSuites": ["src/shared/config/sbom-provenance.test.ts"],
+      "evidence": ["scripts/generate-sbom.cjs", "THIRD_PARTY_NOTICES.md"],
+      "notes": "Deterministic CycloneDX 1.5 SBOM (455 components) and Silero CC BY-NC-SA 4.0 boundary verified.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "S4-06",
+      "auditIds": [],
+      "sprint": "Sprint 4",
+      "title": "Release candidate bundle, notes, handoff runbook and explicit release sign-off",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/shared/config/sbom-provenance.test.ts",
+        "src/shared/config/release-status-registry.test.ts",
+        "src/shared/config/windows-qa-bundle-validator.test.ts"
+      ],
+      "evidence": [
+        "docs/release-notes-v1.0.12-rc.md",
+        "docs/WINDOWS-QA-HANDOFF.md",
+        "scripts/verify-windows-qa-bundle.cjs",
+        "scripts/windows-qa-preflight.ps1",
+        "CHANGELOG.md",
+        ".github/workflows/release.yml"
+      ],
+      "notes": "RC bundle, handoff runbook and fail-closed 7-gate QA evidence bundle validator ready; awaiting live Windows QA evidence, branch protection and owner sign-off.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "SEC-09",
+      "auditIds": [],
+      "sprint": "Section 9",
+      "title": "Targeted UX/UI polish (ApprovalDialog focus/metadata, Provider Master-Detail draft tests)",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": [
+        "src/renderer/components/security/ApprovalDialog.test.ts",
+        "src/renderer/components/ui/ApprovalDialog.test.ts",
+        "src/renderer/features/settings/composables/useProviderInspectorDraft.test.ts"
+      ],
+      "evidence": ["src/renderer/components/security/ApprovalDialog.vue"],
+      "notes": "Visual constitution 0 violations; live Windows window screenshots NOT RUN.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "SEC-10",
+      "auditIds": [],
+      "sprint": "Section 10",
+      "title": "Repository hygiene, dead asset removal, canonical docs and machine-readable status registry",
+      "status": "VERIFIED",
+      "linuxVerified": true,
+      "windowsQaStatus": "N/A",
+      "testSuites": [
+        "src/shared/config/bundle-analyzer.test.ts",
+        "src/shared/config/release-status-registry.test.ts"
+      ],
+      "evidence": [
+        "docs/release-status-registry.json",
+        "docs/00-index.md",
+        "docs/current-state.md"
+      ],
+      "notes": "19 MB dead assets removed, docs synchronized, Audit §7.4 status registry added; orphan mainWindow.ts retained per owner decision.",
+      "updatedAt": "2026-11-21"
+    },
+    {
+      "id": "SEC-11",
+      "auditIds": [],
+      "sprint": "Section 11",
+      "title": "Bundle compression/lazy-loading analysis and low-end Windows performance baseline prep",
+      "status": "IMPLEMENTED",
+      "linuxVerified": true,
+      "windowsQaStatus": "NOT_RUN",
+      "testSuites": ["src/shared/config/bundle-analyzer.test.ts"],
+      "evidence": ["scripts/analyze-bundle.cjs", "docs/STATISTICS.md"],
+      "notes": "Bundle analyzer & lazy-load gates pass on Linux; live low-end Windows baseline NOT RUN.",
+      "updatedAt": "2026-11-21"
+    }
+  ]
+}

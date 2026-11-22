@@ -9,6 +9,8 @@ import {
   type LocalRuntimeId
 } from '../utils/ai-mode-presets';
 import ArcSelect from '../../ui/ArcSelect.vue';
+import { saveAiStepSelection } from '../utils/wizard-save';
+import { persistLocalGatewayConfig, persistCloudContourConfig } from '../utils/ai-step-persistence';
 
 const emit = defineEmits<{ (e: 'skip-step'): void }>();
 
@@ -116,32 +118,23 @@ function selectLocalRuntime(runtime: LocalRuntimeId) {
   applyLocalRuntimeState(runtime);
 }
 
-async function persistLocalGateway(): Promise<AIProvider> {
-  const opt = activeLocalOption.value;
-  const endpoint = normalizeGatewayEndpoint(localGatewayEndpoint.value || opt.endpoint);
-  const model = localGatewayModel.value.trim() || opt.model || 'auto';
-  const cleanKey = apiKey.value.trim();
-  const candidate: AIProvider = {
-    id: opt.id, name: opt.title, type: 'local', endpoint, apiKey: cleanKey, model,
-    selectedModels: [model], priority: 1, maxTokens: 2048, temperature: 0.7, enabled: true,
-    noAuthHeader: !Boolean(cleanKey)
-  };
-  settingsStore.useLocalLLM = false;
-  await aiConfigStore.saveProvider(candidate);
-  return candidate;
+function persistLocalGateway() {
+  return persistLocalGatewayConfig({
+    opt: activeLocalOption.value,
+    rawEndpoint: localGatewayEndpoint.value,
+    rawModel: localGatewayModel.value,
+    rawApiKey: apiKey.value,
+    settingsStore,
+    saveProvider: (c) => aiConfigStore.saveProvider(c)
+  });
 }
 
-async function persistCurrentContour(trimmedKey: string): Promise<AIProvider> {
-  const preset = activeCloudPreset.value;
-  const candidate: AIProvider = {
-    id: preset.id, name: preset.name, type: 'cloud', endpoint: preset.endpoint,
-    apiKey: trimmedKey, model: preset.model, priority: 1, maxTokens: 4096, temperature: 0.7, enabled: true
-  };
-  if (preset.id === 'gemini' && typeof window !== 'undefined' && (window.api as any)?.settingsSetKey) {
-    await (window.api as any).settingsSetKey('gemini_api_key', trimmedKey);
-  }
-  await aiConfigStore.saveProvider(candidate);
-  return candidate;
+function persistCurrentContour(trimmedKey: string) {
+  return persistCloudContourConfig({
+    preset: activeCloudPreset.value,
+    trimmedKey,
+    saveProvider: (c) => aiConfigStore.saveProvider(c)
+  });
 }
 
 async function verifyAndSaveKey() {
@@ -157,9 +150,14 @@ async function verifyAndSaveKey() {
     statusMessage.value = '';
     try {
       const saved = await persistLocalGateway();
-      const res = await aiConfigStore.testConnection(saved);
+      if (!saved.success) {
+        keyStatus.value = 'unverified';
+        statusMessage.value = saved.error || 'Ошибка сохранения шлюза';
+        return;
+      }
+      const res = await aiConfigStore.testConnection(saved.provider);
       keyStatus.value = res.success ? 'verified' : 'unverified';
-      statusMessage.value = res.success ? `Шлюз ${saved.name} подключён` : (res.error || `Шлюз ${saved.name} сохранён`);
+      statusMessage.value = res.success ? `Шлюз ${saved.provider.name} подключён` : (res.error || `Шлюз ${saved.provider.name} сохранён`);
     } catch (err: any) {
       keyStatus.value = 'unverified';
       statusMessage.value = err?.message || 'Ошибка проверки шлюза';
@@ -186,7 +184,12 @@ async function verifyAndSaveKey() {
     };
     const res = await aiConfigStore.testConnection(candidate);
     if (res.success) {
-      await persistCurrentContour(trimmedKey);
+      const saved = await persistCurrentContour(trimmedKey);
+      if (!saved.success) {
+        keyStatus.value = 'unverified';
+        statusMessage.value = saved.error || 'Соединение подтверждено, но ключ не сохранён в сейфе';
+        return;
+      }
       keyStatus.value = 'verified';
       statusMessage.value = 'Соединение подтверждено, ключ сохранён в сейфе';
     } else {
@@ -208,19 +211,15 @@ function skipKeyStep() {
 }
 
 defineExpose({
-  saveCurrentState: async () => {
-    if (selectedContour.value === 'local') {
-      if (activeLocalOption.value.isGateway) await persistLocalGateway();
-      else {
-        settingsStore.useLocalLLM = true;
-        settingsStore.localLLMModel = localRuntime.value === 'builtin' ? 'builtin' : 'llama3.2';
-      }
-      return;
-    }
-    settingsStore.useLocalLLM = false;
-    const trimmedKey = apiKey.value.trim();
-    if (trimmedKey) await persistCurrentContour(trimmedKey);
-  }
+  saveCurrentState: () => saveAiStepSelection({
+    contour: selectedContour.value,
+    isLocalGateway: activeLocalOption.value.isGateway,
+    localRuntime: localRuntime.value,
+    trimmedKey: apiKey.value.trim(),
+    settingsStore,
+    persistLocalGateway,
+    persistCurrentContour
+  })
 });
 </script>
 

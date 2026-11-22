@@ -4,6 +4,10 @@ import { StorageManagerService } from '../services/storage-manager.service';
 import { DatabaseService } from '../services/database';
 import { secretVault } from '../services/security/secret-vault.service';
 import { DiagnosticsService } from '../services/diagnostics.service';
+import {
+  getAppDataPreservedAssetList,
+  normalizeResetOptions
+} from '../../shared/config/reset-policy';
 
 export const GITHUB_RELEASES_URL =
   'https://api.github.com/repos/OWNER/REPO/releases/latest'; // TODO: Заменить OWNER/REPO на актуальные
@@ -134,8 +138,21 @@ export function registerAppIpc() {
     return await StorageManagerService.openDataFolder();
   });
 
-  ipcMain.handle('system:reset-data', async (_event, options?: { clearModels?: boolean }) => {
-    return await StorageManagerService.resetSystemData(options);
+  ipcMain.handle('system:reset-data', async (_event, options?: unknown) => {
+    const parsed = normalizeResetOptions(options);
+    if (parsed.valid === false) {
+      return {
+        success: false,
+        mode: 'app_data_and_config' as const,
+        clearModels: false,
+        removedTargets: [],
+        preservedAssets: getAppDataPreservedAssetList({ clearModels: false }),
+        failedTargets: [],
+        relaunched: false,
+        error: parsed.error
+      };
+    }
+    return await StorageManagerService.resetSystemData(parsed.options);
   });
 
   ipcMain.handle('system:export-diagnostics', async (event) => {

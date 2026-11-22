@@ -1,364 +1,386 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const dns = require('dns');
+const net = require('net');
+const crypto = require('crypto');
 
 const MODEL_DIR = path.join(__dirname, '..', 'Voice', 'models', 'sherpa-ru');
 const HF_REPO = ['csukuangfj/sherpa-onnx-streaming-zipformer-small-ru', 'vo' + 'sk', '2025-08-16'].join('-');
+const HF_REV = 'b26590f0f87c179d5ea76ed08aa017ad5a8ae8b3';
 const WHISPER_SMALL_REPO = 'csukuangfj/sherpa-onnx-whisper-small';
+const WHISPER_SMALL_REV = '8f3c18b358db4d1f2fc1eae49d75cd20989e4309';
+
+const TRUSTED_HOSTS = new Set([
+  'huggingface.co',
+  'hf-mirror.com',
+  'cdn-lfs.hf.co',
+  'cdn-lfs-us-1.hf.co',
+  'cdn-lfs-eu-1.hf.co',
+  'us.aws.cdn.hf.co',
+  'eu.aws.cdn.hf.co',
+  'xethub.hf.co',
+  'cas-bridge.xethub.hf.co',
+  'models.silero.ai',
+  'github.com',
+  'objects.githubusercontent.com',
+  'release-assets.githubusercontent.com'
+]);
 
 const DEFAULT_MODELS = [
-    { name: 'encoder.onnx', url: `https://huggingface.co/${HF_REPO}/resolve/main/encoder.onnx`, size: 90994145 },
-    { name: 'decoder.onnx', url: `https://huggingface.co/${HF_REPO}/resolve/main/decoder.onnx`, size: 2093080 },
-    { name: 'joiner.onnx', url: `https://huggingface.co/${HF_REPO}/resolve/main/joiner.onnx`, size: 1026462 },
-    { name: 'tokens.txt', url: `https://huggingface.co/${HF_REPO}/resolve/main/tokens.txt`, size: 6388 },
-    
-    // Whisper Small (RU)
-    { name: 'small-encoder.int8.onnx', url: `https://huggingface.co/${WHISPER_SMALL_REPO}/resolve/main/small-encoder.int8.onnx`, size: 112442483 },
-    { name: 'small-decoder.int8.onnx', url: `https://huggingface.co/${WHISPER_SMALL_REPO}/resolve/main/small-decoder.int8.onnx`, size: 262226114 },
-    { name: 'small-tokens.txt', url: `https://huggingface.co/${WHISPER_SMALL_REPO}/resolve/main/small-tokens.txt`, size: 816730 }
+  {
+    name: 'encoder.onnx',
+    url: `https://huggingface.co/${HF_REPO}/resolve/${HF_REV}/encoder.onnx`,
+    size: 90994145,
+    sha256: 'e9c27453e618bc97cf8a10169f34c104bd478166522907fcd122a46a88c78c69'
+  },
+  {
+    name: 'decoder.onnx',
+    url: `https://huggingface.co/${HF_REPO}/resolve/${HF_REV}/decoder.onnx`,
+    size: 2093080,
+    sha256: '89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0'
+  },
+  {
+    name: 'joiner.onnx',
+    url: `https://huggingface.co/${HF_REPO}/resolve/${HF_REV}/joiner.onnx`,
+    size: 1026462,
+    sha256: 'dde0c7f3be0a16113a3e042c79a492c48667c07a8c1e9422ffe81c768aad4838'
+  },
+  {
+    name: 'tokens.txt',
+    url: `https://huggingface.co/${HF_REPO}/resolve/${HF_REV}/tokens.txt`,
+    size: 6388,
+    sha256: '93bbbc0bae6b78c0bbb743d4aa9fded3bb5ff3aac5f0200e3a769a5a05e0fdf6'
+  },
+  {
+    name: 'small-encoder.int8.onnx',
+    url: `https://huggingface.co/${WHISPER_SMALL_REPO}/resolve/${WHISPER_SMALL_REV}/small-encoder.int8.onnx`,
+    size: 112442483,
+    sha256: '4cbe7b22fa9026b843b60a68640c747de05bafb1a11b57edc0e66c232d9f33a9'
+  },
+  {
+    name: 'small-decoder.int8.onnx',
+    url: `https://huggingface.co/${WHISPER_SMALL_REPO}/resolve/${WHISPER_SMALL_REV}/small-decoder.int8.onnx`,
+    size: 262226114,
+    sha256: 'acad50b5c782696e91b55914cc5ab4f756f1532f76e22aa6fc615f39fb69a8ee'
+  },
+  {
+    name: 'small-tokens.txt',
+    url: `https://huggingface.co/${WHISPER_SMALL_REPO}/resolve/${WHISPER_SMALL_REV}/small-tokens.txt`,
+    size: 816730,
+    sha256: 'b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126'
+  }
 ];
 
-if (!fs.existsSync(MODEL_DIR)) {
-    fs.mkdirSync(MODEL_DIR, { recursive: true });
+const SILERO_TTS_SPEC = {
+  name: 'v5_6_ru.pt',
+  url: 'https://models.silero.ai/models/tts/ru/v5_6_ru.pt',
+  size: 147664410,
+  sha256: '04cc9b1d08ce38bcaa9d02c488d80d3e6806d17f7eaa7c95982f36a3cbf50b2e'
+};
+
+function isTrustedHost(hostname) {
+  const host = hostname.toLowerCase();
+  return TRUSTED_HOSTS.has(host) || host.endsWith('.xethub.hf.co');
 }
 
-const META_FILE = path.join(MODEL_DIR, 'download_meta.json');
-
-function fetchHfTree(repo, timeoutMs = 2000) {
-    const url = `https://huggingface.co/api/models/${repo}/tree/main?recursive=true&expand=true`;
-    return new Promise((resolve, reject) => {
-        let isDone = false;
-        const req = https.get(url, { headers: { 'User-Agent': 'Node.js/DownloadScript' } }, (res) => {
-            if (res.statusCode !== 200) {
-                isDone = true;
-                return reject(new Error(`HF API HTTP ${res.statusCode}`));
-            }
-            let data = '';
-            res.on('data', chunk => { data += chunk; });
-            res.on('end', () => {
-                if (isDone) return;
-                isDone = true;
-                try {
-                    const parsed = JSON.parse(data);
-                    resolve(parsed);
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        });
-
-        req.on('error', (err) => {
-            if (isDone) return;
-            isDone = true;
-            reject(err);
-        });
-
-        req.setTimeout(timeoutMs, () => {
-            if (isDone) return;
-            isDone = true;
-            req.destroy(new Error('HF API request timed out'));
-        });
-    });
+function isBlockedIp(rawIp) {
+  const ip = String(rawIp || '').split('%')[0].toLowerCase();
+  const ver = net.isIP(ip);
+  if (ver === 4) {
+    const p = ip.split('.').map(Number);
+    const [a, b] = p;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    if (a >= 224) return true;
+    return false;
+  }
+  if (ver === 6) {
+    if (ip === '::' || ip === '::1') return true;
+    if (ip.startsWith('::ffff:')) {
+      const mapped = ip.slice(7);
+      if (net.isIP(mapped) === 4) return isBlockedIp(mapped);
+      const hm = mapped.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+      if (hm) {
+        const hi = parseInt(hm[1], 16);
+        const lo = parseInt(hm[2], 16);
+        return isBlockedIp(`${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`);
+      }
+      return true;
+    }
+    const first = parseInt(ip.split(':')[0] || '0', 16);
+    if ((first & 0xfe00) === 0xfc00) return true;
+    if ((first & 0xffc0) === 0xfe80) return true;
+    if ((first & 0xff00) === 0xff00) return true;
+    return false;
+  }
+  return true;
 }
 
-async function downloadFile(url, dest, retries = 5) {
-    const tempDest = dest + '.tmp';
+function validateDownloadUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(`Invalid URL: ${rawUrl}`);
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Blocked non-HTTPS download URL: ${rawUrl}`);
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error(`Blocked URL with embedded credentials: ${rawUrl}`);
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (net.isIP(host) !== 0) {
+    throw new Error(`Blocked IP literal host: ${host}`);
+  }
+  if (!isTrustedHost(host)) {
+    throw new Error(`Blocked untrusted model host: ${host}`);
+  }
+  return parsed;
+}
+
+function ssrfSafeLookup(hostname, options, cb) {
+  const callback = typeof options === 'function' ? options : cb;
+  const opts = typeof options === 'object' && options !== null ? options : {};
+  dns.lookup(hostname, { ...opts, all: true }, (err, addresses) => {
+    if (err) return callback(err);
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+      return callback(new Error(`DNS lookup returned no addresses for ${hostname}`));
+    }
+    for (const entry of addresses) {
+      if (isBlockedIp(entry.address)) {
+        return callback(new Error(`Blocked SSRF destination IP ${entry.address} for ${hostname}`));
+      }
+    }
+    if (opts.all) return callback(null, addresses);
+    return callback(null, addresses[0].address, addresses[0].family);
+  });
+}
+
+function computeFileSha256Sync(filePath) {
+  const hash = crypto.createHash('sha256');
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buf = Buffer.allocUnsafe(1024 * 1024);
+    let bytesRead = 0;
+    while ((bytesRead = fs.readSync(fd, buf, 0, buf.length, null)) > 0) {
+      hash.update(bytesRead === buf.length ? buf : buf.subarray(0, bytesRead));
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  return hash.digest('hex');
+}
+
+function verifyFileExact(filePath, expectedSize, expectedSha256) {
+  if (!fs.existsSync(filePath)) return { ok: false, reason: 'missing' };
+  const stats = fs.statSync(filePath);
+  if (stats.size !== expectedSize) {
+    return { ok: false, reason: `size mismatch (${stats.size} != ${expectedSize})` };
+  }
+  const actualSha = computeFileSha256Sync(filePath);
+  if (actualSha.toLowerCase() !== expectedSha256.toLowerCase()) {
+    return { ok: false, reason: `sha256 mismatch (${actualSha} != ${expectedSha256})` };
+  }
+  return { ok: true, size: stats.size, sha256: actualSha };
+}
+
+async function downloadFile(url, dest, expectedSize, expectedSha256, retries = 3) {
+  const stageDir = path.join(path.dirname(dest), '.staging', `cli-${Date.now()}`);
+  fs.mkdirSync(stageDir, { recursive: true });
+  const stageFile = path.join(stageDir, path.basename(dest) + '.part');
+
+  try {
     for (let i = 0; i < retries; i++) {
-        try {
-            await new Promise((resolve, reject) => {
-                let isFinished = false;
-                const file = fs.createWriteStream(tempDest);
-                const request = (urlToFetch) => {
-                    const protocol = urlToFetch.startsWith('https') ? require('https') : require('http');
-                    const req = protocol.get(urlToFetch, { headers: { 'User-Agent': 'Node.js/DownloadScript' } }, (response) => {
-                        if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
-                            const redirectUrl = new URL(response.headers.location, urlToFetch).toString();
-                            return request(redirectUrl);
-                        }
-                        if (response.statusCode !== 200) {
-                            isFinished = true;
-                            file.close();
-                            fs.unlink(tempDest, () => {});
-                            return reject(new Error(`Failed to download ${urlToFetch}: ${response.statusCode}`));
-                        }
-                        response.pipe(file);
-                        file.on('finish', () => {
-                            isFinished = true;
-                            file.close();
-                            resolve();
-                        });
-                    });
-                    
-                    req.on('error', (err) => {
-                        if (isFinished) return;
-                        isFinished = true;
-                        file.close();
-                        fs.unlink(tempDest, () => {});
-                        reject(err);
-                    });
-                    
-                    req.setTimeout(120000, () => {
-                        if (isFinished) return;
-                        req.destroy(new Error('Connection timed out'));
-                    });
+      try {
+        const candidateUrl = i === retries - 1 && url.startsWith('https://huggingface.co/')
+          ? url.replace('https://huggingface.co/', 'https://hf-mirror.com/')
+          : url;
+
+        await new Promise((resolve, reject) => {
+          const request = (urlToFetch, redirectsLeft) => {
+            let parsed;
+            try {
+              parsed = validateDownloadUrl(urlToFetch);
+            } catch (secErr) {
+              return reject(secErr);
+            }
+            const req = https.get(
+              parsed.toString(),
+              { headers: { 'User-Agent': 'ARC-ModelCLI/2.0' }, lookup: ssrfSafeLookup },
+              (response) => {
+                if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+                  response.resume();
+                  if (redirectsLeft <= 0) {
+                    return reject(new Error(`Too many redirects while downloading ${urlToFetch}`));
+                  }
+                  if (!response.headers.location) {
+                    return reject(new Error(`Redirect missing Location header from ${urlToFetch}`));
+                  }
+                  const nextUrl = new URL(response.headers.location, urlToFetch).toString();
+                  return request(nextUrl, redirectsLeft - 1);
+                }
+                if (response.statusCode !== 200) {
+                  response.resume();
+                  return reject(new Error(`HTTP ${response.statusCode} for ${urlToFetch}`));
+                }
+                if (response.socket?.remoteAddress && isBlockedIp(response.socket.remoteAddress)) {
+                  req.destroy();
+                  return reject(new Error(`Blocked remote IP ${response.socket.remoteAddress}`));
+                }
+                const declared = Number(response.headers['content-length'] || 0);
+                if (expectedSize && declared > 0 && declared > expectedSize + 1024) {
+                  req.destroy();
+                  return reject(new Error(`Content-Length ${declared} exceeds limit ${expectedSize}`));
+                }
+                const maxBytes = (expectedSize || 2 * 1024 * 1024 * 1024) + 1024;
+                let received = 0;
+                const file = fs.createWriteStream(stageFile);
+                let settled = false;
+                const fail = (err) => {
+                  if (settled) return;
+                  settled = true;
+                  file.destroy();
+                  fs.unlink(stageFile, () => {});
+                  reject(err);
                 };
-                request(i > 2 ? url.replace('huggingface.co', 'hf-mirror.com') : url);
-            });
-            
-            if (fs.existsSync(dest)) {
-                fs.unlinkSync(dest);
-            }
-            fs.renameSync(tempDest, dest);
-            return;
-        } catch (err) {
-            console.error(`  [Attempt ${i + 1}/${retries}] Error downloading to ${dest}: ${err.message}`);
-            if (fs.existsSync(tempDest)) {
-                try { fs.unlinkSync(tempDest); } catch (e) {}
-            }
-            if (i === retries - 1) throw err;
-            await new Promise(r => setTimeout(r, 2000));
+                response.on('data', (chunk) => {
+                  received += chunk.length;
+                  if (received > maxBytes) {
+                    req.destroy();
+                    fail(new Error(`Response exceeded maxBytes (${received} > ${maxBytes})`));
+                  }
+                });
+                response.on('error', fail);
+                file.on('error', fail);
+                file.on('finish', () => {
+                  if (settled) return;
+                  settled = true;
+                  file.close(() => resolve());
+                });
+                response.pipe(file);
+              }
+            );
+            req.on('error', reject);
+            req.setTimeout(120000, () => req.destroy(new Error('Connection timed out')));
+          };
+          request(candidateUrl, 5);
+        });
+
+        const check = verifyFileExact(stageFile, expectedSize, expectedSha256);
+        if (!check.ok) {
+          throw new Error(`Integrity check failed for ${path.basename(dest)}: ${check.reason}`);
         }
-    }
-}
-
-async function main() {
-    let models = DEFAULT_MODELS.map(m => ({ ...m }));
-    let isApiOnline = false;
-
-    try {
-        console.log('[Sherpa] Fetching latest model file sizes from Hugging Face API...');
-        
-        // Fetch first repo tree (Zipformer)
-        const tree1 = await fetchHfTree(HF_REPO, 10000);
-        let matched1 = 0;
-        if (Array.isArray(tree1)) {
-            for (const item of tree1) {
-                const target = models.find(m => m.name === item.path);
-                if (target) {
-                    const actualSize = item.lfs?.size || item.size;
-                    const oid = item.lfs?.oid || item.oid;
-                    if (typeof actualSize === 'number') {
-                        target.size = actualSize;
-                        target.oid = oid;
-                        matched1++;
-                    }
-                }
-            }
+        if (fs.existsSync(dest)) fs.unlinkSync(dest);
+        fs.renameSync(stageFile, dest);
+        return check;
+      } catch (err) {
+        console.error(`  [Attempt ${i + 1}/${retries}] ${dest}: ${err.message}`);
+        if (fs.existsSync(stageFile)) {
+          try { fs.unlinkSync(stageFile); } catch {}
         }
-
-        // Fetch second repo tree (Whisper Turbo)
-        const tree2 = await fetchHfTree(WHISPER_SMALL_REPO, 10000);
-        let matched2 = 0;
-        if (Array.isArray(tree2)) {
-            for (const item of tree2) {
-                const target = models.find(m => m.name === item.path);
-                if (target) {
-                    const actualSize = item.lfs?.size || item.size;
-                    const oid = item.lfs?.oid || item.oid;
-                    if (typeof actualSize === 'number') {
-                        target.size = actualSize;
-                        target.oid = oid;
-                        matched2++;
-                    }
-                }
-            }
+        if (/Blocked|Invalid URL|Too many redirects|Integrity check failed/i.test(err.message)) {
+          throw err;
         }
-
-        isApiOnline = true;
-        console.log(`[Sherpa] Successfully resolved latest sizes from Hugging Face for all model files.`);
-    } catch (apiErr) {
-        console.warn(`[Sherpa] Note: Could not query Hugging Face API (${apiErr.message}). Using offline fallback specifications.`);
+        if (i === retries - 1) throw err;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
     }
-
-    let anyDownloaded = false;
-
-    for (const model of models) {
-        const filePath = path.join(MODEL_DIR, model.name);
-        
-        let shouldDownload = false;
-        if (!fs.existsSync(filePath)) {
-            shouldDownload = true;
-        } else {
-            let stats = null;
-            try {
-                stats = fs.statSync(filePath);
-            } catch (e) {
-                shouldDownload = true;
-            }
-
-            if (!stats || stats.size === 0) {
-                shouldDownload = true;
-            } else {
-                // Verify file size is not a corrupted placeholder or truncated download
-                const isTooSmall = model.name.endsWith('.onnx')
-                    ? (stats.size < 500 * 1024 || (model.size && stats.size < model.size * 0.8))
-                    : (stats.size < 100);
-
-                if (isTooSmall) {
-                    console.warn(`[Sherpa] File ${model.name} is corrupted/truncated (${stats.size} bytes vs expected ~${model.size || 'valid'}). Re-downloading...`);
-                    shouldDownload = true;
-                } else if (model.size && Math.abs(stats.size - model.size) > 50000) {
-                    console.warn(`[Sherpa] File ${model.name} size mismatch (${stats.size} vs HF ${model.size}). Re-downloading...`);
-                    shouldDownload = true;
-                } else {
-                    // Verify file can be opened and read without errors
-                    try {
-                        const fd = fs.openSync(filePath, 'r');
-                        const buf = Buffer.alloc(Math.min(16, stats.size));
-                        fs.readSync(fd, buf, 0, buf.length, 0);
-                        fs.closeSync(fd);
-                    } catch (readErr) {
-                        console.warn(`[Sherpa] File ${model.name} cannot be read: ${readErr.message}. Re-downloading...`);
-                        shouldDownload = true;
-                    }
-                }
-            }
-        }
-
-        if (shouldDownload) {
-            anyDownloaded = true;
-            console.log(`Downloading ${model.name}...`);
-            try {
-                if (fs.existsSync(filePath)) {
-                    try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
-                }
-                await downloadFile(model.url, filePath);
-                console.log(`Downloaded ${model.name}`);
-            } catch (err) {
-                console.error(`Error downloading ${model.name}: ${err.message}`);
-                process.exit(1);
-            }
-        }
-    }
-
-    // Verify GigaAM v3 presence and compatibility
-    const gigaamDir = path.join(__dirname, '..', 'Voice', 'models', 'gigaam-ctc');
-    let gigaamComplete = false;
-    if (fs.existsSync(gigaamDir)) {
-        const metaPath = path.join(gigaamDir, 'download_meta.json');
-        if (fs.existsSync(metaPath)) {
-            try {
-                const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-                if (meta.sourceId === 'csukuangfj-ru-v3' && meta.verified === true && !meta.incompatible) {
-                    const m = path.join(gigaamDir, meta.modelFile || 'model.int8.onnx');
-                    const t = path.join(gigaamDir, meta.tokensFile || 'tokens.txt');
-                    if (fs.existsSync(m) && fs.existsSync(t) && fs.statSync(m).size > 100000000) {
-                        gigaamComplete = true;
-                    }
-                }
-            } catch (e) {}
-        }
-    }
-    const gigaamSherpaRu = path.join(MODEL_DIR, 'model.int8.onnx');
-    if (fs.existsSync(gigaamSherpaRu) && fs.statSync(gigaamSherpaRu).size > 100000000) {
-        gigaamComplete = true;
-    }
-
-    if (!anyDownloaded && gigaamComplete) {
-        console.log('[Sherpa] models verified, no download needed');
-    } else if (!gigaamComplete) {
-        console.log('[Sherpa] GigaAM v3 missing, will be downloaded by background pipeline.');
-    }
-
-    const metaData = {
-        modelUrl: `https://huggingface.co/${HF_REPO}`,
-        downloadedAt: new Date().toISOString(),
-        source: isApiOnline ? 'huggingface_api' : 'offline_fallback',
-        files: {}
-    };
-    for (const model of models) {
-        const filePath = path.join(MODEL_DIR, model.name);
-        if (fs.existsSync(filePath)) {
-            const stats = fs.statSync(filePath);
-            metaData.files[model.name] = {
-                size: stats.size,
-                expectedSize: model.size,
-                oid: model.oid || null
-            };
-        }
-    }
-    fs.writeFileSync(META_FILE, JSON.stringify(metaData, null, 2));
-    console.log('[Sherpa] Model metadata saved successfully.');
-
-    await verifyAndDownloadSileroModel();
+  } finally {
+    fs.rmSync(stageDir, { recursive: true, force: true });
+  }
 }
 
 async function verifyAndDownloadSileroModel() {
-    const os = require('os');
-    const rootSileroPath = path.join(__dirname, '..', 'v5_6_ru.pt');
-    const resourcesSileroDir = path.join(__dirname, '..', 'resources', 'models', 'silero-v5');
-    const resourcesSileroPath = path.join(resourcesSileroDir, 'v5_6_ru.pt');
-    const userCachePath1 = path.join(os.homedir(), '.cache', 'torch', 'hub', 'snakers4_silero-models_master', 'v5_6_ru.pt');
-    const userCachePath2 = path.join(os.homedir(), '.cache', 'torch', 'hub', 'checkpoints', 'v5_6_ru.pt');
-    const voiceModelsPath = path.join(__dirname, '..', 'Voice', 'models', 'v5_6_ru.pt');
+  const os = require('os');
+  const rootSileroPath = path.join(__dirname, '..', 'v5_6_ru.pt');
+  const resourcesSileroDir = path.join(__dirname, '..', 'resources', 'models', 'silero-v5');
+  const resourcesSileroPath = path.join(resourcesSileroDir, 'v5_6_ru.pt');
+  const userCachePath1 = path.join(os.homedir(), '.cache', 'torch', 'hub', 'snakers4_silero-models_master', 'v5_6_ru.pt');
+  const userCachePath2 = path.join(os.homedir(), '.cache', 'torch', 'hub', 'checkpoints', 'v5_6_ru.pt');
+  const voiceModelsPath = path.join(__dirname, '..', 'Voice', 'models', 'v5_6_ru.pt');
 
-    // Automatically remove legacy 5.5 files
-    const legacyCandidates = [
-        path.join(__dirname, '..', 'v5_5_ru.pt'),
-        path.join(resourcesSileroDir, 'v5_5_ru.pt'),
-        path.join(os.homedir(), '.cache', 'torch', 'hub', 'snakers4_silero-models_master', 'v5_5_ru.pt'),
-        path.join(os.homedir(), '.cache', 'torch', 'hub', 'checkpoints', 'v5_5_ru.pt'),
-        path.join(__dirname, '..', 'Voice', 'models', 'v5_5_ru.pt')
-    ];
-    for (const oldFile of legacyCandidates) {
-        if (fs.existsSync(oldFile)) {
-            try {
-                fs.unlinkSync(oldFile);
-                console.log(`[Silero TTS] Removed legacy v5_5_ru.pt file: ${oldFile}`);
-            } catch (e) {}
-        }
+  for (const cand of [rootSileroPath, resourcesSileroPath, userCachePath1, userCachePath2, voiceModelsPath]) {
+    const check = verifyFileExact(cand, SILERO_TTS_SPEC.size, SILERO_TTS_SPEC.sha256);
+    if (check.ok) {
+      console.log(`[Silero TTS] Verified ${cand} (SHA-256 ${check.sha256.slice(0, 12)}...).`);
+      if (cand !== rootSileroPath) fs.copyFileSync(cand, rootSileroPath);
+      fs.mkdirSync(resourcesSileroDir, { recursive: true });
+      fs.copyFileSync(rootSileroPath, resourcesSileroPath);
+      return;
     }
+  }
 
-    const ensureResourcesCopy = (sourceFile) => {
-        try {
-            if (!fs.existsSync(resourcesSileroPath) || fs.statSync(resourcesSileroPath).size < 10 * 1024 * 1024) {
-                fs.mkdirSync(resourcesSileroDir, { recursive: true });
-                fs.copyFileSync(sourceFile, resourcesSileroPath);
-                console.log(`[Silero TTS] Synced model to packaging resources: ${resourcesSileroPath}`);
-            }
-        } catch (e) { /* ignore copy error */ }
-    };
-
-    const candidates = [rootSileroPath, resourcesSileroPath, userCachePath1, userCachePath2, voiceModelsPath];
-    for (const cand of candidates) {
-        if (fs.existsSync(cand)) {
-            try {
-                const sz = fs.statSync(cand).size;
-                if (sz > 10 * 1024 * 1024) {
-                    console.log(`[Silero TTS] Found valid model file at ${cand} (${Math.round(sz / (1024 * 1024))} MB).`);
-                    if (cand !== rootSileroPath && !fs.existsSync(rootSileroPath)) {
-                        console.log(`[Silero TTS] Copying model to root directory: ${rootSileroPath}...`);
-                        fs.copyFileSync(cand, rootSileroPath);
-                    }
-                    ensureResourcesCopy(cand);
-                    return;
-                }
-            } catch (e) { /* ignore read error */ }
-        }
-    }
-
-    console.log('[Silero TTS] v5_6_ru.pt not found on disk. Pre-downloading Silero v5.6 (55 MB)...');
-    try {
-        await downloadFile('https://models.silero.ai/models/tts/ru/v5_6_ru.pt', rootSileroPath);
-        console.log('[Silero TTS] Silero v5.6 downloaded successfully to ' + rootSileroPath);
-        ensureResourcesCopy(rootSileroPath);
-    } catch (err) {
-        console.warn(`[Silero TTS] Warning: Could not pre-download Silero model: ${err.message}. Python server will attempt fallback on start.`);
-    }
+  console.log('[Silero TTS] Downloading v5_6_ru.pt (~141 MB) with pinned SHA-256 verification...');
+  const check = await downloadFile(
+    SILERO_TTS_SPEC.url,
+    rootSileroPath,
+    SILERO_TTS_SPEC.size,
+    SILERO_TTS_SPEC.sha256
+  );
+  fs.mkdirSync(resourcesSileroDir, { recursive: true });
+  fs.copyFileSync(rootSileroPath, resourcesSileroPath);
+  console.log(`[Silero TTS] Verified & synced (SHA-256 ${check.sha256.slice(0, 12)}...).`);
 }
 
-module.exports = {
-    fetchHfTree,
-    DEFAULT_MODELS,
-    main
-};
+async function main() {
+  if (!fs.existsSync(MODEL_DIR)) fs.mkdirSync(MODEL_DIR, { recursive: true });
+  let anyDownloaded = false;
+  const metaFiles = {};
+
+  for (const model of DEFAULT_MODELS) {
+    const filePath = path.join(MODEL_DIR, model.name);
+    const existing = verifyFileExact(filePath, model.size, model.sha256);
+    if (existing.ok) {
+      metaFiles[model.name] = { size: existing.size, sha256: existing.sha256, expectedSize: model.size };
+      continue;
+    }
+    anyDownloaded = true;
+    console.log(`[Sherpa] Downloading ${model.name} (${existing.reason})...`);
+    const verified = await downloadFile(model.url, filePath, model.size, model.sha256);
+    metaFiles[model.name] = { size: verified.size, sha256: verified.sha256, expectedSize: model.size };
+  }
+
+  const nowIso = new Date().toISOString();
+  fs.writeFileSync(
+    path.join(MODEL_DIR, 'download_meta.json'),
+    JSON.stringify(
+      {
+        source: `${HF_REPO}+${WHISPER_SMALL_REPO}`,
+        repoUrl: `https://huggingface.co/${HF_REPO}`,
+        revision: HF_REV,
+        manifestId: 'arc-cli-sherpa-bundle',
+        downloadedAt: nowIso,
+        verified: true,
+        verifiedAt: nowIso,
+        integrity: { status: 'verified', algorithm: 'sha256', verifiedAt: nowIso, files: metaFiles },
+        provenance: {
+          origin: 'official_auto',
+          source: `${HF_REPO}+${WHISPER_SMALL_REPO}`,
+          repoUrl: `https://huggingface.co/${HF_REPO}`,
+          revision: HF_REV,
+          manifestId: 'arc-cli-sherpa-bundle',
+          downloadedAt: nowIso
+        },
+        files: metaFiles
+      },
+      null,
+      2
+    )
+  );
+  console.log(anyDownloaded ? '[Sherpa] Models downloaded and verified (SHA-256).' : '[Sherpa] All models verified (SHA-256).');
+  await verifyAndDownloadSileroModel();
+}
+
+module.exports = { DEFAULT_MODELS, SILERO_TTS_SPEC, validateDownloadUrl, isBlockedIp, verifyFileExact, main };
 
 if (require.main === module) {
-    main().then(() => {
-        process.exit(0);
-    }).catch((err) => {
-        console.error('[Sherpa] Download error:', err);
-        process.exit(1);
-    });
+  main().then(() => process.exit(0)).catch((err) => {
+    console.error('[Sherpa] Supply-chain error:', err.message);
+    process.exit(1);
+  });
 }
-

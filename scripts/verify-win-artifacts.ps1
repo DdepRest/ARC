@@ -1,10 +1,12 @@
 param(
   [string]$DistDir = "dist",
   [string]$PackageJsonPath = "package.json",
+  [switch]$RequireSigned,
   [switch]$SelfTest
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "verify-win-signature.ps1")
 
 function Resolve-RepoPath {
   param([Parameter(Mandatory = $true)][string]$PathValue)
@@ -198,46 +200,6 @@ function Assert-PeExecutable {
   }
 }
 
-function New-SyntheticPeBytes {
-  param(
-    [int]$Machine = 0x8664,
-    [int]$OptMagic = 0x020B,
-    [int]$Characteristics = 0x0002,
-    [int]$OverlayBytes = 64
-  )
-  [int]$optSize = if ($OptMagic -eq 0x020B) { 240 } else { 224 }
-  [int]$eLfanew = 64
-  [int]$ptrRaw = 512
-  [int]$rawSize = 512
-  [int]$totalLen = $ptrRaw + $rawSize + $OverlayBytes
-  $buf = New-Object byte[] $totalLen
-
-  # DOS header
-  $buf[0] = 0x4D; $buf[1] = 0x5A
-  [BitConverter]::GetBytes([uint32]$eLfanew).CopyTo($buf, 0x3C)
-
-  # PE\0\0
-  $buf[$eLfanew] = 0x50; $buf[$eLfanew + 1] = 0x45
-  $buf[$eLfanew + 2] = 0x00; $buf[$eLfanew + 3] = 0x00
-
-  # COFF
-  [BitConverter]::GetBytes([uint16]$Machine).CopyTo($buf, $eLfanew + 4)
-  [BitConverter]::GetBytes([uint16]1).CopyTo($buf, $eLfanew + 6)
-  [BitConverter]::GetBytes([uint16]$optSize).CopyTo($buf, $eLfanew + 20)
-  [BitConverter]::GetBytes([uint16]$Characteristics).CopyTo($buf, $eLfanew + 22)
-
-  # Optional header magic
-  [BitConverter]::GetBytes([uint16]$OptMagic).CopyTo($buf, $eLfanew + 24)
-
-  # Section #0
-  [int]$secOffset = $eLfanew + 24 + $optSize
-  [System.Text.Encoding]::ASCII.GetBytes(".text").CopyTo($buf, $secOffset)
-  [BitConverter]::GetBytes([uint32]$rawSize).CopyTo($buf, $secOffset + 16)
-  [BitConverter]::GetBytes([uint32]$ptrRaw).CopyTo($buf, $secOffset + 20)
-
-  return $buf
-}
-
 function Invoke-SelfTests {
   $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("arc-pe-selftest-" + [Guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
@@ -302,6 +264,7 @@ function Invoke-SelfTests {
     & $expectFail "Missing PE overlay rejected when required" { Assert-PeExecutable -Path $okX64NoOverlay -AllowedMachines @(0x014C, 0x8664) -RequireOverlay $true }
 
     Write-Host "All PE verifier self-tests PASSED (3 positive, 10 negative)."
+    Invoke-SignatureSelfTests
   } finally {
     if (Test-Path -Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force }
   }
@@ -364,6 +327,21 @@ $nsisPe = Assert-PeExecutable -Path $nsisPath -AllowedMachines @(0x014C, 0x8664)
 $portablePe = Assert-PeExecutable -Path $portablePath -AllowedMachines @(0x014C, 0x8664) -RequireOverlay $true
 $mainPe = Assert-PeExecutable -Path $mainExePath -AllowedMachines @(0x8664) -RequireOverlay $false
 
+$nsisVer = Get-PeVersionMetadata -Path $nsisPath
+$portableVer = Get-PeVersionMetadata -Path $portablePath
+$mainVer = Get-PeVersionMetadata -Path $mainExePath
+Assert-MainExeVersionMetadata -VersionInfo $mainVer -ExpectedProductName $productName -ExpectedVersion $version -ArtifactLabel "win-unpacked/$mainExeName"
+
+$nsisSig = Test-ArtifactAuthenticodeSignature -Path $nsisPath -RequireSigned:$RequireSigned
+$portableSig = Test-ArtifactAuthenticodeSignature -Path $portablePath -RequireSigned:$RequireSigned
+$mainSig = Test-ArtifactAuthenticodeSignature -Path $mainExePath -RequireSigned:$RequireSigned
+
+$overallSigningStatus = if ($nsisSig.IsTrustedSigned -and $portableSig.IsTrustedSigned -and $mainSig.IsTrustedSigned) {
+  "TRUSTED_SIGNED"
+} else {
+  "UNSIGNED"
+}
+
 $nsisHash = (Get-FileHash -Path $nsisPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $portableHash = (Get-FileHash -Path $portablePath -Algorithm SHA256).Hash.ToLowerInvariant()
 
@@ -376,20 +354,36 @@ $sumsPath = Join-Path $absDistDir "SHA256SUMS.txt"
 $sumLines = @("$nsisHash  $nsisName", "$portableHash  $portableName")
 [System.IO.File]::WriteAllText($sumsPath, ($sumLines -join "`n") + "`n", $utf8NoBom)
 
+$verificationReport = [ordered]@{
+  version              = $version
+  productName          = $productName
+  overallSigningStatus = $overallSigningStatus
+  requireSigned        = [bool]$RequireSigned
+  artifacts            = [ordered]@{
+    nsis     = [ordered]@{ file = $nsisName; sha256 = $nsisHash; size = $nsisPe.Length; machine = $nsisPe.MachineHex; versionInfo = $nsisVer; signature = $nsisSig }
+    portable = [ordered]@{ file = $portableName; sha256 = $portableHash; size = $portablePe.Length; machine = $portablePe.MachineHex; versionInfo = $portableVer; signature = $portableSig }
+    mainExe  = [ordered]@{ file = "win-unpacked/$mainExeName"; size = $mainPe.Length; machine = $mainPe.MachineHex; versionInfo = $mainVer; signature = $mainSig }
+  }
+}
+$reportPath = Join-Path $absDistDir "ARTIFACT_VERIFICATION.json"
+[System.IO.File]::WriteAllText($reportPath, ($verificationReport | ConvertTo-Json -Depth 6) + "`n", $utf8NoBom)
+
 Write-Host "=== Windows Artifact Verification Summary ==="
-Write-Host ("NSIS     : {0} | Size: {1} bytes ({2:N2} MB) | Machine: {3} | Sections: {4} | Overlay: {5} bytes | SHA256: {6}" -f $nsisName, $nsisPe.Length, ($nsisPe.Length / 1MB), $nsisPe.MachineHex, $nsisPe.Sections, $nsisPe.OverlayBytes, $nsisHash)
-Write-Host ("Portable : {0} | Size: {1} bytes ({2:N2} MB) | Machine: {3} | Sections: {4} | Overlay: {5} bytes | SHA256: {6}" -f $portableName, $portablePe.Length, ($portablePe.Length / 1MB), $portablePe.MachineHex, $portablePe.Sections, $portablePe.OverlayBytes, $portableHash)
-Write-Host ("Main EXE : win-unpacked/{0} | Size: {1} bytes ({2:N2} MB) | Machine: {3} | Sections: {4}" -f $mainExeName, $mainPe.Length, ($mainPe.Length / 1MB), $mainPe.MachineHex, $mainPe.Sections)
+Write-Host ("NSIS     : {0} | Size: {1} bytes ({2:N2} MB) | Machine: {3} | Overlay: {4} bytes | Sig: {5} | SHA256: {6}" -f $nsisName, $nsisPe.Length, ($nsisPe.Length / 1MB), $nsisPe.MachineHex, $nsisPe.OverlayBytes, $nsisSig.Classification, $nsisHash)
+Write-Host ("Portable : {0} | Size: {1} bytes ({2:N2} MB) | Machine: {3} | Overlay: {4} bytes | Sig: {5} | SHA256: {6}" -f $portableName, $portablePe.Length, ($portablePe.Length / 1MB), $portablePe.MachineHex, $portablePe.OverlayBytes, $portableSig.Classification, $portableHash)
+Write-Host ("Main EXE : win-unpacked/{0} | Size: {1} bytes ({2:N2} MB) | Machine: {3} | Product: {4} | Ver: {5} | Sig: {6}" -f $mainExeName, $mainPe.Length, ($mainPe.Length / 1MB), $mainPe.MachineHex, $mainVer.ProductName, $mainVer.ProductVersion, $mainSig.Classification)
 Write-Host ("Blockmap : {0} | Size: {1} bytes" -f $nsisBlockmapName, $blockmapLength)
-Write-Host "Verified guarantees: (1) PE headers and section bounds are valid; (2) NSIS and Portable carry non-empty PE overlays; (3) SHA-256 digests are distinct."
-Write-Host "Note: Structural PE + overlay validation does not verify compressed internal payload execution; runtime launch is covered by Windows QA (S0-05)."
+Write-Host ("Signing  : {0} (honest Authenticode status via Get-AuthenticodeSignature)" -f $overallSigningStatus)
+Write-Host "Verified guarantees: (1) PE headers, section bounds, and Main EXE VersionInfo are valid; (2) NSIS and Portable carry non-empty PE overlays; (3) SHA-256 digests are distinct; (4) Authenticode signature status is inspected honestly."
+Write-Host "Note: Structural PE + Authenticode verification does not verify runtime launch; interactive launch/shortcut/uninstall QA is covered by Windows QA."
 
 if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
   $normalizedDist = $DistDir.Replace('\', '/').TrimEnd('/')
   $ghPayload = @(
     "nsis_path=$normalizedDist/$nsisName",
     "portable_path=$normalizedDist/$portableName",
-    "nsis_blockmap_path=$normalizedDist/$nsisBlockmapName"
+    "nsis_blockmap_path=$normalizedDist/$nsisBlockmapName",
+    "signing_status=$overallSigningStatus"
   ) -join "`n"
   [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, $ghPayload + "`n", $utf8NoBom)
 }

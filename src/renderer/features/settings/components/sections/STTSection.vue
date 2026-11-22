@@ -23,7 +23,10 @@ const {
   activeEngineName,
   sttStatusChecked,
   sttStatusChecking,
-  sttLastError
+  sttLastError,
+  sttModelsInstalled,
+  sttMissingReason,
+  sttSetupState
 } = useSttStatus();
 
 const sttStatus = computed(() =>
@@ -37,7 +40,10 @@ const sttStatus = computed(() =>
     sttEngineReady: sttEngineReady.value,
     activeEngineName: activeEngineName.value,
     loadingProgress: uiStore.sttLoadingProgress,
-    lastError: sttLastError.value
+    lastError: sttLastError.value,
+    modelsInstalled: sttModelsInstalled.value,
+    missingReason: sttMissingReason.value,
+    setupState: sttSetupState.value
   })
 );
 
@@ -97,6 +103,15 @@ const summaryItems = computed<SummaryStripItem[]>(() => [
       >
         <SettingsBlock>
           <SttEngineSelector />
+          <div
+            v-if="sttStatus.setupState === 'missing' || sttStatus.setupState === 'consent_required'"
+            class="px-5 py-3 border-t border-[var(--arc-divider)] flex flex-wrap items-center justify-between gap-3 bg-[var(--arc-well)]"
+          >
+            <span class="text-xs font-mono text-[var(--status-warn)]">
+              {{ sttStatus.readinessDetail }}
+            </span>
+            <CrossLink tab="intelligence" sectionId="section-models" label="Установить модели STT в разделе Модели" />
+          </div>
         </SettingsBlock>
       </SettingsGroup>
 

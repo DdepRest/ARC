@@ -2,6 +2,15 @@
   "name": "a.r.c.",
   "version": "1.0.12",
   "description": "Autonomous Reactor Core",
+  "author": "DdepRest",
+  "homepage": "https://github.com/DdepRest/ARC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DdepRest/ARC.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DdepRest/ARC/issues"
+  },
   "license": "MIT",
   "main": "out/main/index.js",
   "scripts": {
@@ -11,13 +20,18 @@
     "build": "node scripts/postinstall-check.js && electron-vite build && npm run check-sizes && npm run check-visual-constitution",
     "check-sizes": "node scripts/check-file-sizes.js",
     "check-visual-constitution": "node scripts/check-visual-constitution.js",
+    "check-boundaries": "node scripts/check-static-boundaries.js",
+    "generate:sbom": "node scripts/generate-sbom.cjs",
+    "analyze:bundle": "node scripts/analyze-bundle.cjs",
+    "verify:qa-bundle": "node scripts/verify-windows-qa-bundle.cjs",
     "exorcise": "node scripts/exorcise.js",
     "preview": "vite preview",
     "start": "vite",
     "lint": "tsc --noEmit",
+    "lint:strict": "tsc -p tsconfig.strict.json --noEmit",
     "test": "vitest run --config ./electron.vite.config.ts",
     "test:soak": "node scripts/soak-test.js --quick",
-    "gate": "npm run lint && npm run check-visual-constitution && npm run test && npm run build && npm run check-sizes",
+    "gate": "npm run lint && npm run lint:strict && npm run check-boundaries && npm run check-visual-constitution && npm run test && npm run build && npm run check-sizes",
     "rebuild:electron": "node scripts/postinstall-check.js --force-electron",
     "postinstall": "node scripts/postinstall-check.js",
     "dist:win": "npm run build && npx electron-builder --win --dir --publish never",
@@ -30,8 +44,10 @@
   "build": {
     "appId": "com.arc.cognitive",
     "productName": "A.R.C.",
+    "copyright": "Copyright © 2026 DdepRest. A.R.C. (Autonomous Reactor Core)",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "out/**/*",
@@ -43,7 +59,7 @@
       "requirements-silero.txt",
       "scripts/stt_worker.js",
       "Voice/models/**/*",
-      "Voice/dicts/**/*",
+      "!Voice/dicts/**/*",
       "!**/silero_env/**",
       "!silero_env/**",
       "!**/*vosk*"
@@ -54,10 +70,13 @@
       "node_modules/node-llama-cpp/**/*",
       "node_modules/@node-llama-cpp/**/*",
       "scripts/stt_worker.js",
-      "Voice/models/**/*",
-      "Voice/dicts/**/*"
+      "Voice/models/**/*"
     ],
     "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      },
       {
         "from": "silero_server.py",
         "to": "silero_server.py"
@@ -73,6 +92,10 @@
       {
         "from": "tts_dict_loader.py",
         "to": "tts_dict_loader.py"
+      },
+      {
+        "from": "Voice/dicts",
+        "to": "Voice/dicts"
       },
       {
         "from": "requirements-silero.txt",
@@ -115,6 +138,10 @@
       }
     ],
     "win": {
+      "icon": "build/icon.ico",
+      "publisherName": "DdepRest",
+      "requestedExecutionLevel": "asInvoker",
+      "verifyUpdateCodeSignature": false,
       "target": [
         {
           "target": "nsis",
@@ -132,6 +159,11 @@
     },
     "nsis": {
       "artifactName": "ARC-Setup-${version}-${arch}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "shortcutName": "A.R.C.",
+      "uninstallDisplayName": "A.R.C. ${version}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,

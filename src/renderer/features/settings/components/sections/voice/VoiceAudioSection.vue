@@ -31,47 +31,62 @@ let passiveAudioStream: MediaStream | null = null;
 let passiveAudioCtx: AudioContext | null = null;
 let passiveAnalyser: AnalyserNode | null = null;
 let passiveAnimationId: number | null = null;
+let passiveInitSeq = 0;
 
 const initPassiveAudio = async () => {
+  const seq = ++passiveInitSeq;
   try {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
     const devices = await navigator.mediaDevices.enumerateDevices();
+    if (seq !== passiveInitSeq) return;
     microphones.value = devices.filter(d => d.kind === 'audioinput') as InputDeviceInfo[];
-    if (microphones.value.length > 0 && !selectedMic.value) {
+    if (microphones.value.length > 0 && (!selectedMic.value || !microphones.value.some(d => d.deviceId === selectedMic.value))) {
       selectedMic.value = microphones.value[0].deviceId;
+    } else if (microphones.value.length === 0 && selectedMic.value) {
+      selectedMic.value = '';
     }
-    const constraints: MediaStreamConstraints = {
-      audio: selectedMic.value ? { deviceId: { exact: selectedMic.value } } : true
-    };
-    passiveAudioStream = await navigator.mediaDevices.getUserMedia(constraints);
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(
+        selectedMic.value ? { audio: { deviceId: { exact: selectedMic.value } } } : { audio: true }
+      );
+    } catch (err: any) {
+      if (selectedMic.value && (err?.name === 'OverconstrainedError' || err?.name === 'NotFoundError')) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } else { throw err; }
+    }
+    if (seq !== passiveInitSeq) { stream.getTracks().forEach(t => { try { t.stop(); } catch {} }); return; }
+    passiveAudioStream = stream;
+    stream.getAudioTracks().forEach((track) => {
+      track.onended = () => { if (passiveAudioStream === stream) { stopPassiveAudio(); passiveRms.value = 0; } };
+    });
     passiveAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const source = passiveAudioCtx.createMediaStreamSource(passiveAudioStream);
     passiveAnalyser = passiveAudioCtx.createAnalyser();
     passiveAnalyser.fftSize = 64;
     source.connect(passiveAnalyser);
     const dataArray = new Uint8Array(passiveAnalyser.frequencyBinCount);
-
     const checkVolume = () => {
       if (!passiveAnalyser) return;
       passiveAnalyser.getByteTimeDomainData(dataArray);
       let sum = 0;
-      for (let i = 0; i < dataArray.length; i++) {
-        const val = (dataArray[i] - 128) / 128;
-        sum += val * val;
-      }
+      for (let i = 0; i < dataArray.length; i++) { const val = (dataArray[i] - 128) / 128; sum += val * val; }
       passiveRms.value = passiveRms.value * 0.4 + Math.sqrt(sum / dataArray.length) * 0.6;
       passiveAnimationId = requestAnimationFrame(checkVolume);
     };
     checkVolume();
   } catch {
+    passiveRms.value = 0;
     console.warn('VoiceAudioSection: Passive mic stream access unavailable.');
   }
 };
 
 const stopPassiveAudio = () => {
+  passiveInitSeq++;
   if (passiveAnimationId) cancelAnimationFrame(passiveAnimationId);
   passiveAnimationId = null;
   if (passiveAudioStream) {
-    passiveAudioStream.getTracks().forEach(t => t.stop());
+    passiveAudioStream.getTracks().forEach(t => { t.onended = null; t.stop(); });
     passiveAudioStream = null;
   }
   if (passiveAudioCtx && passiveAudioCtx.state !== 'closed') {
@@ -129,9 +144,16 @@ const toggleMicListening = async () => {
   }
 };
 
-watch(selectedMic, () => { stopPassiveAudio(); initPassiveAudio(); });
-onMounted(() => { initPassiveAudio(); });
-onUnmounted(() => { stopPassiveAudio(); });
+const handleAudioDeviceChange = () => { stopPassiveAudio(); void initPassiveAudio(); };
+watch(selectedMic, () => { stopPassiveAudio(); void initPassiveAudio(); });
+onMounted(() => {
+  void initPassiveAudio();
+  navigator.mediaDevices?.addEventListener?.('devicechange', handleAudioDeviceChange);
+});
+onUnmounted(() => {
+  navigator.mediaDevices?.removeEventListener?.('devicechange', handleAudioDeviceChange);
+  stopPassiveAudio();
+});
 
 const runMicTest = () => { micTest.startMicTest(store.sttSelectedMic); };
 

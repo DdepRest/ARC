@@ -2,13 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { app, safeStorage } from 'electron';
 import { AiProvider } from './provider.interface';
-import { sanitizeBuiltinModelName } from '../prompt-builder';
+import { sanitizeBuiltinModelName } from '../model-name.util';
 import { providerHealthManager } from './provider-health';
 import {
   secretVault,
   SecretVaultService,
   MASKED_SECRET_PLACEHOLDER,
-  type SecretReadResult
+  type SecretReadResult,
+  type SecretWriteResult
 } from '../../security/secret-vault.service';
 
 export { MASKED_SECRET_PLACEHOLDER };
@@ -136,14 +137,22 @@ export class ProviderManager {
           shouldSave = true;
         }
 
+        let keepLegacyApiKey = '';
         const storedKey = (p.apiKey || '').trim();
         if (storedKey && storedKey !== MASKED_SECRET_PLACEHOLDER) {
           const { plain, unreadable } = extractLegacyPlainKey(storedKey);
           if (plain) {
-            this.vault.setProviderApiKey(p.id, plain, isGeminiProviderObj(p));
-            shouldSave = true;
+            const migRes = this.vault.setProviderApiKey(p.id, plain, isGeminiProviderObj(p));
+            if (migRes.success) {
+              shouldSave = true;
+            } else {
+              keepLegacyApiKey = p.apiKey ?? '';
+              console.error(`[ProviderManager] Failed to migrate key for provider "${p.id}": ${migRes.error}`);
+            }
           } else if (!unreadable) {
             shouldSave = true;
+          } else {
+            keepLegacyApiKey = p.apiKey ?? '';
           }
         }
 
@@ -153,7 +162,7 @@ export class ProviderManager {
         return {
           ...p,
           isExclusive,
-          apiKey: '',
+          apiKey: keepLegacyApiKey,
           hasApiKey: hasKey || Boolean(p.hasApiKey && resolved.status === 'unreadable'),
           apiKeyStatus: resolved.status
         };
@@ -182,7 +191,7 @@ export class ProviderManager {
         const hasApiKey = (resolved.status === 'ok' && Boolean(resolved.value)) || resolved.status === 'unreadable';
         return {
           ...p,
-          apiKey: '',
+          apiKey: p.apiKey || '',
           hasApiKey,
           apiKeyStatus: undefined
         };
@@ -260,20 +269,27 @@ export class ProviderManager {
     return list[0];
   }
 
-  public saveProvider(provider: AiProvider) {
+  public saveProvider(provider: AiProvider): SecretWriteResult {
     this.ensureInitialized();
     const rawKey = typeof provider.apiKey === 'string' ? provider.apiKey.trim() : undefined;
     const isGemini = isGeminiProviderObj(provider);
+    let keyWriteRes: SecretWriteResult = {
+      success: true,
+      storageMode: this.vault.isSafeStorageAvailable() ? 'dpapi' : 'session_memory_only',
+      isEncrypted: this.vault.isSafeStorageAvailable()
+    };
 
     if (rawKey !== undefined) {
       if (rawKey === MASKED_SECRET_PLACEHOLDER) {
         // Keep existing key in SecretVaultService untouched
       } else if (rawKey === '') {
-        this.vault.deleteProviderApiKey(provider.id);
+        keyWriteRes = this.vault.deleteProviderApiKey(provider.id);
+        if (!keyWriteRes.success) return keyWriteRes;
       } else {
         const { plain } = extractLegacyPlainKey(rawKey);
         if (plain) {
-          this.vault.setProviderApiKey(provider.id, plain, isGemini);
+          keyWriteRes = this.vault.setProviderApiKey(provider.id, plain, isGemini);
+          if (!keyWriteRes.success) return keyWriteRes;
         }
       }
     }
@@ -303,6 +319,7 @@ export class ProviderManager {
     this.saveToFile();
     providerHealthManager.reset(cleanProvider.id);
     this.getActiveProviders();
+    return keyWriteRes;
   }
 
   public deleteProvider(id: string) {

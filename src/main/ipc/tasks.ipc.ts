@@ -62,12 +62,37 @@ export function registerTasksIpc() {
     };
   });
 
-  ipcMain.handle('tasks:ai-decompose', async (_event, { taskId, taskText }: { taskId: string; taskText: string }) => {
+  ipcMain.handle('tasks:ai-decompose', async (_event, payload: { taskId?: string; taskText?: string } | undefined) => {
+    const taskId = typeof payload?.taskId === 'string' ? payload.taskId : '';
+    const taskText = typeof payload?.taskText === 'string' ? payload.taskText : '';
     try {
-      const steps = await objectiveDecomposerService.decomposeTask(taskText);
-      return { success: true, taskId, steps };
+      if (!taskText.trim()) {
+        return {
+          success: false,
+          taskId,
+          steps: [],
+          source: 'local_template' as const,
+          fallbackReason: 'empty_task_text' as const,
+          error: 'Task text is required'
+        };
+      }
+      const result = await objectiveDecomposerService.decomposeTask(taskText);
+      return {
+        success: result.steps.length > 0,
+        taskId,
+        steps: result.steps,
+        source: result.source,
+        fallbackReason: result.fallbackReason
+      };
     } catch (err: any) {
-      return { success: false, taskId, steps: [], error: err?.message || String(err) };
+      return {
+        success: false,
+        taskId,
+        steps: [],
+        source: 'local_template' as const,
+        fallbackReason: 'ipc_error' as const,
+        error: err?.message || String(err)
+      };
     }
   });
 }

@@ -21,6 +21,16 @@
 2. [Схема и архитектура Настроек (settings-architecture.md)](./settings-architecture.md) — полная карта 4 категорий, 17 секций, файлов, примитивов и навигации.
 3. [Эталоны визуальной конституции (ui-etalon/)](./ui-etalon/README.md) — спецификации эталонных кадров и бейслайны дизайн-системы.
 
-## 4. Архив (archive/)
+## 4. Release Hardening, Безопасность и Windows QA
+1. [Каноническая дорожная карта релиза (PROJECT_RELEASE_ROADMAP.md)](./PROJECT_RELEASE_ROADMAP.md) — сводка Release Gates G1–G8 и история стабилизации.
+2. [Модель угроз и Electron Security Boundary (security.md)](./security.md) — CSP, `trustedFileRoot`, sandbox, shell allowlist и Secret Vault.
+3. [Дорожная карта TypeScript Strictness (typescript-strictness-roadmap.md)](./typescript-strictness-roadmap.md) — базовый замер typing debt и фазы A–D (`tsconfig.strict.json`).
+4. [Протокол живого Windows QA (WINDOWS-RELEASE-QA-PROTOCOL.md)](./WINDOWS-RELEASE-QA-PROTOCOL.md) — чек-листы S4-01..S4-04 (soak, upgrade, Clean OS Win10/11, UX-матрица).
+5. [Пошаговый пакет передачи Windows QA (WINDOWS-QA-HANDOFF.md)](./WINDOWS-QA-HANDOFF.md) — пошаговые PowerShell-команды, сверка снимков и чек-лист сбора доказательств для владельца.
+6. [Машинно-читаемый реестр статусов релиза (release-status-registry.json)](./release-status-registry.json) — единый JSON-реестр задач Sprint 0–4 и дефектов аудита P0–P2 (Аудит §7.4).
+7. [Release Notes v1.0.12 RC (release-notes-v1.0.12-rc.md)](./release-notes-v1.0.12-rc.md) — состав RC-комплекта, политика Silero `CC BY-NC-SA 4.0`, статус подписи `UNSIGNED` и форма sign-off.
+
+## 5. Архив (archive/)
 Завершённые дорожные карты, чек-листы ранних версий и исторические спецификации перенесены в [папку архива](./archive/).
+
 

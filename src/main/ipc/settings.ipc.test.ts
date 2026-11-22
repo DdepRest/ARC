@@ -131,4 +131,41 @@ describe('settings.ipc.ts — SecretVaultService Delegation & Zero-Plaintext Dis
     expect(afterDisk.entries.my_key).toBeUndefined();
     expect(secretVault.getSecurityStatus().secretsStorageMode).toBe('session_memory_only');
   });
+
+  it('S1-01 fail-closed: handleSetKey returns success=false and never falls back to session RAM or leaks secret when DPAPI disk write fails', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    delete process.env.GEMINI_API_KEY;
+    const rawSecret = 'AIzaSuperSecretIpcFailKey';
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const openSpy = vi.spyOn(fs, 'openSync').mockImplementation(() => {
+      throw Object.assign(new Error(`Denied writing ${rawSecret}`), { code: 'EACCES' });
+    });
+    try {
+      const res = handleSetKey('gemini_api_key', rawSecret);
+      expect(res.success).toBe(false);
+      expect(res.isEncrypted).toBe(false);
+      expect(res.error).toContain('EACCES');
+      expect(res.error).not.toContain(rawSecret);
+      expect(process.env.GEMINI_API_KEY).toBeUndefined();
+      expect(handleGetKey('gemini_api_key').status).toBe('missing');
+    } finally {
+      openSpy.mockRestore();
+      errSpy.mockRestore();
+    }
+  });
+
+  it('S1-01 canonical Gemini slot: handleSetKey("GEMINI_API_KEY") stores in gemini_api_key and removes legacy provider:gemini:api_key', () => {
+    mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
+    secretVault.setSecret('provider:gemini:api_key', 'AIzaOldAlias');
+
+    const res = handleSetKey('GEMINI_API_KEY', 'AIzaCanonicalIpcKey');
+    expect(res.success).toBe(true);
+
+    const disk = JSON.parse(fs.readFileSync(path.join(state.userDataDir, 'secrets.json'), 'utf-8'));
+    expect(disk.entries.gemini_api_key).toBeDefined();
+    expect(disk.entries['provider:gemini:api_key']).toBeUndefined();
+    expect(process.env.GEMINI_API_KEY).toBe('AIzaCanonicalIpcKey');
+  });
 });
+

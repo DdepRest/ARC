@@ -73,23 +73,28 @@ describe('SherpaDownloaderService Unit Tests', () => {
     );
   });
 
-  it('should skip already downloaded files with matching size', async () => {
+  it('should skip already downloaded files with matching size and sha256', async () => {
+    const modelIntegrity = await import('./model-integrity.util');
+    const PINNED: Record<string, { size: number; sha256: string }> = {
+      'encoder.onnx': { size: 90994145, sha256: 'e9c27453e618bc97cf8a10169f34c104bd478166522907fcd122a46a88c78c69' },
+      'decoder.onnx': { size: 2093080, sha256: '89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0' },
+      'joiner.onnx': { size: 1026462, sha256: 'dde0c7f3be0a16113a3e042c79a492c48667c07a8c1e9422ffe81c768aad4838' },
+      'tokens.txt': { size: 6388, sha256: '93bbbc0bae6b78c0bbb743d4aa9fded3bb5ff3aac5f0200e3a769a5a05e0fdf6' }
+    };
     existsSyncMock.mockReturnValue(true);
     statSyncMock.mockImplementation((filePath: string) => {
       const fileName = path.basename(filePath);
-      const EXPECTED_SIZES: Record<string, number> = {
-        'encoder.onnx': 90994145,
-        'decoder.onnx': 2093080,
-        'joiner.onnx': 1026462,
-        'tokens.txt': 6388
-      };
-      return { size: EXPECTED_SIZES[fileName] || 1000 };
+      return { size: PINNED[fileName]?.size || 1000 };
+    });
+    vi.spyOn(modelIntegrity, 'computeFileSha256Sync').mockImplementation((filePath: string) => {
+      const fileName = path.basename(filePath);
+      return PINNED[fileName]?.sha256 || null;
     });
 
     const progressFn = vi.fn();
     const result = await service.downloadModel('zipformer-ru', progressFn);
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ success: true, status: 'completed' });
     expect(progressFn).toHaveBeenCalledWith(
       expect.objectContaining({ percent: 100, status: 'completed' })
     );

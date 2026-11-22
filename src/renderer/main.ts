@@ -1,6 +1,7 @@
 import { hotkeysService } from './services/hotkeys.service';
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { getRuntimeBuildMetadata } from '../shared/config/build-metadata'
 import { persistencePlugin } from './bootstrap/plugins';
 import { setupElectronApiMock } from './bootstrap/mock-database';
 import { setupErrorHandlers } from './bootstrap/error-handler';
@@ -60,8 +61,8 @@ if (typeof window !== 'undefined') {
   });
 }
 
-const buildCommitHash = typeof __BUILD_COMMIT__ !== 'undefined' ? __BUILD_COMMIT__ : '9048f71';
-console.info('A.R.C. build', buildCommitHash);
+const buildMeta = getRuntimeBuildMetadata();
+console.info('A.R.C. build', `${buildMeta.version} (${buildMeta.commit})`);
 
 try {
   initSysLogs();

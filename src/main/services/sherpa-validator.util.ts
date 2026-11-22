@@ -7,6 +7,7 @@ import { app } from 'electron';
 export interface ModelValidationResult {
   success: boolean;
   verified: boolean;
+  cancelled?: boolean;
   incompatible?: boolean;
   error?: string;
   source?: string;
@@ -15,13 +16,9 @@ export interface ModelValidationResult {
 export function computeFileChecksum(filePath: string): string {
   try {
     const stats = fs.statSync(filePath);
-    // Use size + mtime as fast signature; for smaller files sha256
-    const headerBuffer = Buffer.alloc(Math.min(stats.size, 65536));
-    const fd = fs.openSync(filePath, 'r');
-    fs.readSync(fd, headerBuffer, 0, headerBuffer.length, 0);
-    fs.closeSync(fd);
-    const hash = crypto.createHash('sha256').update(headerBuffer).digest('hex');
-    return `${stats.size}_${hash}`;
+    const { computeFileSha256Sync } = require('./model-integrity.util') as typeof import('./model-integrity.util');
+    const hash = computeFileSha256Sync(filePath, true);
+    return hash ? `${stats.size}_${hash}` : '';
   } catch {
     return '';
   }
@@ -34,9 +31,20 @@ export function computeFileChecksum(filePath: string): string {
 export function validateSherpaModelSacrificial(
   modelPath: string,
   tokensPath: string,
-  timeoutMs: number = 15000
+  timeoutMs: number = 15000,
+  signal?: AbortSignal
 ): Promise<ModelValidationResult> {
   return new Promise((resolve) => {
+    if (signal?.aborted) {
+      return resolve({
+        success: false,
+        verified: false,
+        cancelled: true,
+        incompatible: false,
+        error: 'Validation cancelled by user'
+      });
+    }
+
     if (!fs.existsSync(modelPath) || !fs.existsSync(tokensPath)) {
       return resolve({
         success: false,
@@ -78,9 +86,30 @@ export function validateSherpaModelSacrificial(
       child.stderr.on('data', (d) => { stderrBuffer += d.toString(); });
     }
 
+    const cleanupSignal = () => {
+      signal?.removeEventListener('abort', onAbort);
+    };
+
+    const onAbort = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      try { child.kill('SIGKILL'); } catch {}
+      resolve({
+        success: false,
+        verified: false,
+        cancelled: true,
+        incompatible: false,
+        error: 'Validation cancelled by user'
+      });
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+
     const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
+        cleanupSignal();
         try { child.kill('SIGKILL'); } catch {}
         console.warn(`[SherpaValidator] Validation timed out after ${timeoutMs}ms for ${modelPath}`);
         resolve({
@@ -92,17 +121,18 @@ export function validateSherpaModelSacrificial(
       }
     }, timeoutMs);
 
-    child.on('exit', (code, signal) => {
+    child.on('exit', (code, signalCode) => {
       if (resolved) return;
       resolved = true;
       clearTimeout(timer);
+      cleanupSignal();
 
       if (code === 0) {
         console.log(`[SherpaValidator] Sacrificial validation SUCCESS for ${modelPath}`);
         return resolve({ success: true, verified: true });
       }
 
-      const errMsg = stderrBuffer.trim() || stdoutBuffer.trim() || `Process exited with code ${code} (signal: ${signal})`;
+      const errMsg = stderrBuffer.trim() || stdoutBuffer.trim() || `Process exited with code ${code} (signal: ${signalCode})`;
       console.warn(`[SherpaValidator] Sacrificial validation FAILED (code ${code}): ${errMsg}`);
       return resolve({
         success: false,
@@ -116,6 +146,7 @@ export function validateSherpaModelSacrificial(
       if (resolved) return;
       resolved = true;
       clearTimeout(timer);
+      cleanupSignal();
       console.warn(`[SherpaValidator] Sacrificial child process error: ${err.message}`);
       return resolve({
         success: false,

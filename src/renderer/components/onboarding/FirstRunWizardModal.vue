@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../../features/settings/stores/settings.store';
-import { completeFirstRunWizard } from './utils/complete-wizard';
+import { createWizardFlowController } from './composables/useFirstRunWizard';
 import AiModeStep from './steps/AiModeStep.vue';
 import VoiceMicStep from './steps/VoiceMicStep.vue';
 import GraphicsStep from './steps/GraphicsStep.vue';
 
 const settingsStore = useSettingsStore();
-
-const currentStep = ref<number>(1);
 const totalSteps = 3;
 
 const aiStepRef = ref<any>(null);
@@ -39,45 +37,30 @@ const steps: StepMeta[] = [
   }
 ];
 
+const {
+  currentStep,
+  savePhase,
+  saveError,
+  isSaving,
+  nextStep,
+  prevStep,
+  skipWizard,
+  retryLastAction
+} = createWizardFlowController({
+  totalSteps,
+  settingsStore,
+  getStepHandle: (step) => {
+    if (step === 1) return aiStepRef.value;
+    if (step === 2) return voiceStepRef.value;
+    if (step === 3) return graphicsStepRef.value;
+    return null;
+  }
+});
+
 const currentStepMeta = computed(() => steps[currentStep.value - 1] || steps[0]);
 
-async function nextStep() {
-  if (currentStep.value === 1 && aiStepRef.value?.saveCurrentState) {
-    await aiStepRef.value.saveCurrentState();
-  } else if (currentStep.value === 2 && voiceStepRef.value?.saveCurrentState) {
-    await voiceStepRef.value.saveCurrentState();
-  } else if (currentStep.value === 3 && graphicsStepRef.value?.saveCurrentState) {
-    await graphicsStepRef.value.saveCurrentState();
-  }
-
-  if (currentStep.value < totalSteps) {
-    currentStep.value += 1;
-  } else {
-    await finishWizard();
-  }
-}
-
-function prevStep() {
-  if (currentStep.value > 1) {
-    currentStep.value -= 1;
-  }
-}
-
-async function finishWizard() {
-  if (graphicsStepRef.value?.saveCurrentState) {
-    await graphicsStepRef.value.saveCurrentState();
-  }
-  completeFirstRunWizard(settingsStore);
-}
-
-function skipWizard() {
-  if (voiceStepRef.value?.saveCurrentState) {
-    voiceStepRef.value.saveCurrentState();
-  }
-  completeFirstRunWizard(settingsStore);
-}
-
 function onSkipAiStep() {
+  if (isSaving.value) return;
   if (currentStep.value === 1) {
     currentStep.value = 2;
   }
@@ -87,7 +70,7 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     e.preventDefault();
     e.stopPropagation();
-    skipWizard();
+    void skipWizard();
   }
 }
 
@@ -135,8 +118,9 @@ onBeforeUnmount(() => {
 
         <button
           type="button"
+          :disabled="isSaving"
           @click="skipWizard"
-          class="font-mono text-xs text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] shrink-0 cursor-pointer transition-colors"
+          class="font-mono text-xs text-[var(--arc-text-muted)] hover:text-[var(--arc-text-primary)] shrink-0 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Esc — пропустить
         </button>
@@ -183,32 +167,81 @@ onBeforeUnmount(() => {
         <GraphicsStep v-else-if="currentStep === 3" ref="graphicsStepRef" />
       </div>
 
-      <!-- Footer -->
-      <div class="px-6 py-4 border-t border-[var(--arc-divider)] bg-[var(--arc-plane)] flex items-center justify-between gap-4">
+      <!-- Save Error Banner -->
+      <div
+        v-if="savePhase === 'error' && saveError"
+        role="alert"
+        data-testid="wizard-save-error"
+        class="px-6 py-2.5 border-t border-[var(--status-err)] bg-[var(--arc-block)] flex items-center justify-between gap-3"
+      >
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2 h-2 rounded-full bg-[var(--status-err)] shrink-0"></span>
+          <span class="font-mono text-xs text-[var(--status-err)] truncate" :title="saveError">
+            Ошибка сохранения: {{ saveError }}
+          </span>
+        </div>
         <button
           type="button"
-          @click="skipWizard"
-          class="px-4 py-1.5 rounded-[10px] border border-[var(--arc-hairline)] bg-transparent hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] font-mono text-xs cursor-pointer transition-colors"
+          :disabled="isSaving"
+          @click="retryLastAction"
+          data-testid="wizard-retry-btn"
+          class="px-3 py-1 rounded-[8px] border border-[var(--status-err)] bg-[var(--arc-plane)] text-[var(--status-err)] hover:bg-[var(--arc-hover)] font-mono text-xs cursor-pointer shrink-0 disabled:opacity-50"
         >
-          Пропустить
+          Повторить
         </button>
+      </div>
 
-        <div class="flex items-center gap-3">
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-[var(--arc-divider)] bg-[var(--arc-plane)] flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            :disabled="isSaving"
+            @click="skipWizard"
+            data-testid="wizard-skip-btn"
+            class="px-4 py-1.5 rounded-[10px] border border-[var(--arc-hairline)] bg-transparent hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] font-mono text-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            Пропустить
+          </button>
+
+          <span
+            v-if="savePhase === 'saving'"
+            data-testid="wizard-save-status"
+            class="flex items-center gap-1.5 font-mono text-xs text-[var(--arc-text-secondary)] truncate"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse shrink-0"></span>
+            <span>Сохранение настроек...</span>
+          </span>
+          <span
+            v-else-if="savePhase === 'saved'"
+            data-testid="wizard-save-status"
+            class="flex items-center gap-1.5 font-mono text-xs text-[var(--status-ok)] truncate"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-ok)] shrink-0"></span>
+            <span>Сохранено</span>
+          </span>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
           <button
             v-if="currentStep > 1"
             type="button"
+            :disabled="isSaving"
             @click="prevStep"
-            class="px-4 py-1.5 rounded-[10px] border border-[var(--arc-hairline)] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] font-mono text-xs cursor-pointer transition-colors"
+            data-testid="wizard-prev-btn"
+            class="px-4 py-1.5 rounded-[10px] border border-[var(--arc-hairline)] bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)] hover:text-[var(--arc-text-primary)] font-mono text-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Назад
           </button>
 
           <button
             type="button"
+            :disabled="isSaving"
             @click="nextStep"
-            class="px-5 py-1.5 rounded-[10px] bg-[var(--accent)] text-white font-mono text-xs font-semibold border border-[rgba(var(--accent-rgb),0.5)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.25)] hover:opacity-90 cursor-pointer transition-opacity"
+            data-testid="wizard-next-btn"
+            class="px-5 py-1.5 rounded-[10px] bg-[var(--accent)] text-white font-mono text-xs font-semibold border border-[rgba(var(--accent-rgb),0.5)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.25)] hover:opacity-90 cursor-pointer transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ currentStep === totalSteps ? 'Завершить' : 'Далее' }}
+            {{ isSaving ? 'Сохранение...' : currentStep === totalSteps ? 'Завершить' : 'Далее' }}
           </button>
         </div>
       </div>

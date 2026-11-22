@@ -2,9 +2,12 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../../../features/settings/stores/settings.store';
 import { useUIStore } from '../../../stores/ui.store';
+import VoiceSetupCard from './VoiceSetupCard.vue';
+import { sanitizeWizardErrorMessage, type StepSaveResult } from '../utils/wizard-save';
 
 const settingsStore = useSettingsStore();
 const uiStore = useUIStore();
+const voiceSetupCardRef = ref<any>(null);
 
 const audioDevices = ref<MediaDeviceInfo[]>([]);
 const selectedDeviceId = ref(settingsStore.sttSelectedMic || '');
@@ -151,6 +154,12 @@ function setWakeWordState(enabled: boolean) {
   settingsStore.sttKeywordsEnabled = enabled;
 }
 
+function onVoiceSetupModeChanged(mode: 'setup_now' | 'later' | 'system_fallback') {
+  if (mode === 'system_fallback') {
+    wakeWordEnabled.value = false;
+  }
+}
+
 async function runTtsTest() {
   isTestingTts.value = true;
   try {
@@ -167,16 +176,36 @@ async function runTtsTest() {
 }
 
 defineExpose({
-  saveCurrentState: () => {
-    stopMicTest();
-    settingsStore.sttSelectedMic = selectedDeviceId.value;
-    settingsStore.sttKeywordsEnabled = wakeWordEnabled.value;
+  saveCurrentState: async (): Promise<StepSaveResult> => {
+    const warnings: string[] = [];
+    try {
+      stopMicTest();
+      settingsStore.sttSelectedMic = selectedDeviceId.value;
+      settingsStore.sttKeywordsEnabled = wakeWordEnabled.value;
+    } catch (err) {
+      warnings.push(sanitizeWizardErrorMessage(err, 'Параметры микрофона не сохранены'));
+    }
+    try {
+      const cardRes = await voiceSetupCardRef.value?.saveCurrentState?.();
+      if (cardRes?.optionalWarnings?.length) {
+        warnings.push(...cardRes.optionalWarnings);
+      }
+    } catch (err) {
+      warnings.push(sanitizeWizardErrorMessage(err, 'Режим голосовой настройки не синхронизирован'));
+    }
+    return {
+      ok: true,
+      ...(warnings.length > 0 ? { optionalWarnings: warnings } : {})
+    };
   }
 });
 </script>
 
 <template>
   <div class="space-y-4">
+    <!-- Voice Setup Mode & Component Provisioning -->
+    <VoiceSetupCard ref="voiceSetupCardRef" @mode-changed="onVoiceSetupModeChanged" />
+
     <!-- Microphone Selector & 12-Segment RMS Meter -->
     <div class="p-4 rounded-[12px] border border-[var(--arc-hairline)] bg-[var(--arc-block)] space-y-4">
       <!-- Custom Microphone Dropdown -->

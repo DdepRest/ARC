@@ -176,4 +176,34 @@ describe('app.ipc Channels', () => {
       security: { available: true }
     });
   });
+
+  it('system:reset-data validates options and delegates normalized Variant A options', async () => {
+    const { StorageManagerService } = await import('../services/storage-manager.service');
+    (StorageManagerService.resetSystemData as any).mockResolvedValueOnce({
+      success: true,
+      mode: 'app_data_and_config',
+      clearModels: true,
+      removedTargets: [],
+      preservedAssets: ['secrets.json', 'logs'],
+      failedTargets: [],
+      relaunched: true
+    });
+
+    const handler = handlers.get('system:reset-data');
+    expect(handler).toBeDefined();
+
+    const okRes = await handler!({}, { clearModels: true });
+    expect(StorageManagerService.resetSystemData).toHaveBeenCalledWith({ clearModels: true });
+    expect(okRes.success).toBe(true);
+
+    (StorageManagerService.resetSystemData as any).mockClear();
+    const badKeyRes = await handler!({}, { deleteVault: true });
+    expect(badKeyRes.success).toBe(false);
+    expect(badKeyRes.error).toContain('deleteVault');
+    expect(StorageManagerService.resetSystemData).not.toHaveBeenCalled();
+
+    const badTypeRes = await handler!({}, { clearModels: 'yes' });
+    expect(badTypeRes.success).toBe(false);
+    expect(StorageManagerService.resetSystemData).not.toHaveBeenCalled();
+  });
 });

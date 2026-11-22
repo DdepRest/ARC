@@ -5,11 +5,21 @@ import { app } from 'electron';
 import { SHERPA_MODELS_CONFIG } from './sherpa-downloader.service';
 import { getActiveGigaamSource } from './gigaam-sources.service';
 import { EXEC_TIMEOUT_MS } from '../config/timeouts';
+import { inspectDirectorySupplyChain } from './model-integrity.util';
+import type { ModelIntegrityRecord, ModelProvenanceRecord } from '../../shared/types/model-integrity';
 
 export interface ModelDirResult {
   dir: string;
   isComplete: boolean;
   missingFiles: string[];
+}
+
+export interface ModelFilesVerificationResult {
+  isComplete: boolean;
+  missingFiles: string[];
+  totalSize: number;
+  integrity?: ModelIntegrityRecord;
+  provenance?: ModelProvenanceRecord;
 }
 
 /**
@@ -114,112 +124,106 @@ export function resolveGigaamFiles(dir: string): { modelPath: string; tokensPath
 }
 
 /**
- * Checks if a directory contains all required model files with valid non-zero size.
+ * Checks if a directory contains all required model files with valid size and supply-chain SHA-256 verification.
  */
-export function verifyModelFiles(dir: string, modelId: string): { isComplete: boolean; missingFiles: string[]; totalSize: number } {
+export function verifyModelFiles(
+  dir: string,
+  modelId: string,
+  opts?: { forceRehash?: boolean }
+): ModelFilesVerificationResult {
   if (modelId === 'gigaam-ctc') {
     const activeSource = getActiveGigaamSource();
     const metaPath = path.join(dir, 'download_meta.json');
     let meta: any = null;
     if (fs.existsSync(metaPath)) {
-      try {
-        meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-      } catch {}
+      try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
     }
 
-    if (meta) {
-      const isBad = meta.incompatible === true || meta.sourceId === 'istupakov-multilingual' || (meta.source && meta.source.includes('istupakov'));
-      if (isBad) {
-        return {
-          isComplete: false,
-          missingFiles: [`GigaAM source ${meta.sourceId || meta.source || 'unknown'} is incompatible`],
-          totalSize: 0
-        };
-      }
+    if (meta && (meta.incompatible === true || meta.sourceId === 'istupakov-multilingual' || (meta.source && meta.source.includes('istupakov')))) {
+      return {
+        isComplete: false,
+        missingFiles: [`GigaAM source ${meta.sourceId || meta.source || 'unknown'} is incompatible`],
+        totalSize: 0,
+        integrity: { status: 'tampered', algorithm: 'sha256', reason: 'Несовместимый источник GigaAM' }
+      };
     }
 
     const resolved = resolveGigaamFiles(dir);
     if (resolved) {
-      try {
-        const mSize = fs.statSync(resolved.modelPath).size;
-        const tSize = fs.statSync(resolved.tokensPath).size;
-        if (mSize > 1000000 && tSize > 10) {
-          return { isComplete: true, missingFiles: [], totalSize: mSize + tSize };
-        }
-      } catch {}
+      const mName = path.basename(resolved.modelPath);
+      const tName = path.basename(resolved.tokensPath);
+      const res = inspectDirectorySupplyChain(
+        dir,
+        'gigaam-ctc',
+        [
+          { name: mName, minBytes: 1000000 },
+          { name: tName, minBytes: 10 }
+        ],
+        opts
+      );
+      return res;
     }
     return {
       isComplete: false,
       missingFiles: [activeSource.defaultModelFile, activeSource.defaultTokensFile],
-      totalSize: 0
+      totalSize: 0,
+      integrity: { status: 'missing', algorithm: 'sha256', reason: 'Файлы GigaAM не найдены' },
+      provenance: { origin: 'manual_local' }
     };
   }
 
   if (modelId === 'silero-vad') {
-    const vadPath = path.join(dir, 'silero_vad.onnx');
-    if (fs.existsSync(vadPath) && fs.statSync(vadPath).size > 500000) {
-      return { isComplete: true, missingFiles: [], totalSize: fs.statSync(vadPath).size };
+    const vadConfig = SHERPA_MODELS_CONFIG['silero-vad']?.files?.[0];
+    const localVad = path.join(dir, 'silero_vad.onnx');
+    if (fs.existsSync(localVad) && fs.statSync(localVad).size > 0) {
+      return inspectDirectorySupplyChain(
+        dir,
+        'silero-vad',
+        [{ name: 'silero_vad.onnx', minBytes: 1, expectedSha256: vadConfig?.sha256, expectedSize: vadConfig?.size }],
+        opts
+      );
     }
     const bundled = getBundledSileroVadPath();
     if (bundled) {
-      return { isComplete: true, missingFiles: [], totalSize: fs.statSync(bundled).size };
+      return {
+        isComplete: true,
+        missingFiles: [],
+        totalSize: fs.statSync(bundled).size,
+        integrity: { status: 'verified', algorithm: 'sha256', reason: 'Встроен в ресурсы сборки' },
+        provenance: { origin: 'bundled', source: 'bundled/silero_vad.onnx' }
+      };
     }
-    return { isComplete: false, missingFiles: ['silero_vad.onnx'], totalSize: 0 };
+    return {
+      isComplete: false,
+      missingFiles: ['silero_vad.onnx'],
+      totalSize: 0,
+      integrity: { status: 'missing', algorithm: 'sha256' },
+      provenance: { origin: 'manual_local' }
+    };
   }
 
   const config = SHERPA_MODELS_CONFIG[modelId];
   if (!config || !fs.existsSync(dir)) {
-    return { isComplete: false, missingFiles: config ? config.files.map(f => f.name) : [], totalSize: 0 };
+    return {
+      isComplete: false,
+      missingFiles: config ? config.files.map((f) => f.name) : [],
+      totalSize: 0,
+      integrity: { status: 'missing', algorithm: 'sha256' },
+      provenance: { origin: 'manual_local' }
+    };
   }
 
-  // Check download_meta.json for overrides
-  let metaFiles: Record<string, any> = {};
-  const metaPath = path.join(dir, 'download_meta.json');
-  if (fs.existsSync(metaPath)) {
-    try {
-      const rawMeta = fs.readFileSync(metaPath, 'utf8');
-      const parsed = JSON.parse(rawMeta);
-      if (parsed && typeof parsed.files === 'object') {
-        metaFiles = parsed.files;
-      }
-    } catch {
-      // ignore corrupt json and fallback
-    }
-  }
-
-  const missingFiles: string[] = [];
-  let totalSize = 0;
-
-  for (const fSpec of config.files) {
-    const fp = path.join(dir, fSpec.name);
-    if (!fs.existsSync(fp)) {
-      missingFiles.push(fSpec.name);
-      continue;
-    }
-    try {
-      const stats = fs.statSync(fp);
-      if (!stats || stats.size === 0) {
-        missingFiles.push(`Invalid file size for ${fSpec.name} (0 bytes)`);
-        continue;
-      }
-
-      const expectedSize = metaFiles[fSpec.name]?.size || metaFiles[fSpec.name]?.expectedSize || fSpec.size;
-      // If expectedSize is known and difference exceeds 500 bytes tolerance
-      if (expectedSize && Math.abs(stats.size - expectedSize) > 500) {
-        missingFiles.push(`Invalid file size for ${fSpec.name} (${stats.size} vs ${expectedSize})`);
-      } else {
-        totalSize += stats.size;
-      }
-    } catch {
-      missingFiles.push(fSpec.name);
-    }
-  }
-
-  return {
-    isComplete: missingFiles.length === 0,
-    missingFiles,
-    totalSize
-  };
+  return inspectDirectorySupplyChain(
+    dir,
+    modelId,
+    config.files.map((f) => ({
+      name: f.name,
+      minBytes: 1,
+      expectedSha256: f.sha256,
+      expectedSize: f.size
+    })),
+    opts
+  );
 }
 
 /**

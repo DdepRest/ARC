@@ -45,6 +45,24 @@
           {{ currentRequest.reason || 'ARC запросил разрешение на выполнение:' }}
         </p>
 
+        <!-- Structured context metadata (initiator / executable / cwd / mode) -->
+        <dl
+          v-if="displayContext.fields.length > 0"
+          id="approval-metadata-grid"
+          class="grid grid-cols-1 gap-1.5 rounded-[12px] bg-[var(--arc-block)] border border-[var(--arc-hairline)] p-3 text-xs"
+        >
+          <div
+            v-for="field in displayContext.fields"
+            :key="field.key"
+            class="flex items-baseline justify-between gap-3"
+          >
+            <dt class="text-[var(--arc-text-muted)] font-sans shrink-0">{{ field.label }}:</dt>
+            <dd class="font-mono text-[var(--arc-text-primary)] break-all text-right select-text">
+              {{ field.value }}
+            </dd>
+          </div>
+        </dl>
+
         <!-- Command block (Machine layer) -->
         <div
           id="approval-target-preview"
@@ -55,16 +73,19 @@
         </div>
 
         <!-- Warning text -->
-        <div class="p-3 rounded-[12px] bg-[var(--arc-block)] border border-[var(--status-err)] text-[var(--status-err)] text-xs flex items-start gap-2">
+        <div
+          id="approval-consequences"
+          class="p-3 rounded-[12px] bg-[var(--arc-block)] border border-[var(--status-err)] text-[var(--status-err)] text-xs flex items-start gap-2"
+        >
           <span class="text-sm leading-none mt-0.5">⚠️</span>
           <span class="font-sans leading-snug">
-            Это действие может изменить файлы или настройки системы.
+            {{ displayContext.consequences }}
           </span>
         </div>
 
         <!-- Timeout warning & Auto-reject notice -->
-        <p class="text-xs text-[var(--arc-text-muted)] font-mono flex items-center justify-between pt-1">
-          <span>Автоотмена через 60 сек</span>
+        <p id="approval-timeout-notice" class="text-xs text-[var(--arc-text-muted)] font-mono flex items-center justify-between pt-1">
+          <span>Автоотмена через {{ displayContext.timeoutSeconds }} сек</span>
           <span>Esc для отмены</span>
         </p>
 
@@ -92,7 +113,7 @@
           id="approval-reject-button"
           type="button"
           @click="reject"
-          class="px-5 py-2 text-xs font-medium rounded-full bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] transition-colors cursor-pointer font-sans focus:outline-none"
+          class="px-5 py-2 text-xs font-medium rounded-full bg-[var(--arc-block)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] transition-colors cursor-pointer font-sans focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           :style="{ backgroundImage: 'var(--arc-sheen)' }"
         >
           Отмена
@@ -101,7 +122,7 @@
           id="approval-approve-button"
           type="button"
           @click="approve"
-          class="px-5 py-2 text-xs font-semibold rounded-full bg-[var(--accent)] text-white shadow-[0_0_16px_rgba(var(--accent-rgb),0.3)] border border-transparent transition-all cursor-pointer font-sans focus:outline-none"
+          class="px-5 py-2 text-xs font-semibold rounded-full bg-[var(--accent)] text-white shadow-[0_0_16px_rgba(var(--accent-rgb),0.3)] border border-transparent transition-all cursor-pointer font-sans focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--arc-text-primary)]"
         >
           Выполнить
         </button>
@@ -111,10 +132,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useSecurityStore } from '../../stores/security.store';
 import ArcCheckbox from '../ui/ArcCheckbox.vue';
+import {
+  extractApprovalDisplayContext,
+  resolveDialogTabFocusTarget,
+  restorePreviousFocus
+} from './approval-dialog.helpers';
 
 const securityStore = useSecurityStore();
 const { currentRequest, isDialogOpen } = storeToRefs(securityStore);
@@ -123,7 +149,10 @@ const dialogCardRef = ref<HTMLElement | null>(null);
 const cancelButtonRef = ref<HTMLButtonElement | null>(null);
 const rememberMacroChoice = ref(false);
 
+const displayContext = computed(() => extractApprovalDisplayContext(currentRequest.value));
+
 let unsubscribe: (() => void) | null = null;
+let previouslyFocusedElement: HTMLElement | null = null;
 
 function focusCancelButton() {
   nextTick(() => {
@@ -131,12 +160,43 @@ function focusCancelButton() {
   });
 }
 
-watch(isDialogOpen, (isOpen) => {
-  if (isOpen) {
-    rememberMacroChoice.value = false;
-    focusCancelButton();
+function capturePreviousFocus() {
+  if (typeof document === 'undefined') return;
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && !dialogCardRef.value?.contains(active)) {
+    previouslyFocusedElement = active;
   }
-});
+}
+
+function releasePreviousFocus() {
+  const target = previouslyFocusedElement;
+  previouslyFocusedElement = null;
+  nextTick(() => {
+    restorePreviousFocus(target);
+  });
+}
+
+watch(
+  isDialogOpen,
+  (open, wasOpen) => {
+    if (open && !wasOpen) {
+      capturePreviousFocus();
+      focusCancelButton();
+    } else if (!open && wasOpen) {
+      releasePreviousFocus();
+    }
+  }
+);
+
+watch(
+  () => currentRequest.value?.id,
+  (newId) => {
+    if (newId) {
+      rememberMacroChoice.value = false;
+      focusCancelButton();
+    }
+  }
+);
 
 function onDialogKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
@@ -146,20 +206,15 @@ function onDialogKeydown(e: KeyboardEvent) {
   }
 
   if (e.key === 'Tab' && dialogCardRef.value) {
-    const focusableElements = dialogCardRef.value.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    const focusableElements = Array.from(
+      dialogCardRef.value.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
     );
-    if (focusableElements.length > 0) {
-      const first = focusableElements[0];
-      const last = focusableElements[focusableElements.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+    const nextFocus = resolveDialogTabFocusTarget(focusableElements, document.activeElement, e.shiftKey);
+    if (nextFocus) {
+      e.preventDefault();
+      nextFocus.focus();
     }
   }
 }
@@ -189,6 +244,10 @@ onUnmounted(() => {
   if (unsubscribe) {
     unsubscribe();
     unsubscribe = null;
+  }
+  if (previouslyFocusedElement) {
+    restorePreviousFocus(previouslyFocusedElement);
+    previouslyFocusedElement = null;
   }
 });
 

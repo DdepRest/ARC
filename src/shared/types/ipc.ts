@@ -11,7 +11,27 @@ export interface SystemInfo {
   memory: number;
 }
 
-export type ModuleStatus = 'Active' | 'Idle';
+export type {
+  CapabilityLifecycleState,
+  CapabilityAvailability,
+  CapabilityHealth,
+  CapabilityCategory,
+  CapabilityEntrypoint,
+  ModuleCapability,
+  ModulesCapabilitySummary,
+  LegacyModulesStatusMap,
+  ModulesCapabilitySnapshot,
+  ModulesStatusRequestOptions
+} from '../config/modules-capability.registry';
+
+export type {
+  TaskDecompositionSource,
+  TaskDecompositionFallbackReason,
+  TaskDecompositionResult,
+  TasksAiDecomposeResponse
+} from './models/task';
+
+export type ModuleStatus = 'Active' | 'Degraded' | 'Idle' | 'Unavailable' | 'Error';
 
 export interface VkConnectionStatusPayload {
   connectedClientsCount: number;

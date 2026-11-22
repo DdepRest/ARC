@@ -28,12 +28,32 @@ vi.mock('axios', () => ({
 }));
 
 // Mock child_process
-vi.mock('child_process', () => ({
-  exec: vi.fn((cmd, cb) => {
-    if (cb) cb(null);
-    return { pid: 1234, kill: vi.fn() };
-  }),
-}));
+vi.mock('child_process', async () => {
+  const { EventEmitter } = await import('events');
+  return {
+    exec: vi.fn((_cmd, cb) => {
+      if (cb) cb(null);
+      return { pid: 1234, kill: vi.fn() };
+    }),
+    execFile: vi.fn((_file, _args, _opts, cb) => {
+      if (typeof cb === 'function') cb(null, '', '');
+      return { pid: 1235, kill: vi.fn() };
+    }),
+    spawn: vi.fn(() => {
+      const child = new EventEmitter() as any;
+      child.pid = 1234;
+      child.exitCode = null;
+      child.killed = false;
+      child.stderr = new EventEmitter();
+      child.kill = vi.fn(() => { child.killed = true; return true; });
+      queueMicrotask(() => {
+        child.exitCode = 0;
+        child.emit('close', 0, null);
+      });
+      return child;
+    }),
+  };
+});
 
 // Mock cache.service
 vi.mock('./cache.service', () => ({
@@ -173,7 +193,7 @@ describe('TTS Service - Delta 10 deduplication & cancellation', () => {
     expect(waitSpy).not.toHaveBeenCalled();
     expect(sileroSpy).not.toHaveBeenCalled();
     expect(edgeSpy).toHaveBeenCalledTimes(1);
-    expect(tts.getActiveEngine()).toEqual({ provider: 'edge', activeEngine: 'edge' });
+    expect(tts.getActiveEngine()).toMatchObject({ provider: 'edge', activeEngine: 'edge' });
   });
 
   it("setProvider('native') calls only speakWithSystemTTS and sets activeEngine to 'system'", async () => {
@@ -193,7 +213,7 @@ describe('TTS Service - Delta 10 deduplication & cancellation', () => {
     expect(sileroSpy).not.toHaveBeenCalled();
     expect(edgeSpy).not.toHaveBeenCalled();
     expect(sysSpy).toHaveBeenCalledTimes(1);
-    expect(tts.getActiveEngine()).toEqual({ provider: 'native', activeEngine: 'system' });
+    expect(tts.getActiveEngine()).toMatchObject({ provider: 'native', activeEngine: 'system' });
   });
 
   it('validates setProvider whitelist and throws descriptive errors for unimplemented or unknown providers', () => {
@@ -202,9 +222,15 @@ describe('TTS Service - Delta 10 deduplication & cancellation', () => {
     expect(() => tts.setProvider('unknown-engine')).toThrow('Unknown TTS provider: unknown-engine');
 
     tts.setProvider('silero');
-    expect(tts.getActiveEngine()).toEqual({ provider: 'silero', activeEngine: null });
+    expect(tts.getActiveEngine()).toMatchObject({
+      provider: 'silero',
+      activeEngine: null,
+      allowCloudTtsFallback: false,
+      forcedOfflineMode: false,
+      fallbackPolicy: 'local-only',
+    });
     tts.setProvider('auto');
-    expect(tts.getActiveEngine()).toEqual({ provider: 'auto', activeEngine: null });
+    expect(tts.getActiveEngine()).toMatchObject({ provider: 'auto', activeEngine: null });
   });
 
   it('runs autoClearCache in non-blocking background mode without awaiting /clear-cache', async () => {
@@ -261,14 +287,19 @@ describe('TTS Service - Delta 10 deduplication & cancellation', () => {
     await tts.speak('Фраза из кэша', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
     expect(tts.isBusy()).toBe(false);
 
-    // Now simulate Python server offline -> fallback to Edge
+    // Now simulate Python server offline with default local-only policy -> fallback strictly to System SAPI, never Edge
     (tts as any).isServerKnownReady = false;
     (tts as any).waitForPythonServer = vi.fn().mockResolvedValue(false);
-    (tts as any).speakWithEdgeTTS = vi.fn().mockResolvedValue(undefined);
+    const edgeSpy = vi.fn().mockResolvedValue(undefined);
+    const sysSpy = vi.fn().mockResolvedValue(undefined);
+    (tts as any).speakWithEdgeTTS = edgeSpy;
+    (tts as any).speakWithSystemTTS = sysSpy;
 
     await tts.speak('Фраза при недоступном Python', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
     expect(tts.isBusy()).toBe(false);
-    expect(tts.getActiveEngine().activeEngine).toBe('edge');
+    expect(edgeSpy).not.toHaveBeenCalled();
+    expect(sysSpy).toHaveBeenCalledTimes(1);
+    expect(tts.getActiveEngine().activeEngine).toBe('system');
   });
 
   it('keeps isBusy() true when an earlier preempted speak() finishes its finally block while the newer speak() is still in flight', async () => {
@@ -306,6 +337,134 @@ describe('TTS Service - Delta 10 deduplication & cancellation', () => {
     resolveSecondSilero();
     await speakPromiseB;
     expect(tts.isBusy()).toBe(false);
+  });
+});
+
+describe('TTS Service - S2-05 Cloud TTS fallback opt-in & offline policy', () => {
+  let tts: TTSService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tts = new TTSService();
+  });
+
+  afterEach(() => {
+    tts.stop(false);
+  });
+
+  it('defaults allowCloudTtsFallback to false and never calls Edge when Silero errors in auto or silero mode', async () => {
+    expect(tts.getPolicy().allowCloudTtsFallback).toBe(false);
+
+    for (const provider of ['auto', 'silero'] as const) {
+      tts.setProvider(provider);
+      (tts as any).isServerKnownReady = true;
+      (tts as any).speakWithSileroTTS = vi.fn().mockRejectedValue(new Error('Silero boom'));
+      const edgeSpy = vi.fn().mockResolvedValue(undefined);
+      const sysSpy = vi.fn().mockResolvedValue(undefined);
+      (tts as any).speakWithEdgeTTS = edgeSpy;
+      (tts as any).speakWithSystemTTS = sysSpy;
+
+      await tts.speak(`Приватный текст для ${provider}`, 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+
+      expect(edgeSpy).not.toHaveBeenCalled();
+      expect(sysSpy).toHaveBeenCalledTimes(1);
+      expect(tts.getActiveEngine().activeEngine).toBe('system');
+    }
+  });
+
+  it('calls Edge TTS fallback only when allowCloudTtsFallback is explicitly enabled, then SAPI if Edge fails', async () => {
+    tts.setPolicy({ provider: 'auto', allowCloudTtsFallback: true, forcedOfflineMode: false });
+    (tts as any).isServerKnownReady = false;
+    (tts as any).waitForPythonServer = vi.fn().mockResolvedValue(false);
+
+    const edgeSpy = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Edge timeout'));
+    const sysSpy = vi.fn().mockResolvedValue(undefined);
+    (tts as any).speakWithEdgeTTS = edgeSpy;
+    (tts as any).speakWithSystemTTS = sysSpy;
+
+    await tts.speak('Разрешённый облачный резерв', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+    expect(edgeSpy).toHaveBeenCalledTimes(1);
+    expect(sysSpy).not.toHaveBeenCalled();
+    expect(tts.getActiveEngine().activeEngine).toBe('edge');
+
+    await tts.speak('Повтор при отказе Edge', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+    expect(edgeSpy).toHaveBeenCalledTimes(2);
+    expect(sysSpy).toHaveBeenCalledTimes(1);
+    expect(tts.getActiveEngine().activeEngine).toBe('system');
+  });
+
+  it('blocks Edge TTS completely when forcedOfflineMode is true even with opt-in or provider=edge', async () => {
+    tts.setPolicy({ provider: 'edge', allowCloudTtsFallback: true, forcedOfflineMode: true });
+    const edgeSpy = vi.fn().mockResolvedValue(undefined);
+    const sysSpy = vi.fn().mockResolvedValue(undefined);
+    (tts as any).speakWithEdgeTTS = edgeSpy;
+    (tts as any).speakWithSystemTTS = sysSpy;
+
+    await tts.speak('Офлайн-режим блокирует Edge', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+
+    expect(edgeSpy).not.toHaveBeenCalled();
+    expect(sysSpy).toHaveBeenCalledTimes(1);
+    expect(tts.getActiveEngine()).toMatchObject({
+      provider: 'edge',
+      activeEngine: 'system',
+      forcedOfflineMode: true,
+      fallbackPolicy: 'offline-locked',
+    });
+  });
+
+  it('sets activeEngine to unavailable with diagnostic reason when both Silero and SAPI fail under local-only policy', async () => {
+    tts.setPolicy({ provider: 'auto', allowCloudTtsFallback: false, forcedOfflineMode: false });
+    (tts as any).isServerKnownReady = false;
+    (tts as any).waitForPythonServer = vi.fn().mockResolvedValue(false);
+    const edgeSpy = vi.fn().mockResolvedValue(undefined);
+    const sysSpy = vi.fn().mockRejectedValue(new Error('SAPI voice missing'));
+    (tts as any).speakWithEdgeTTS = edgeSpy;
+    (tts as any).speakWithSystemTTS = sysSpy;
+
+    await tts.speak('Отказ всех локальных движков', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+
+    expect(edgeSpy).not.toHaveBeenCalled();
+    expect(tts.isBusy()).toBe(false);
+    expect(tts.getActiveEngine().activeEngine).toBe('unavailable');
+    expect(tts.getActiveEngine().lastErrorReason).toContain('SAPI');
+    expect(tts.getActiveEngine().lastErrorReason).toContain('Edge TTS отключён');
+  });
+
+  it('cancelling during first engine prevents subsequent Edge or SAPI fallback even with opt-in enabled', async () => {
+    tts.setPolicy({ provider: 'auto', allowCloudTtsFallback: true, forcedOfflineMode: false });
+    (tts as any).isServerKnownReady = true;
+
+    let rejectSilero!: (err: Error) => void;
+    (tts as any).speakWithSileroTTS = vi.fn().mockImplementation(
+      () => new Promise<void>((_res, rej) => { rejectSilero = rej; })
+    );
+    const edgeSpy = vi.fn().mockResolvedValue(undefined);
+    const sysSpy = vi.fn().mockResolvedValue(undefined);
+    (tts as any).speakWithEdgeTTS = edgeSpy;
+    (tts as any).speakWithSystemTTS = sysSpy;
+
+    const speakPromise = tts.speak('Отмена во время первого движка', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+    tts.stop(true);
+    rejectSilero(new Error('Aborted after stop'));
+    await speakPromise;
+
+    expect(edgeSpy).not.toHaveBeenCalled();
+    expect(sysSpy).not.toHaveBeenCalled();
+    expect(tts.isBusy()).toBe(false);
+  });
+
+  it('executes native system TTS via spawn(shell:false) without calling child_process.exec', async () => {
+    const childProcess = await import('child_process');
+    tts.setProvider('native');
+    await tts.speak('Проверка безопасного запуска системного TTS', 'default', 'eugene', 1.0, 0, 48000, true, true, false, true);
+
+    expect(childProcess.exec).not.toHaveBeenCalled();
+    expect(childProcess.spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Array),
+      expect.objectContaining({ shell: false })
+    );
+    expect(tts.getActiveEngine().activeEngine).toBe('system');
   });
 });
 

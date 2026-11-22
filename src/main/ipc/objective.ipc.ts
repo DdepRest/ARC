@@ -69,10 +69,10 @@ export function registerObjectiveIpc() {
   });
 
   ipcMain.handle('objective:rollback', async (_event, { objectiveId }) => {
-    const { BrowserWindow } = require('electron');
+    const { BrowserWindow } = require('electron') as typeof import('electron');
     const wins = BrowserWindow.getAllWindows();
     return objectiveEngine.rollbackObjective(objectiveId, (current, total, message) => {
-      wins.forEach(win => {
+      wins.forEach((win) => {
         if (!win.isDestroyed()) {
           win.webContents.send('objective:rollback-progress', { current, total, message });
         }

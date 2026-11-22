@@ -220,7 +220,7 @@ export class LongTermMemory {
     try {
       const stmt = this.db.prepare('SELECT * FROM ltm');
       const rows = stmt.all();
-      return rows.map(row => this.mapRow(row));
+      return rows.map((row: unknown) => this.mapRow(row));
     } catch (e) {
       return [];
     }
@@ -261,7 +261,7 @@ export class LongTermMemory {
     try {
       const stmt = this.db.prepare('SELECT * FROM ltm WHERE category = ? ORDER BY confidence DESC');
       const rows = stmt.all(category);
-      return rows.map(row => this.mapRow(row));
+      return rows.map((row: unknown) => this.mapRow(row));
     } catch (e) {
       return [];
     }

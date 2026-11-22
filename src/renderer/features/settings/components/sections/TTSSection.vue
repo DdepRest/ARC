@@ -4,9 +4,12 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../../../stores/ui.store';
 import {
   computeTtsSubsystemStatus,
+  type TtsDependenciesDiag,
+  type TtsDictionariesDiag,
   type TtsEngineKind,
   type TtsServerStatusKind
 } from '../../logic/voice-status';
+import type { VoiceModelSetupState } from '../../../../../shared/utils/voice-model-state-machine';
 import ArcToggle from '../../../../components/ui/ArcToggle.vue';
 import ArcSlider from '../../../../components/ui/ArcSlider.vue';
 import ArcSelect from '../../../../components/ui/ArcSelect.vue';
@@ -23,28 +26,66 @@ const uiStore = useUIStore();
 const presets = ref<{ id: string; name: string }[]>([]);
 const currentTier = ref('Не проверен');
 const confirmedActiveEngine = ref<TtsEngineKind | null>(null);
+const lastErrorReason = ref<string | null>(null);
 const sileroServerStatus = ref<TtsServerStatusKind>('unknown');
+const dictionariesDiag = ref<TtsDictionariesDiag | null>(null);
+const dependenciesDiag = ref<TtsDependenciesDiag | null>(null);
+const sileroModelInstalled = ref<boolean | null>(null);
+const voiceSetupState = ref<VoiceModelSetupState | null>(null);
+const reloadingDictionaries = ref(false);
 const isElectronMode = typeof window !== 'undefined' && Boolean((window as any).api);
 
-const applyTtsEngineState = (state?: { provider?: string; activeEngine?: string | null } | null) => {
+const applyTtsEngineState = (state?: { provider?: string; activeEngine?: string | null; lastErrorReason?: string | null } | null) => {
   if (!state) return;
   const eng = state.activeEngine;
   confirmedActiveEngine.value =
-    eng === 'silero' || eng === 'edge' || eng === 'system' ? eng : null;
+    eng === 'silero' || eng === 'edge' || eng === 'system' || eng === 'unavailable' ? eng : null;
+  lastErrorReason.value = typeof state.lastErrorReason === 'string' && state.lastErrorReason ? state.lastErrorReason : null;
 };
 
 const checkSileroServer = async () => {
   const api = typeof window !== 'undefined' ? (window as any).api : null;
   if (!api?.getTtsServerStatus) {
     sileroServerStatus.value = 'unknown';
+    dictionariesDiag.value = null;
+    dependenciesDiag.value = null;
     return;
   }
   sileroServerStatus.value = 'checking';
   try {
     const status = await api.getTtsServerStatus();
     sileroServerStatus.value = status?.online || status?.status === 'ready' ? 'online' : 'offline';
+    dictionariesDiag.value = status?.dictionaries ?? null;
+    dependenciesDiag.value = status?.dependencies ?? null;
+    if (typeof status?.modelInstalled === 'boolean') {
+      sileroModelInstalled.value = status.modelInstalled;
+    }
+    if (typeof api.getVoiceSetupStatus === 'function') {
+      const setupSnap = await api.getVoiceSetupStatus().catch(() => null);
+      if (setupSnap?.overallSetupState) voiceSetupState.value = setupSnap.overallSetupState;
+    }
   } catch {
     sileroServerStatus.value = 'offline';
+    dictionariesDiag.value = null;
+    dependenciesDiag.value = null;
+  }
+};
+
+const reloadDictionaries = async () => {
+  const api = typeof window !== 'undefined' ? (window as any).api : null;
+  if (!api?.reloadTtsDictionaries || reloadingDictionaries.value) return;
+  reloadingDictionaries.value = true;
+  try {
+    const res = await api.reloadTtsDictionaries();
+    if (res?.dictionaries) {
+      dictionariesDiag.value = res.dictionaries;
+    } else {
+      await checkSileroServer();
+    }
+  } catch {
+    await checkSileroServer();
+  } finally {
+    reloadingDictionaries.value = false;
   }
 };
 
@@ -105,14 +146,60 @@ const ttsStatus = computed(() =>
     configuredProvider: settingsStore.ttsProvider,
     sileroServerStatus: sileroServerStatus.value,
     confirmedActiveEngine: confirmedActiveEngine.value,
-    isElectronAvailable: isElectronMode
+    isElectronAvailable: isElectronMode,
+    allowCloudTtsFallback: settingsStore.allowCloudTtsFallback,
+    forcedOfflineMode: settingsStore.forcedOfflineMode,
+    lastErrorReason: lastErrorReason.value,
+    dictionariesDiag: dictionariesDiag.value,
+    dependenciesDiag: dependenciesDiag.value,
+    sileroModelInstalled: sileroModelInstalled.value,
+    voiceSetupState: voiceSetupState.value
   })
 );
 
+const cloudFallbackActive = computed(
+  () => settingsStore.allowCloudTtsFallback && !settingsStore.forcedOfflineMode
+);
+
+const providerOptions = computed(() => [
+  {
+    label: cloudFallbackActive.value
+      ? 'Auto (Silero → Edge Cloud → SAPI)'
+      : 'Auto (Silero → SAPI · локально)',
+    value: 'auto'
+  },
+  { label: 'Silero TTS v5.6 (RU)', value: 'silero' },
+  {
+    label: settingsStore.forcedOfflineMode
+      ? 'Edge TTS (Заблокирован в офлайн)'
+      : 'Edge TTS (Microsoft Cloud)',
+    value: 'edge',
+    disabled: settingsStore.forcedOfflineMode
+  },
+  { label: 'Native SAPI / Системный', value: 'native' },
+  { label: 'Piper ONNX (Planned v1.1)', value: 'piper', disabled: true },
+  { label: 'Kokoro 82M (Planned v1.1)', value: 'kokoro', disabled: true }
+]);
+
 const serverDotClass = computed(() => {
   if (sileroServerStatus.value === 'online') return 'bg-[var(--status-ok)]';
+  if (ttsStatus.value.serverStatusTone === 'warn') return 'bg-[var(--status-warn)]';
   if (sileroServerStatus.value === 'offline') return 'bg-[var(--status-err)]';
   if (sileroServerStatus.value === 'checking') return 'bg-[var(--status-warn)]';
+  return 'bg-[var(--arc-text-muted)]';
+});
+
+const dictDotClass = computed(() => {
+  if (ttsStatus.value.dictionariesTone === 'ok') return 'bg-[var(--status-ok)]';
+  if (ttsStatus.value.dictionariesTone === 'warn') return 'bg-[var(--status-warn)]';
+  if (ttsStatus.value.dictionariesTone === 'err') return 'bg-[var(--status-err)]';
+  return 'bg-[var(--arc-text-muted)]';
+});
+
+const depsDotClass = computed(() => {
+  if (ttsStatus.value.dependenciesTone === 'ok') return 'bg-[var(--status-ok)]';
+  if (ttsStatus.value.dependenciesTone === 'warn') return 'bg-[var(--status-warn)]';
+  if (ttsStatus.value.dependenciesTone === 'err') return 'bg-[var(--status-err)]';
   return 'bg-[var(--arc-text-muted)]';
 });
 
@@ -227,21 +314,32 @@ const stopVoice = () => {
                 <span class="px-2.5 py-1.5 rounded-[8px] border border-[var(--arc-hairline)] bg-[var(--arc-well)] text-xs font-mono text-[var(--arc-text-muted)]">
                   Подтверждён: <strong class="text-[var(--arc-text-primary)]">{{ ttsStatus.activeEngineLabel }}</strong>
                 </span>
-                <div class="w-56 shrink-0">
+                <div class="w-60 shrink-0">
                   <ArcSelect
                     :model-value="settingsStore.ttsProvider"
-                    :options="[
-                      { label: 'Auto (Silero → Edge → SAPI)', value: 'auto' },
-                      { label: 'Silero TTS v5.6 (RU)', value: 'silero' },
-                      { label: 'Edge TTS (Microsoft Neural)', value: 'edge' },
-                      { label: 'Native SAPI / Системный', value: 'native' },
-                      { label: 'Piper ONNX (Planned v1.1)', value: 'piper', disabled: true },
-                      { label: 'Kokoro 82M (Planned v1.1)', value: 'kokoro', disabled: true }
-                    ]"
+                    :options="providerOptions"
                     @update:model-value="onProviderValueChange"
                   />
                 </div>
               </div>
+            </SettingsRow>
+
+            <SettingsRow
+              id="tts.allow_cloud_fallback"
+              data-setting-id="tts.allow_cloud_fallback"
+              label="Разрешить облачный резерв (Edge TTS)"
+              description="При недоступности локального Silero разрешить отправку текста озвучки во внешний сервис Microsoft Edge TTS. По умолчанию отключено (используется только локальный SAPI)."
+              :tech="settingsStore.forcedOfflineMode
+                ? 'Заблокировано: включён принудительный офлайн-режим (используется только локальный контур)'
+                : settingsStore.allowCloudTtsFallback || settingsStore.ttsProvider === 'edge'
+                ? 'Внимание: текст озвучки передаётся стороннему облачному провайдеру Microsoft Edge TTS'
+                : undefined"
+              data-search="облачный резерв cloud tts fallback edge согласие приватность офлайн"
+            >
+              <ArcToggle
+                v-model="settingsStore.allowCloudTtsFallback"
+                :disabled="settingsStore.forcedOfflineMode"
+              />
             </SettingsRow>
 
             <SettingsRow
@@ -325,20 +423,41 @@ const stopVoice = () => {
               </div>
 
               <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full" :class="serverDotClass"></span>
-                  <span class="text-xs font-mono text-[var(--arc-text-muted)]">
-                    {{ ttsStatus.serverStatusLabel }} · Уровень: <strong class="text-[var(--arc-text-primary)]">{{ currentTier }}</strong>
-                  </span>
+                <div class="flex flex-wrap items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full" :class="serverDotClass"></span>
+                    <span class="text-xs font-mono text-[var(--arc-text-muted)]">
+                      {{ ttsStatus.serverStatusLabel }} · Уровень: <strong class="text-[var(--arc-text-primary)]">{{ currentTier }}</strong>
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2" :title="ttsStatus.dictionariesDetail">
+                    <span class="w-2 h-2 rounded-full" :class="dictDotClass"></span>
+                    <span class="text-xs font-mono text-[var(--arc-text-muted)]">{{ ttsStatus.dictionariesLabel }}</span>
+                  </div>
+                  <div class="flex items-center gap-2" :title="ttsStatus.dependenciesDetail">
+                    <span class="w-2 h-2 rounded-full" :class="depsDotClass"></span>
+                    <span class="text-xs font-mono text-[var(--arc-text-muted)]">{{ ttsStatus.dependenciesLabel }}</span>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  @click="restartServer"
-                  class="px-3 py-1.5 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] text-[var(--status-warn)] border border-[var(--arc-hairline)] rounded-[8px] text-xs font-mono uppercase font-semibold cursor-pointer transition"
-                  title="Перезапустить фоновый сервер Silero TTS"
-                >
-                  Перезапустить сервер TTS
-                </button>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    :disabled="reloadingDictionaries || sileroServerStatus !== 'online'"
+                    @click="reloadDictionaries"
+                    class="px-3 py-1.5 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] disabled:opacity-40 text-[var(--arc-text-primary)] border border-[var(--arc-hairline)] rounded-[8px] text-xs font-mono font-semibold cursor-pointer disabled:cursor-not-allowed transition"
+                    :title="ttsStatus.dictionariesDetail"
+                  >
+                    {{ reloadingDictionaries ? 'Обновление...' : 'Обновить словари' }}
+                  </button>
+                  <button
+                    type="button"
+                    @click="restartServer"
+                    class="px-3 py-1.5 bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] text-[var(--status-warn)] border border-[var(--arc-hairline)] rounded-[8px] text-xs font-mono uppercase font-semibold cursor-pointer transition"
+                    title="Перезапустить фоновый сервер Silero TTS"
+                  >
+                    Перезапустить сервер TTS
+                  </button>
+                </div>
               </div>
             </div>
           </div>

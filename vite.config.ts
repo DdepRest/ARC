@@ -1,33 +1,21 @@
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
-import fs from 'fs';
-import { execSync } from 'child_process';
 import {defineConfig, loadEnv} from 'vite';
-
-function getBuildCommit(): string {
-  if (process.env.BUILD_COMMIT) {
-    return process.env.BUILD_COMMIT.substring(0, 7);
-  }
-  try {
-    const hash = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    if (hash) return hash;
-  } catch (e) {}
-  const commitFile = path.resolve(__dirname, '.commit_hash');
-  if (fs.existsSync(commitFile)) {
-    return fs.readFileSync(commitFile, 'utf-8').trim().substring(0, 7);
-  }
-  return '9048f71';
-}
+import { resolveBuildMetadata } from './src/shared/config/build-metadata.resolver';
 
 export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
-  const buildCommit = getBuildCommit();
+  const _env = loadEnv(mode, '.', '');
+  void _env;
+  const buildMetadata = resolveBuildMetadata({ repoRoot: __dirname });
   return {
     root: 'src/renderer',
     plugins: [vue(), tailwindcss()],
     define: {
-      '__BUILD_COMMIT__': JSON.stringify(buildCommit),
+      '__BUILD_COMMIT__': JSON.stringify(buildMetadata.commit),
+      '__BUILD_COMMIT_FULL__': JSON.stringify(buildMetadata.commitFull),
+      '__BUILD_COMMIT_SOURCE__': JSON.stringify(buildMetadata.commitSource),
+      '__APP_VERSION__': JSON.stringify(buildMetadata.version),
     },
     resolve: {
       alias: {

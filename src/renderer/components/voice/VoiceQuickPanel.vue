@@ -12,6 +12,7 @@ const showDone = ref(false);
 const showModelMenu = ref(false);
 interface STTModelItem {
   id: string; name: string; provider: string; downloaded: boolean; expectedSize: string; sizeBytes: number; incompatible?: boolean;
+  integrity?: { status: 'verified' | 'unverified_manual' | 'tampered' | 'missing' | 'unknown'; reason?: string }; provenance?: { origin?: string; source?: string };
 }
 const availableModels = ref<STTModelItem[]>([]);
 const sherpaAvailable = ref(true);
@@ -54,6 +55,8 @@ const setupProgressSubscription = () => {
         downloadStateMap.value[data.modelId].status = 'error';
         downloadStateMap.value[data.modelId].errorMsg = data.error || 'Ошибка сети';
         fetchModels();
+      } else if (data.status === 'cancelled') {
+        downloadStateMap.value[data.modelId] = { status: 'idle', percent: 0 };
       } else if (data.status === 'downloading') {
         downloadStateMap.value[data.modelId].status = 'downloading';
       }
@@ -74,6 +77,10 @@ const downloadModel = async (model: STTModelItem) => {
 };
 const selectModel = async (model: STTModelItem) => {
   if (model.provider === 'whisper' || model.id.startsWith('Xenova/')) return;
+  if (model.integrity?.status === 'tampered') {
+    uiStore.showToast(model.integrity.reason || 'Целостность модели нарушена (SHA-256). Перекачайте модель.', 'error');
+    return;
+  }
   if (!model.downloaded) return downloadModel(model);
   if (model.provider === 'sherpa' && !sherpaAvailable.value) {
     uiStore.showToast('Движок Sherpa недоступен. Активен резервный Whisper.', 'error');
@@ -270,26 +277,27 @@ const statusDotClass = computed(() => {
                 <div class="flex items-center gap-1">
                   <span class="font-bold text-xs truncate text-[var(--arc-text-primary)]">{{ m.name }}</span>
                 </div>
-                <span class="text-xs font-mono text-[var(--arc-text-muted)]">
-                  {{ m.expectedSize }} • {{ m.downloaded ? 'Скачана' : 'Не скачана' }}
+                <span class="text-xs font-mono" :class="m.integrity?.status === 'tampered' ? 'text-[var(--status-err)]' : m.integrity?.status === 'unverified_manual' ? 'text-[var(--status-warn)]' : 'text-[var(--arc-text-muted)]'" :title="m.integrity?.reason">
+                  {{ m.expectedSize }} • {{ m.integrity?.status === 'tampered' ? 'Повреждена (SHA-256)' : m.downloaded ? (m.integrity?.status === 'unverified_manual' ? 'Вручную (не пров.)' : m.integrity?.status === 'verified' ? 'SHA-256 ✓' : 'Скачана') : 'Не скачана' }}
                 </span>
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <div v-if="!m.downloaded" class="flex flex-col items-end gap-1">
                   <button @click="downloadModel(m)" :disabled="downloadStateMap[m.id]?.status === 'downloading'"
                     class="px-2.5 py-1 rounded-[8px] text-xs font-mono font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] border"
-                    :class="downloadStateMap[m.id]?.status === 'error' ? 'text-[var(--status-err)] border-[var(--status-err)]' : 'text-[var(--status-warn)] border-[var(--status-warn)]'">
+                    :class="downloadStateMap[m.id]?.status === 'error' || m.integrity?.status === 'tampered' ? 'text-[var(--status-err)] border-[var(--status-err)]' : 'text-[var(--status-warn)] border-[var(--status-warn)]'">
                     <Loader2 v-if="downloadStateMap[m.id]?.status === 'downloading'" class="w-3 h-3 animate-spin" />
                     <Download v-else class="w-3 h-3" />
                     <span v-if="downloadStateMap[m.id]?.status === 'downloading'">{{ downloadStateMap[m.id]?.percent || 0 }}%</span>
                     <span v-else-if="downloadStateMap[m.id]?.status === 'error'">Повторить</span>
+                    <span v-else-if="m.integrity?.status === 'tampered'">Перекачать</span>
                     <span v-else>Скачать</span>
                   </button>
                   <span v-if="downloadStateMap[m.id]?.status === 'error'" class="text-xs text-[var(--status-err)] font-mono max-w-[100px] truncate">
                     {{ downloadStateMap[m.id]?.errorMsg }}
                   </span>
                 </div>
-                <span v-else-if="m.incompatible" class="px-2 py-0.5 rounded-[6px] text-xs font-mono text-[var(--status-err)] bg-[var(--arc-plane)] border border-[var(--status-err)] cursor-not-allowed select-none" title="Модель несовместима">Недоступна</span>
+                <span v-else-if="m.incompatible || m.integrity?.status === 'tampered'" class="px-2 py-0.5 rounded-[6px] text-xs font-mono text-[var(--status-err)] bg-[var(--arc-plane)] border border-[var(--status-err)] cursor-not-allowed select-none" :title="m.integrity?.reason || 'Модель несовместима'">{{ m.integrity?.status === 'tampered' ? 'Блокирована' : 'Недоступна' }}</span>
                 <button v-else @click="selectModel(m)" class="px-2.5 py-1 rounded-[8px] text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition border" :class="settingsStore.sttModel === m.id && sttEngineReady ? 'bg-[var(--arc-selected)] text-[var(--status-ok)] border-[var(--status-ok)]' : 'bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-secondary)] border-[var(--arc-hairline)]'">
                   <Check v-if="settingsStore.sttModel === m.id && sttEngineReady" class="w-3 h-3" />
                   <span>{{ settingsStore.sttModel === m.id ? (sttEngineReady ? 'Активна' : 'Загрузка...') : 'Выбрать' }}</span>
@@ -381,16 +389,7 @@ const statusDotClass = computed(() => {
   </transition>
 </template>
 <style scoped>
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(8px) scale(0.96);
-}
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.96);
-}
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.fade-slide-enter-from { opacity: 0; transform: translateY(8px) scale(0.96); }
+.fade-slide-leave-to { opacity: 0; transform: translateY(-4px) scale(0.96); }
 </style>

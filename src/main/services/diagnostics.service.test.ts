@@ -121,8 +121,12 @@ describe('DiagnosticsService', () => {
     expect(report.schemaVersion).toBe(1);
     expect(report.timestamp).toBeDefined();
 
-    // App info: version present, strictly NO userDataPath
+    // App info: version + commit present, never stale hardcoded SHA, strictly NO userDataPath
     expect(report.app.version).toBe('2.5.0');
+    expect(typeof report.app.commit).toBe('string');
+    expect(report.app.commit.length).toBeGreaterThan(0);
+    expect(report.app.commit).not.toBe('9048f71');
+    expect(['env', 'git', 'file', 'unknown']).toContain(report.app.commitSource);
     expect((report.app as any).userDataPath).toBeUndefined();
 
     // System info & gpuControllers

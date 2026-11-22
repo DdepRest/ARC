@@ -34,7 +34,7 @@ export class BehavioralMemory {
     try {
       const stmt = this.db.prepare('SELECT * FROM behavioral_events ORDER BY timestamp DESC LIMIT ?');
       const rows = stmt.all(limit);
-      return rows.map(row => this.mapRow(row));
+      return rows.map((row: unknown) => this.mapRow(row));
     } catch (e) {
       return [];
     }

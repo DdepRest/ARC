@@ -4,6 +4,20 @@ import * as path from 'path';
 import * as os from 'os';
 import { EventEmitter } from 'events';
 
+const REPO_ROOT = process.cwd();
+const BUNDLE_FILES = [
+  'silero_server.py',
+  'silero_number_converter.py',
+  'silero_text_prep.py',
+  'requirements-silero.txt',
+  'tts_dict_loader.py'
+];
+function copyRealPythonBundle(destDir: string) {
+  for (const f of BUNDLE_FILES) {
+    fs.copyFileSync(path.join(REPO_ROOT, f), path.join(destDir, f));
+  }
+}
+
 const mockSpawn = vi.hoisted(() => vi.fn());
 const mockExec = vi.hoisted(() => vi.fn());
 const mockExecFileSync = vi.hoisted(() => vi.fn());
@@ -35,7 +49,7 @@ vi.mock('electron', () => ({
 }));
 
 import { PythonServerService } from './python_server.service';
-import { ensureDependenciesAsync } from './python_deps.util';
+import { ensureDependenciesAsync, resetDependencyInstallerForTests } from './python_deps.util';
 
 describe('Task 2.1 — PythonServerService.start() spawn env propagation', () => {
   let tempRoot: string;
@@ -56,7 +70,7 @@ describe('Task 2.1 — PythonServerService.start() spawn env propagation', () =>
     (process as any).resourcesPath = tempRoot;
     vi.spyOn(process, 'cwd').mockReturnValue(tempRoot);
 
-    fs.writeFileSync(path.join(tempRoot, 'silero_server.py'), '# dummy server');
+    copyRealPythonBundle(tempRoot);
 
     mockSpawn.mockReset();
     mockExec.mockReset();
@@ -79,14 +93,18 @@ describe('Task 2.1 — PythonServerService.start() spawn env propagation', () =>
       return '';
     });
 
-    // Default spawn: child process with error emission for immediate exit
-    mockSpawn.mockImplementation(() => {
+    // Default spawn: venv creation succeeds cleanly; server spawn emits error for immediate exit
+    mockSpawn.mockImplementation((_exe: string, args?: string[]) => {
       const fakeChild: any = new EventEmitter();
       fakeChild.pid = 42424;
       fakeChild.stdout = new EventEmitter();
       fakeChild.stderr = new EventEmitter();
       setImmediate(() => {
-        fakeChild.emit('error', new Error('mock exit'));
+        if (Array.isArray(args) && args[0] === '-m' && args[1] === 'venv') {
+          fakeChild.emit('close', 0);
+        } else {
+          fakeChild.emit('error', new Error('mock exit'));
+        }
       });
       return fakeChild;
     });
@@ -119,8 +137,11 @@ describe('Task 2.1 — PythonServerService.start() spawn env propagation', () =>
 
     await PythonServerService.start(fakeWin);
 
-    expect(mockSpawn).toHaveBeenCalledTimes(1);
-    const [_exe, args, spawnOpts] = mockSpawn.mock.calls[0];
+    const serverCalls = mockSpawn.mock.calls.filter(
+      (c) => Array.isArray(c[1]) && c[1][0] === path.join(tempRoot, 'silero_server.py')
+    );
+    expect(serverCalls).toHaveLength(1);
+    const [_exe, args, spawnOpts] = serverCalls[0];
     expect(args).toEqual([path.join(tempRoot, 'silero_server.py')]);
     expect(spawnOpts.env).toBeDefined();
     expect(spawnOpts.env.ARC_SILERO_MODEL_PATH).toBe(modelFile);
@@ -135,8 +156,11 @@ describe('Task 2.1 — PythonServerService.start() spawn env propagation', () =>
 
     await PythonServerService.start(fakeWin);
 
-    expect(mockSpawn).toHaveBeenCalledTimes(1);
-    const [_exe, _args, spawnOpts] = mockSpawn.mock.calls[0];
+    const serverCalls = mockSpawn.mock.calls.filter(
+      (c) => Array.isArray(c[1]) && c[1][0] === path.join(tempRoot, 'silero_server.py')
+    );
+    expect(serverCalls).toHaveLength(1);
+    const [_exe, _args, spawnOpts] = serverCalls[0];
     expect(spawnOpts.env).toBeDefined();
     expect(spawnOpts.env.ARC_SILERO_MODEL_PATH).toBeUndefined();
     expect(warnSpy).toHaveBeenCalledWith(
@@ -261,7 +285,7 @@ describe('Task 2.3 — PythonServerService.start() graceful degradation and venv
     mockExecFileSync.mockReset();
     mockTreeKill.mockReset();
 
-    fs.writeFileSync(path.join(tempRoot, 'silero_server.py'), '# dummy');
+    copyRealPythonBundle(tempRoot);
   });
 
   afterEach(() => {
@@ -322,10 +346,13 @@ describe('Task 2.3 — PythonServerService.start() graceful degradation and venv
 
     await PythonServerService.start(fakeWin);
 
-    // Verify runCmdAsync was not called with "-m venv"
-    const calls = mockExec.mock.calls.map(c => c[0]);
-    const venvCall = calls.find(c => typeof c === 'string' && c.includes('-m venv'));
-    expect(venvCall).toBeUndefined();
+    // Verify neither exec nor spawn was called with "-m venv"
+    const execCalls = mockExec.mock.calls.map(c => c[0]);
+    expect(execCalls.find(c => typeof c === 'string' && c.includes('-m venv'))).toBeUndefined();
+    const spawnVenvCall = mockSpawn.mock.calls.find(
+      (c) => Array.isArray(c[1]) && c[1][0] === '-m' && c[1][1] === 'venv'
+    );
+    expect(spawnVenvCall).toBeUndefined();
     expect(mockSpawn).toHaveBeenCalled();
   });
 });
@@ -542,3 +569,118 @@ describe('Task 2.3 — ensureDependenciesAsync idle monitoring', () => {
     vi.useRealTimers();
   });
 });
+
+describe('S2-02 — PythonServerService dependency readiness integration', () => {
+  let tempRoot: string;
+
+  beforeEach(() => {
+    resetDependencyInstallerForTests();
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'arc-s202-srv-'));
+    mockAppState.isPackaged = false;
+    mockAppState.appPath = tempRoot;
+    vi.spyOn(process, 'cwd').mockReturnValue(tempRoot);
+    mockSpawn.mockReset();
+    mockExec.mockReset();
+    mockExecFileSync.mockReset();
+    mockTreeKill.mockReset();
+    copyRealPythonBundle(tempRoot);
+    const venvExe = process.platform === 'win32'
+      ? path.join(tempRoot, 'silero_env', 'Scripts', 'python.exe')
+      : path.join(tempRoot, 'silero_env', 'bin', 'python');
+    fs.mkdirSync(path.dirname(venvExe), { recursive: true });
+    fs.writeFileSync(venvExe, '#!mock venv');
+    vi.spyOn(PythonServerService, 'resolvePythonExe').mockReturnValue({ exe: venvExe, kind: 'silero-env' });
+  });
+
+  afterEach(() => {
+    PythonServerService.stop();
+    resetDependencyInstallerForTests();
+    vi.restoreAllMocks();
+    try {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    } catch {}
+  });
+
+  it('blocks Silero spawn when Core dependencies fail with ERROR', async () => {
+    mockExec.mockImplementation((cmd: string, _opts: any, cb?: any) => {
+      const callback = typeof _opts === 'function' ? _opts : cb;
+      if (cmd.startsWith('ffmpeg')) callback(null, 'ffmpeg 6.1');
+      else callback(null, 'ARC_DEP_PROBE:' + JSON.stringify({
+        version: '3.13.0', major: 3, minor: 13, arch: 'AMD64', platform: 'win32', pipAvailable: true,
+        modules: { torch: { ok: false, error: 'missing' } }
+      }));
+    });
+
+    const fakeWin: any = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+    await PythonServerService.start(fakeWin);
+
+    expect(mockSpawn).not.toHaveBeenCalled();
+    expect(PythonServerService.getLastDependencyReadiness()?.state).toBe('ERROR');
+    expect(fakeWin.webContents.send).toHaveBeenCalledWith(
+      'ui:show-toast',
+      expect.objectContaining({ type: 'warning', title: 'TTS: Ошибка зависимостей' })
+    );
+  });
+
+  it('launches silero_server.py in DEGRADED mode when Core succeeds and RUAccent/FFmpeg are missing', async () => {
+    mockExec.mockImplementation((cmd: string, _opts: any, cb?: any) => {
+      const callback = typeof _opts === 'function' ? _opts : cb;
+      if (cmd.startsWith('ffmpeg')) callback(new Error('no ffmpeg'));
+      else callback(null, 'ARC_DEP_PROBE:' + JSON.stringify({
+        version: '3.11.5', major: 3, minor: 11, arch: 'AMD64', platform: 'win32', pipAvailable: false,
+        modules: {
+          torch: { ok: true }, torchaudio: { ok: true }, soundfile: { ok: true },
+          flask: { ok: true }, flask_cors: { ok: true }, omegaconf: { ok: true },
+          yaml: { ok: true }, numpy: { ok: true }, scipy: { ok: true },
+          onnxruntime: { ok: false, error: 'missing' }, ruaccent: { ok: false, error: 'missing' }
+        }
+      }));
+    });
+
+    mockSpawn.mockImplementation(() => {
+      const fakeChild: any = new EventEmitter();
+      fakeChild.pid = 3232;
+      fakeChild.stdout = new EventEmitter();
+      fakeChild.stderr = new EventEmitter();
+      setImmediate(() => fakeChild.emit('error', new Error('mock exit')));
+      return fakeChild;
+    });
+
+    const fakeWin: any = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+    await PythonServerService.start(fakeWin);
+
+    expect(PythonServerService.getLastDependencyReadiness()?.state).toBe('DEGRADED');
+    expect(PythonServerService.getLastDependencyReadiness()?.coreReady).toBe(true);
+    expect(mockSpawn).toHaveBeenCalledTimes(1);
+    expect(mockSpawn.mock.calls[0][1]).toEqual([path.join(tempRoot, 'silero_server.py')]);
+  });
+
+  it('cancels active pip installation when PythonServerService.stop() is called without showing error toast', async () => {
+    mockExec.mockImplementation((cmd: string, _opts: any, cb?: any) => {
+      const callback = typeof _opts === 'function' ? _opts : cb;
+      if (cmd.startsWith('ffmpeg')) callback(null, 'ffmpeg 6.1');
+      else callback(null, 'ARC_DEP_PROBE:' + JSON.stringify({
+        version: '3.11.5', major: 3, minor: 11, arch: 'AMD64', platform: 'win32', pipAvailable: true,
+        modules: { torch: { ok: false, error: 'missing' } }
+      }));
+    });
+
+    const pipChild: any = new EventEmitter();
+    pipChild.pid = 7979;
+    pipChild.stdout = new EventEmitter();
+    pipChild.stderr = new EventEmitter();
+    mockSpawn.mockReturnValueOnce(pipChild);
+
+    const fakeWin: any = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+    const startPromise = PythonServerService.start(fakeWin);
+    await new Promise((r) => setTimeout(r, 20));
+
+    PythonServerService.stop();
+    await startPromise;
+
+    expect(mockTreeKill).toHaveBeenCalledWith(7979, 'SIGKILL');
+    expect(PythonServerService.getLastDependencyReadiness()?.reason).toBe('cancelled');
+    expect(fakeWin.webContents.send).not.toHaveBeenCalledWith('ui:show-toast', expect.anything());
+  });
+});
+

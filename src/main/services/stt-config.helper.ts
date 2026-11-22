@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { resolveSherpaModelDir, resolveGigaamFiles } from './sherpa-paths.util';
+import { resolveSherpaModelDir, resolveGigaamFiles, verifyModelFiles } from './sherpa-paths.util';
 import { sherpaDownloaderService } from './sherpa-downloader.service';
 import { sttCircuitBreaker } from './stt-circuit-breaker.util';
 import { validateSherpaModelSacrificial, computeFileChecksum } from './sherpa-validator.util';
@@ -122,11 +122,26 @@ export function broadcastSttToast(message: string, type: 'info' | 'warning' | 'e
   } catch {}
 }
 
+export interface SttAutoDownloadOptions {
+  includeGigaam?: boolean;
+  includeWhisper?: boolean;
+  includeZipformer?: boolean;
+}
+
 export async function executeSttAutoDownload(
-  includeGigaam: boolean,
+  includeGigaamOrOpts: boolean | SttAutoDownloadOptions = false,
   onProgress?: (data: any) => void,
   onGigaamSuccess?: () => Promise<void>
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; cancelled?: boolean; error?: string }> {
+  const opts: SttAutoDownloadOptions =
+    typeof includeGigaamOrOpts === 'object' && includeGigaamOrOpts !== null
+      ? includeGigaamOrOpts
+      : { includeGigaam: Boolean(includeGigaamOrOpts), includeWhisper: false, includeZipformer: true };
+
+  const includeGigaam = Boolean(opts.includeGigaam);
+  const includeZipformer = opts.includeZipformer !== false;
+  const includeWhisper = Boolean(opts.includeWhisper);
+
   const broadcast = (data: any) => {
     if (onProgress) onProgress(data);
     try {
@@ -136,26 +151,41 @@ export async function executeSttAutoDownload(
   };
 
   const vadRes = resolveSherpaModelDir('silero-vad');
-  if (!vadRes.isComplete) await sherpaDownloaderService.downloadModel('silero-vad', broadcast);
+  if (!vadRes.isComplete) {
+    const res = await sherpaDownloaderService.downloadModel('silero-vad', broadcast);
+    if (res.cancelled) return { success: false, cancelled: true };
+    if (!res.success) return { success: false, error: `Failed silero-vad: ${res.error}` };
+  }
+
+  if (includeZipformer) {
+    const sherpaRes = resolveSherpaModelDir('zipformer-ru');
+    if (!sherpaRes.isComplete) {
+      const res = await sherpaDownloaderService.downloadModel('zipformer-ru', broadcast);
+      if (res.cancelled) return { success: false, cancelled: true };
+      if (!res.success) return { success: false, error: `Failed zipformer-ru: ${res.error}` };
+    }
+  }
+
+  if (includeWhisper) {
+    const whisperRes = resolveSherpaModelDir('whisper-small');
+    if (!whisperRes.isComplete) {
+      const res = await sherpaDownloaderService.downloadModel('whisper-small', broadcast);
+      if (res.cancelled) return { success: false, cancelled: true };
+      if (!res.success) return { success: false, error: `Failed whisper-small: ${res.error}` };
+    }
+  }
 
   if (includeGigaam) {
     const gigaRes = resolveSherpaModelDir('gigaam-ctc');
     if (!gigaRes.isComplete) {
       const res = await sherpaDownloaderService.downloadModel('gigaam-ctc', broadcast);
-      if (res.success && onGigaamSuccess) {
+      if (res.cancelled) return { success: false, cancelled: true };
+      if (!res.success) return { success: false, error: `Failed gigaam-ctc: ${res.error}` };
+      if (onGigaamSuccess) {
         await onGigaamSuccess();
       }
     }
   }
-
-  const sherpaRes = resolveSherpaModelDir('zipformer-ru');
-  if (!sherpaRes.isComplete) {
-    const res = await sherpaDownloaderService.downloadModel('zipformer-ru', broadcast);
-    if (!res.success) return { success: false, error: `Failed zipformer-ru: ${res.error}` };
-  }
-
-  const whisperRes = resolveSherpaModelDir('whisper-small');
-  if (!whisperRes.isComplete) await sherpaDownloaderService.downloadModel('whisper-small', broadcast);
 
   return { success: true };
 }
@@ -182,6 +212,12 @@ export async function attemptGigaamHotSwap(
     return false;
   }
 
+  const integrityCheck = verifyModelFiles(gigaamSourceInfo.dir, 'gigaam-ctc', { forceRehash: true });
+  if (!integrityCheck.isComplete || integrityCheck.integrity?.status === 'tampered') {
+    console.warn(`[STT HotSwap] Supply-chain integrity check failed for GigaAM: ${integrityCheck.integrity?.reason || 'missing'}`);
+    return false;
+  }
+
   console.log('[STT HotSwap] Running sacrificial validation for GigaAM...');
   const valResult = await validateSherpaModelSacrificial(gigaamSourceInfo.modelPath, gigaamSourceInfo.tokensPath, 15000);
   if (valResult.success && valResult.verified) {
@@ -193,7 +229,30 @@ export async function attemptGigaamHotSwap(
       if (fs.existsSync(metaPath)) {
         try { existingMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
       }
-      fs.writeFileSync(metaPath, JSON.stringify({ ...existingMeta, sourceId: activeGigaamSource, checksum, verified: true, incompatible: false, verifiedAt: new Date().toISOString() }, null, 2));
+      const isOfficialVerified = integrityCheck.integrity?.status === 'verified';
+      fs.writeFileSync(
+        metaPath,
+        JSON.stringify(
+          {
+            ...existingMeta,
+            sourceId: activeGigaamSource,
+            checksum,
+            verified: isOfficialVerified,
+            incompatible: false,
+            runtimeValidated: true,
+            verifiedAt: isOfficialVerified ? (existingMeta.verifiedAt || new Date().toISOString()) : undefined,
+            integrity: {
+              ...(existingMeta.integrity || integrityCheck.integrity),
+              status: isOfficialVerified ? 'verified' : 'unverified_manual',
+              algorithm: 'sha256',
+              runtimeValidated: true
+            },
+            provenance: existingMeta.provenance || integrityCheck.provenance
+          },
+          null,
+          2
+        )
+      );
     } catch {}
 
     if (child && child.connected) {

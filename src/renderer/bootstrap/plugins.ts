@@ -28,7 +28,7 @@ export function toPlainObject(val: any, seen = new WeakSet()): any {
   }
 
   // Skip DOM nodes or Window objects if any
-  if (typeof window !== 'undefined' && (val === window || val instanceof Node)) {
+  if (typeof window !== 'undefined' && (val === window || (typeof Node !== 'undefined' && val instanceof Node))) {
     return undefined;
   }
 
@@ -114,6 +114,10 @@ export function persistencePlugin({ store }: PiniaPluginContext) {
           if (!localStorage.getItem('arc_settings_v5_dsp_migrated')) {
             parsed.voiceDspEnabled = false;
             localStorage.setItem('arc_settings_v5_dsp_migrated', 'true');
+          }
+          // S2-05: Ensure cloud TTS fallback never silently enables on migration from older settings
+          if (parsed.allowCloudTtsFallback !== true) {
+            parsed.allowCloudTtsFallback = false;
           }
           // P1.3-R Phase C.3: Remove persisted theme color from storage; canonical theme is always red
           delete parsed.reactorColorTheme;

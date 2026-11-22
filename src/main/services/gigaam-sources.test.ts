@@ -41,9 +41,17 @@ describe('GigaAM Sources Fallback Chain & Acceptance Criteria', () => {
   });
 
   it('Criteria 3: Automatic fallback from source #1 to source #2 on error', async () => {
+    const modelIntegrity = await import('./model-integrity.util');
+    const spyDigest = vi.spyOn(modelIntegrity, 'verifyStagedFileDigest').mockImplementation((_p, expectedSize, expectedSha) => ({
+      ok: true,
+      actualSize: expectedSize,
+      actualSha256: expectedSha
+    }));
+
     let attempts: string[] = [];
     const spyDownload = vi.spyOn(gigaamSourcesService as any, 'downloadSingleFile').mockImplementation(
-      async (url: string, dest: string, onChunk: any) => {
+      async (...args: unknown[]) => {
+        const [url, dest] = args as [string, string, unknown];
         if (url.includes('-v3-')) {
           throw new Error('Simulated error for source #1');
         }
@@ -70,7 +78,10 @@ describe('GigaAM Sources Fallback Chain & Acceptance Criteria', () => {
     const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
     expect(meta.source).toBe('csukuangfj/sherpa-onnx-nemo-ctc-giga-am-v2-russian-2025-04-19');
     expect(meta.status).toBe('verified');
+    expect(meta.integrity?.status).toBe('verified');
+    expect(meta.provenance?.origin).toBe('official_auto');
 
+    spyDigest.mockRestore();
     spyDownload.mockRestore();
     spyValidator.mockRestore();
   });
@@ -118,5 +129,70 @@ describe('GigaAM Sources Fallback Chain & Acceptance Criteria', () => {
     const check = verifyModelFiles(testDir, 'gigaam-ctc');
     expect(check.isComplete).toBe(true);
     expect(check.totalSize).toBeGreaterThan(0);
+  });
+
+  it('Criteria 6: Cancels mid-stream without falling back to source #2 or overwriting working model', async () => {
+    const existingModel = path.join(testDir, 'model.int8.onnx');
+    const existingTokens = path.join(testDir, 'tokens.txt');
+    fs.writeFileSync(existingModel, Buffer.from('WORKING_GIGAAM'));
+    fs.writeFileSync(existingTokens, 'WORKING_TOKENS');
+
+    const spyResolve = vi.spyOn(gigaamSourcesService, 'resolveRepoFiles').mockResolvedValue({
+      modelFile: 'model.int8.onnx',
+      tokensFile: 'tokens.txt'
+    });
+    const spyDownload = vi.spyOn(gigaamSourcesService, 'downloadSingleFile').mockImplementation(
+      async (_url, dest, onChunk, _retries, opts) => {
+        if (dest.endsWith('tokens.txt')) {
+          fs.writeFileSync(dest, 'new tokens');
+          onChunk(10);
+          return;
+        }
+        await new Promise<void>((_, reject) => {
+          opts?.signal?.addEventListener('abort', () => reject(new Error('Download cancelled by user')), { once: true });
+        });
+      }
+    );
+
+    const modelIntegrity = await import('./model-integrity.util');
+    const spyDigest = vi.spyOn(modelIntegrity, 'verifyStagedFileDigest').mockImplementation((p, expectedSize, expectedSha) => ({
+      ok: true,
+      actualSize: expectedSize,
+      actualSha256: expectedSha
+    }));
+
+    const events: any[] = [];
+    const dlPromise = gigaamSourcesService.downloadWithFallbackChain(testDir, (p) => events.push(p));
+    await new Promise((r) => setTimeout(r, 30));
+    await gigaamSourcesService.cancelDownload();
+    const res = await dlPromise;
+
+    expect(res).toEqual({ success: false, cancelled: true, status: 'cancelled' });
+    expect(spyResolve).toHaveBeenCalledTimes(1);
+    expect(fs.readFileSync(existingModel, 'utf8')).toBe('WORKING_GIGAAM');
+    expect(fs.readFileSync(existingTokens, 'utf8')).toBe('WORKING_TOKENS');
+    expect(fs.existsSync(path.join(testDir, '.staging'))).toBe(false);
+    expect(events.some((e) => e.status === 'cancelled')).toBe(true);
+    expect(events.some((e) => e.status === 'error')).toBe(false);
+
+    spyDigest.mockRestore();
+    spyResolve.mockRestore();
+    spyDownload.mockRestore();
+  });
+
+  it('Criteria 7: Aborts immediately during HuggingFace 429 cooldown wait', async () => {
+    const { hfRateLimiter } = await import('./hf-rate-limiter.service');
+    hfRateLimiter.record429(120);
+
+    const start = Date.now();
+    const events: any[] = [];
+    const dlPromise = gigaamSourcesService.downloadWithFallbackChain(testDir, (p) => events.push(p));
+    await new Promise((r) => setTimeout(r, 40));
+    await gigaamSourcesService.cancelDownload();
+    const res = await dlPromise;
+
+    expect(res).toEqual({ success: false, cancelled: true, status: 'cancelled' });
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(events.some((e) => e.status === 'error')).toBe(false);
   });
 });

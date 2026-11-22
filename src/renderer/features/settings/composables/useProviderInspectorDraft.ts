@@ -313,8 +313,9 @@ export function useProviderInspectorDraft(
     try {
       const res = await store.saveProvider(payload);
       if (res && res.success === false) {
-        saveError.value = res.error || 'Ошибка сохранения настроек провайдера';
-        return { success: false, error: saveError.value };
+        const message = res.error || 'Ошибка сохранения настроек провайдера';
+        saveError.value = message;
+        return { success: false, error: message };
       }
       if (enabledChangedDuringSave !== null && enabledChangedDuringSave !== payload.enabled) {
         const reconciled = { ...payload, enabled: enabledChangedDuringSave };
@@ -333,8 +334,9 @@ export function useProviderInspectorDraft(
       savedFeedbackTimer = setTimeout(() => { isRecentlySaved.value = false; }, 2000);
       return { success: true };
     } catch (e: any) {
-      saveError.value = e?.message || 'Ошибка сохранения настроек провайдера';
-      return { success: false, error: saveError.value };
+      const message = e?.message || 'Ошибка сохранения настроек провайдера';
+      saveError.value = message;
+      return { success: false, error: message };
     } finally {
       isSaving.value = false;
       enabledChangedDuringSave = null;

@@ -1,5 +1,5 @@
 import treeKill from 'tree-kill';
-import { spawn, exec, execFileSync, ChildProcess } from 'child_process';
+import { spawn, execFileSync, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -8,8 +8,17 @@ import { BrowserWindow, app } from 'electron';
 import { cacheService } from './cache.service';
 import { ecoService, type EcoState } from './eco.service';
 import { HTTP_TIMEOUT_MS } from '../config/timeouts';
-import { syncPythonFiles, ensureSileroModelReady, cleanupStaleSileroServerOn8002, isValidSileroModelFile } from './python_sync.util';
-import { ensureDependenciesAsync, DependencyCheckResult } from './python_deps.util';
+import {
+  syncPythonFiles, ensureSileroModelReady, cleanupStaleSileroServerOn8002,
+  isValidSileroModelFile, resolveTtsDictsPaths, prepareTtsDictsSpawnEnv,
+  verifyPythonBundleFiles, cancelSileroModelDownload, type TtsDictsPaths, type EnsureSileroModelOptions
+} from './python_sync.util';
+import { evaluateSileroModelWithReport } from './python_integrity.util';
+import type { PythonBundleIntegrityReport } from '../../shared/types/model-integrity';
+import {
+  ensureDependenciesAsync, cancelDependencyInstall, getLastDependencyReadiness,
+  getDependencyInstallerState, recordPythonNotFound, type DependencyCheckResult
+} from './python_deps.util';
 import { ttsService } from './tts.service';
 
 export const SILERO_PACKAGED_MODEL_REL_PATH = path.join('resources', 'models', 'silero-v5', 'v5_6_ru.pt');
@@ -33,9 +42,12 @@ export class PythonServerService {
   private static consecutiveFailures = 0;
   private static autoRespawnCount = 0;
   private static isHealthy = true;
+  private static lastIntegrityReport: PythonBundleIntegrityReport | null = null;
 
   public static getPythonPid(): number | null { return this.pythonPid ?? this.child?.pid ?? null; }
   public static getAutoRespawnCount(): number { return this.autoRespawnCount; }
+  public static getLastIntegrityReport(): PythonBundleIntegrityReport | null { return this.lastIntegrityReport; }
+  public static isServerStarting(): boolean { return this.isStarting; }
   private static sendWin(win: BrowserWindow | null | undefined, channel: string, payload?: any): void {
     try { if (win && !win.isDestroyed?.() && !win.webContents?.isDestroyed?.()) win.webContents.send(channel, payload); } catch {}
   }
@@ -84,8 +96,16 @@ export class PythonServerService {
     return null;
   }
 
-  private static runCmdAsync(cmd: string, options: any = {}): Promise<string> {
-    return new Promise((resolve, reject) => exec(cmd, options, (error, stdout) => (error ? reject(error) : resolve(stdout ? stdout.toString() : ''))));
+  public static resolveTtsDictsPaths(): TtsDictsPaths { return resolveTtsDictsPaths((rel) => this.getPath(rel)); }
+  public static getLastDependencyReadiness(): DependencyCheckResult | null { return getLastDependencyReadiness(); }
+  public static getDependencyInstallerState() { return getDependencyInstallerState(); }
+
+  private static createVenvAsync(pythonExe: string, envPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const child = spawn(pythonExe, ['-m', 'venv', envPath], { shell: false, windowsHide: true, stdio: 'ignore' });
+      child.once('error', reject);
+      child.once('close', (code) => (code === 0 ? resolve() : reject(new Error(`venv exited with code ${code}`))));
+    });
   }
 
   public static resolvePythonExe(): ResolvedPython | null {
@@ -132,10 +152,14 @@ export class PythonServerService {
     if (level === 'error') console.error(message); else if (level === 'warn') console.warn(message); else if (isDev) console.log(message);
   }
 
-  static async start(mainWindow: BrowserWindow): Promise<void> {
+  static async start(
+    mainWindow?: BrowserWindow | null,
+    options?: { allowProvisioning?: boolean; onModelProgress?: EnsureSileroModelOptions['onProgress'] }
+  ): Promise<void> {
     if (this.isStarting) { logger.warn('[Python Server] Start already in progress, skipping duplicate start call.'); return; }
     this.isStarting = true;
-    this.mainWindowRef = mainWindow;
+    if (mainWindow) this.mainWindowRef = mainWindow;
+    const allowProvisioning = options?.allowProvisioning !== false;
     return new Promise(async (resolve) => {
       const finishStart = () => { this.isStarting = false; resolve(); };
       try {
@@ -145,12 +169,23 @@ export class PythonServerService {
         this.isShuttingDown = false;
         syncPythonFiles((rel) => this.getPath(rel), mainWindow);
 
+        const bundleCheck = verifyPythonBundleFiles((rel) => this.getPath(rel));
+        this.lastIntegrityReport = bundleCheck;
+        if (bundleCheck.state === 'ERROR') {
+          this.logDev('error', `[Python Server] Supply-chain verification blocked startup: ${bundleCheck.reason}`);
+          this.sendWin(mainWindow, 'app:loading-progress', 'Голос: ошибка целостности');
+          this.sendWin(mainWindow, 'terminal:log', { type: 'ERROR', message: `[Python Server] ${bundleCheck.reason}` });
+          this.sendWin(mainWindow, 'ui:show-toast', { type: 'warning', title: 'TTS: Ошибка целостности', message: 'Нарушена контрольная сумма SHA-256 файлов Silero TTS. Переключение на системный голос.' });
+          return finishStart();
+        }
+
         const resolved = this.resolvePythonExe();
         if (!resolved) {
+          recordPythonNotFound();
           this.logDev('warn', '[Python Server] error: Python runtime not found. Silero TTS disabled, falling back to system/Edge TTS.');
           this.sendWin(mainWindow, 'app:loading-progress', 'Голос: Python не найден');
           this.sendWin(mainWindow, 'terminal:log', { type: 'WARN', message: '[Python Server] Python not found. Falling back to Edge TTS / SAPI.' });
-          this.sendWin(mainWindow, 'ui:show-toast', { type: 'warning', title: 'TTS: Silero недоступен', message: 'Python не найден. Переключение на Edge TTS / SAPI.' });
+          if (allowProvisioning) this.sendWin(mainWindow, 'ui:show-toast', { type: 'warning', title: 'TTS: Silero недоступен', message: 'Python не найден. Переключение на системный голос.' });
           return finishStart();
         }
 
@@ -159,14 +194,16 @@ export class PythonServerService {
           const isWin = process.platform === 'win32';
           let envPath = this.getPath('silero_env');
           let venvExe = isWin ? path.join(envPath, 'Scripts', 'python.exe') : path.join(envPath, 'bin', 'python');
-          if (!fs.existsSync(venvExe)) {
+          const userVenvExe = app?.getPath ? path.join(app.getPath('userData'), 'silero_env', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python') : '';
+          if (!fs.existsSync(venvExe) && userVenvExe && fs.existsSync(userVenvExe)) venvExe = userVenvExe;
+          else if (!fs.existsSync(venvExe) && allowProvisioning) {
             this.sendWin(mainWindow, 'app:loading-progress', 'Creating Python virtual environment...');
-            try { await this.runCmdAsync(`"${resolved.exe}" -m venv "${envPath}"`); }
+            try { await this.createVenvAsync(resolved.exe, envPath); }
             catch (e) {
               if (app?.getPath) {
                 envPath = path.join(app.getPath('userData'), 'silero_env');
                 venvExe = isWin ? path.join(envPath, 'Scripts', 'python.exe') : path.join(envPath, 'bin', 'python');
-                try { await this.runCmdAsync(`"${resolved.exe}" -m venv "${envPath}"`); } catch (e2) { console.error('[Python Server] Failed to create venv:', e2); }
+                try { await this.createVenvAsync(resolved.exe, envPath); } catch (e2) { console.error('[Python Server] Failed to create venv:', e2); }
               } else { console.error('[Python Server] Failed to create venv:', e); }
             }
           }
@@ -181,34 +218,51 @@ export class PythonServerService {
         }
 
         this.logDev('log', `[Python Server] start: exe=${targetPython}, script=${scriptPath}`);
-        this.sendWin(mainWindow, 'app:loading-progress', 'Starting A.R.C. TTS (Silero v5.6)...');
-        this.sendWin(mainWindow, 'terminal:log', { type: 'INFO', message: '[Python Server] Starting...' });
-
-        const depsResult = await ensureDependenciesAsync(targetPython, mainWindow, (p) => this.getPath(p));
-        if (!depsResult.success) {
-          this.logDev('warn', `[Python Server] error: Dependencies failed (${depsResult.reason})`);
-          this.sendWin(mainWindow, 'app:loading-progress', 'Голос: ошибка [Повторить]');
-          this.sendWin(mainWindow, 'terminal:log', { type: 'ERROR', message: `[Python Server] Dependencies failed (${depsResult.reason}).` });
-          this.sendWin(mainWindow, 'ui:show-toast', {
-            type: 'warning', title: 'TTS: Ошибка зависимостей',
-            message: `Не удалось установить зависимости Silero (${depsResult.reason}). Переключение на Edge TTS / SAPI.`
-          });
-          return finishStart();
+        if (allowProvisioning) {
+          this.sendWin(mainWindow, 'app:loading-progress', 'Starting A.R.C. TTS (Silero v5.6)...');
+          this.sendWin(mainWindow, 'terminal:log', { type: 'INFO', message: '[Python Server] Starting...' });
         }
 
-        const resolvedModelPath = await ensureSileroModelReady((p) => this.getPath(p), () => this.resolveSileroModelPath(), mainWindow);
-        const spawnEnv: NodeJS.ProcessEnv = { ...process.env };
-        if (app?.isPackaged && app?.getPath) spawnEnv.ARC_TTS_CACHE_DIR = path.join(app.getPath('userData'), 'tts_cache');
+        const depsResult = await ensureDependenciesAsync(targetPython, mainWindow, (p) => this.getPath(p), { allowInstall: allowProvisioning });
+        if (!depsResult.success || !depsResult.coreReady) {
+          if (!allowProvisioning) {
+            this.logDev('log', `[Python Server] Startup check: Python dependencies not installed yet (${depsResult.reason || 'missing'}); awaiting user setup.`);
+            return finishStart();
+          }
+          this.logDev('warn', `[Python Server] error: Core dependencies failed (${depsResult.reason || 'import_check_failed'})`);
+          this.sendWin(mainWindow, 'app:loading-progress', 'Голос: ошибка [Повторить]');
+          this.sendWin(mainWindow, 'terminal:log', { type: 'ERROR', message: `[Python Server] Dependencies failed (${depsResult.reason}): ${depsResult.errors.join('; ')}` });
+          if (depsResult.reason !== 'cancelled') this.sendWin(mainWindow, 'ui:show-toast', { type: 'warning', title: 'TTS: Ошибка зависимостей', message: `Не удалось установить базовые зависимости Silero (${depsResult.reason}). Переключение на системный голос.` });
+          return finishStart();
+        }
+        if (depsResult.state === 'DEGRADED') {
+          this.logDev('warn', `[Python Server] Dependencies degraded (accentReady=${depsResult.accentReady}, dspReady=${depsResult.dspReady}): ${depsResult.errors.join('; ')}`);
+          this.sendWin(mainWindow, 'terminal:log', { type: 'WARN', message: `[Python Server] Silero running in DEGRADED mode: ${depsResult.errors.join('; ')}` });
+        }
+
+        const resolvedModelPath = await ensureSileroModelReady((p) => this.getPath(p), () => this.resolveSileroModelPath(), mainWindow, { allowDownload: allowProvisioning, onProgress: options?.onModelProgress });
+        const modelEval = evaluateSileroModelWithReport(resolvedModelPath, bundleCheck);
+        this.lastIntegrityReport = modelEval.report;
+        if (!modelEval.ok) {
+          this.logDev('error', `[Python Server] Silero model SHA-256 verification failed: ${modelEval.reason}`);
+          this.sendWin(mainWindow, 'app:loading-progress', 'Голос: ошибка целостности');
+          this.sendWin(mainWindow, 'terminal:log', { type: 'ERROR', message: `[Python Server] ${modelEval.reason}` });
+          return finishStart();
+        }
+        if (!resolvedModelPath && !allowProvisioning && !process.env.VITEST) {
+          this.logDev('log', '[Python Server] Startup check: Silero model v5_6_ru.pt not installed yet; awaiting user setup.');
+          return finishStart();
+        }
+        const { dictsPaths, spawnEnv } = prepareTtsDictsSpawnEnv((p) => this.getPath(p), process.env);
+        this.logDev(dictsPaths.bundledExists ? 'log' : 'warn', `[Python Server] TTS dicts: bundled=${dictsPaths.bundledDictsDir} (${dictsPaths.bundledExists}), user=${dictsPaths.userDictsDir}`);
         if (resolvedModelPath) {
           spawnEnv.ARC_SILERO_MODEL_PATH = resolvedModelPath;
           this.logDev('log', `[Python Server] model resolved: ${resolvedModelPath}`);
         } else {
           this.logDev('warn', '[Python Server] model resolved: not found (Local v5_6_ru.pt model not found via getPath; relying on silero_server.py candidate lookup.)');
         }
-
         this.child = spawn(targetPython, [scriptPath], { cwd: this.getPath('.'), env: spawnEnv, shell: false });
-        this.pythonPid = this.child.pid;
-
+        this.pythonPid = this.child.pid ?? null;
         if (this.child?.pid) {
           try {
             os.setPriority(this.child.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
@@ -229,26 +283,15 @@ export class PythonServerService {
             const str = line.trim();
             if (!str) continue;
             if (str.startsWith('__PROGRESS__')) {
-              try {
-                const progressData = JSON.parse(str.substring('__PROGRESS__'.length));
-                this.sendWin(mainWindow, 'model:download-progress', progressData);
-              } catch {}
+              try { this.sendWin(mainWindow, 'model:download-progress', JSON.parse(str.substring('__PROGRESS__'.length))); } catch {}
               continue;
             }
             console.log(`[Python Server] ${str}`);
             this.sendWin(mainWindow, 'terminal:log', { type: 'INFO', message: `[Python Server] ${str}` });
           }
         });
-        this.child.stderr?.on('data', (data) => {
-          const str = data.toString().trim();
-          if (str) console.error(`[Python Server] ${str}`);
-        });
-        this.child.on('close', () => {
-          this.pythonPid = null;
-          if (!this.isShuttingDown) {
-            this.sendWin(mainWindow, 'app:loading-progress', 'Голос: ошибка [Повторить]');
-          }
-        });
+        this.child.stderr?.on('data', (data) => { const s = data.toString().trim(); if (s) console.error(`[Python Server] ${s}`); });
+        this.child.on('close', () => { this.pythonPid = null; if (!this.isShuttingDown) this.sendWin(mainWindow, 'app:loading-progress', 'Голос: ошибка [Повторить]'); });
 
         const checkHealth = async (maxSeconds: number) => {
           for (let i = 0; i < maxSeconds; i++) {
@@ -288,98 +331,60 @@ export class PythonServerService {
     });
   }
 
-  public static setEcoState(state: EcoState, reason = 'unspecified') {
-    ecoService.setState(state, reason);
-    if (this.monitorInterval) this.startMonitor();
-  }
-
-  public static setIdleMode(isIdle: boolean, reason = 'idle_mode') {
-    this.setEcoState(isIdle ? 'idle' : 'active', reason);
-  }
+  public static setEcoState(state: EcoState, reason = 'unspecified') { ecoService.setState(state, reason); if (this.monitorInterval) this.startMonitor(); }
+  public static setIdleMode(isIdle: boolean, reason = 'idle_mode') { this.setEcoState(isIdle ? 'idle' : 'active', reason); }
 
   private static startMonitor() {
-    if (!ecoService.listenerCount('state-change')) {
-      ecoService.on('state-change', () => {
-        if (!this.isShuttingDown) this.startMonitor();
-      });
-    }
-    if (this.monitorInterval) {
-      clearTimeout(this.monitorInterval);
-      clearInterval(this.monitorInterval);
-      this.monitorInterval = null;
-    }
+    if (!ecoService.listenerCount('state-change')) ecoService.on('state-change', () => { if (!this.isShuttingDown) this.startMonitor(); });
+    if (this.monitorInterval) { clearTimeout(this.monitorInterval); clearInterval(this.monitorInterval); this.monitorInterval = null; }
     this.consecutiveFailures = 0;
     this.isHealthy = true;
-
     const scheduleNext = () => {
       if (this.isShuttingDown) return;
       const baseMs = ecoService.getIntervalMs();
       const delay = this.consecutiveFailures === 0 ? baseMs : Math.min(baseMs * Math.pow(2, this.consecutiveFailures), 40000);
-
       this.monitorInterval = setTimeout(async () => {
         if (this.isShuttingDown) return;
         try {
-          const axios = require('axios');
-          const res = await axios.get('http://127.0.0.1:8002/status', { timeout: 15000 });
-          if (res.data && res.data.status === 'online') {
+          const res = await require('axios').get('http://127.0.0.1:8002/status', { timeout: 15000 });
+          if (res.data?.status === 'online') {
             if (!this.isHealthy) console.log('[Python Server] health check OK (recovered)');
-            this.isHealthy = true;
-            this.consecutiveFailures = 0;
-            this.autoRespawnCount = 0;
+            this.isHealthy = true; this.consecutiveFailures = 0; this.autoRespawnCount = 0;
             ttsService.notifySileroOnline();
-          } else {
-            throw new Error('Bad status');
-          }
+          } else { throw new Error('Bad status'); }
         } catch (e: any) {
-          if (ttsService.isBusy() && (e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message || '')))) {
-            scheduleNext();
-            return;
-          }
+          if (ttsService.isBusy() && (e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message || '')))) { scheduleNext(); return; }
           this.consecutiveFailures++;
-          if (this.isHealthy) {
-            this.isHealthy = false;
-            console.warn(`[Python Server] health check failed: ${e.code || 'ERR'} ${e.message || 'Unknown'}`);
-          }
+          if (this.isHealthy) { this.isHealthy = false; console.warn(`[Python Server] health check failed: ${e.code || 'ERR'} ${e.message || 'Unknown'}`); }
           if (this.consecutiveFailures >= 3) {
             this.consecutiveFailures = 0;
             if (this.autoRespawnCount >= this.MAX_AUTO_RESPAWNS) {
               console.error(`[Python Server] Circuit breaker tripped: exceeded max auto-respawns (${this.MAX_AUTO_RESPAWNS}). Stopping monitor.`);
               this.sendWin(this.mainWindowRef, 'terminal:log', { type: 'ERROR', message: `[Python Server] Circuit breaker tripped after ${this.MAX_AUTO_RESPAWNS} failed restarts.` });
-              this.stop(true);
-              return;
+              this.stop(true); return;
             }
             this.autoRespawnCount++;
             console.warn(`[Python Server] respawning (cycle ${this.autoRespawnCount}/${this.MAX_AUTO_RESPAWNS})`);
             this.sendWin(this.mainWindowRef, 'terminal:log', { type: 'WARN', message: '[Python Server] Restarting dead server...' });
             this.stop(true);
-            this.respawnTimer = setTimeout(() => {
-              this.respawnTimer = null;
-              if (this.mainWindowRef && !this.mainWindowRef.isDestroyed?.()) this.start(this.mainWindowRef);
-            }, 2000);
+            this.respawnTimer = setTimeout(() => { this.respawnTimer = null; if (this.mainWindowRef && !this.mainWindowRef.isDestroyed?.()) this.start(this.mainWindowRef); }, 2000);
             return;
           }
         }
         scheduleNext();
       }, delay);
     };
-
     console.log(`[Python Server] Healthcheck timer restarted: ${ecoService.getIntervalMs()}ms`);
     scheduleNext();
   }
 
   static stop(preserveRespawnCount: boolean = false) {
-    this.isShuttingDown = true;
-    this.isStarting = false;
+    this.isShuttingDown = true; this.isStarting = false;
+    cancelDependencyInstall();
+    cancelSileroModelDownload();
     if (!preserveRespawnCount) this.autoRespawnCount = 0;
-    if (this.respawnTimer) {
-      clearTimeout(this.respawnTimer);
-      this.respawnTimer = null;
-    }
-    if (this.monitorInterval) {
-      clearTimeout(this.monitorInterval);
-      clearInterval(this.monitorInterval);
-      this.monitorInterval = null;
-    }
+    if (this.respawnTimer) { clearTimeout(this.respawnTimer); this.respawnTimer = null; }
+    if (this.monitorInterval) { clearTimeout(this.monitorInterval); clearInterval(this.monitorInterval); this.monitorInterval = null; }
     const pid = this.pythonPid || (this.child ? this.child.pid : null);
     if (pid) {
       treeKill(pid, 'SIGTERM', (err) => {
@@ -389,7 +394,6 @@ export class PythonServerService {
     } else {
       logger.warn('[Python Server] Python PID not found. Skipping system kill to prevent killing user processes.');
     }
-    if (this.child) this.child = null;
-    this.pythonPid = null;
+    this.child = null; this.pythonPid = null;
   }
 }

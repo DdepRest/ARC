@@ -137,8 +137,19 @@ const checkStartupIntegrityStatus = async () => {
     if (!status) return;
     if (status.mode === 'DB_SAFE_MODE' || status.isSafeMode) {
       uiStore.showToast(
-        'БД повреждена, копия сохранена в quarantine, запись отключена (DB_SAFE_MODE).',
+        status.userNotice || 'БД повреждена или недоступна, запись отключена (DB_SAFE_MODE).',
         'error',
+        8000
+      );
+    } else if (
+      status.mode === 'DEGRADED' ||
+      status.storageStatus === 'PERSISTENT_JSON_DEGRADED' ||
+      status.engine === 'json-degraded'
+    ) {
+      uiStore.showToast(
+        status.userNotice ||
+          'Активен ограниченный режим хранения JSONDatabase (без ACID-транзакций, отката и FTS5).',
+        'warning',
         8000
       );
     } else if (status.lastRecovery?.quarantined) {

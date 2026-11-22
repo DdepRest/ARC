@@ -7,6 +7,7 @@ import {
   type GraphicsConfig
 } from '../../../features/settings/logic/graphics-presets';
 import { recommendGraphicsPreset, isUltraPlusAvailable } from '../utils/recommend-preset';
+import type { StepSaveResult } from '../utils/wizard-save';
 
 const settingsStore = useSettingsStore();
 
@@ -114,8 +115,17 @@ function selectPreset(presetId: Exclude<GraphicsPreset, 'Custom'>) {
 }
 
 defineExpose({
-  saveCurrentState: () => {
-    settingsStore.applyGraphicsPreset(selectedPreset.value);
+  saveCurrentState: (): StepSaveResult => {
+    try {
+      const targetPreset = selectedPreset.value === 'Custom' ? recommendedPreset.value : selectedPreset.value;
+      settingsStore.applyGraphicsPreset(targetPreset);
+      return { ok: true };
+    } catch {
+      return {
+        ok: true,
+        optionalWarnings: ['Профиль 3D-рендера не применён (можно выбрать в Настройках)']
+      };
+    }
   }
 });
 </script>

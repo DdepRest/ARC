@@ -4,14 +4,23 @@ import path from 'path';
 import os from 'os';
 import * as si from 'systeminformation';
 import { DatabaseService } from './database';
+import { getDatabaseEngineMetadata } from './database-engine-metadata';
+import type {
+  DatabaseEngineCapabilities,
+  DatabaseEngineType,
+  StoragePersistenceStatus
+} from './database-recovery.types';
 import { providerManager } from './llm/providers/provider-manager';
 import { logger } from '../utils/logger';
+import { getRuntimeBuildMetadata, type BuildCommitSource } from '../../shared/config/build-metadata';
 
 export interface DiagnosticsReport {
   timestamp: string;
   schemaVersion: 1;
   app: {
     version: string;
+    commit: string;
+    commitSource: BuildCommitSource;
     nodeVersion: string;
     chromeVersion: string;
     electronVersion: string;
@@ -39,8 +48,13 @@ export interface DiagnosticsReport {
   storage: {
     dbStatus: {
       mode: string;
+      engine: string;
+      storageStatus: string;
+      readOnly: boolean;
       isSafeMode: boolean;
       schemaVersion: number;
+      capabilities: DatabaseEngineCapabilities;
+      limitations: string[];
     };
     counts: {
       tasks: number;
@@ -119,8 +133,12 @@ export class DiagnosticsService {
     const userDataPath = customUserDataDir || (app && typeof app.getPath === 'function' ? app.getPath('userData') : process.cwd());
 
     // 1. App info (strictly NO userDataPath!)
+    const runtimeVersion = app && typeof app.getVersion === 'function' ? app.getVersion() : undefined;
+    const buildMeta = getRuntimeBuildMetadata(runtimeVersion);
     const appInfo = {
-      version: app && typeof app.getVersion === 'function' ? app.getVersion() : '1.0.0',
+      version: buildMeta.version,
+      commit: buildMeta.commit,
+      commitSource: buildMeta.commitSource,
       nodeVersion: process.versions.node || '',
       chromeVersion: process.versions.chrome || '',
       electronVersion: process.versions.electron || '',
@@ -230,11 +248,25 @@ export class DiagnosticsService {
       }
     }
 
+    const rawEngine = (healthStatus.engine || 'sqlite') as DatabaseEngineType;
+    const rawStorageStatus = (
+      healthStatus.storageStatus ||
+      (healthStatus.isSafeMode ? 'VOLATILE_STORAGE' : 'PERSISTENT_SQLITE')
+    ) as StoragePersistenceStatus;
+    const engineMeta = getDatabaseEngineMetadata(rawEngine, rawStorageStatus);
+
     const storage = {
       dbStatus: {
         mode: healthStatus.mode || 'NORMAL',
+        engine: rawEngine,
+        storageStatus: rawStorageStatus,
+        readOnly: Boolean(healthStatus.readOnly || healthStatus.isSafeMode),
         isSafeMode: Boolean(healthStatus.isSafeMode),
-        schemaVersion: 1
+        schemaVersion: Number(healthStatus.migration?.currentVersion ?? healthStatus.schemaVersion ?? 1),
+        capabilities: healthStatus.capabilities || engineMeta.capabilities,
+        limitations: Array.isArray(healthStatus.limitations)
+          ? healthStatus.limitations
+          : engineMeta.limitations
       },
       counts,
       launcherIndex
@@ -274,11 +306,8 @@ export class DiagnosticsService {
               for (const trig of macroData.triggers) {
                 if (typeof trig === 'string') {
                   const trimmed = trig.trim();
-                  if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
-                    activeTimerCount++;
-                  } else if (trimmed.includes('*') || trimmed.startsWith('cron:')) {
-                    cronCount++;
-                  }
+                  if (/^\d{1,2}:\d{2}$/.test(trimmed)) activeTimerCount++;
+                  else if (trimmed.includes('*') || trimmed.startsWith('cron:')) cronCount++;
                 }
               }
             }
@@ -322,24 +351,15 @@ export class DiagnosticsService {
       metrics,
       storage,
       providers: providersList,
-      scheduler: {
-        activeTimerCount,
-        cronCount,
-        macrosScheduleEntries
-      },
+      scheduler: { activeTimerCount, cronCount, macrosScheduleEntries },
       recentLogTail
     };
   }
 
-  /**
-   * Show native save dialog and write formatted report JSON.
-   */
-  public static async exportDiagnostics(parentWindow?: BrowserWindow | null): Promise<{
-    success: boolean;
-    filePath?: string;
-    canceled?: boolean;
-    error?: string;
-  }> {
+  /** Show native save dialog and write formatted report JSON. */
+  public static async exportDiagnostics(
+    parentWindow?: BrowserWindow | null
+  ): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }> {
     try {
       const report = await this.collectReport();
       const dateStr = new Date().toISOString().replace(/[:.]/g, '-');

@@ -1,16 +1,23 @@
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { app, BrowserWindow } from 'electron';
+import { computeFileSha256Sync, verifyStagedFileDigest } from './model-integrity.util';
+import { SILERO_TTS_MODEL_MANIFEST } from './model-supply-chain.manifest';
+import {
+  SILERO_V56_EXPECTED_SHA256,
+  SILERO_V56_EXPECTED_SIZE,
+  verifyBundledPythonSourceFile,
+  verifyPythonBundleFiles,
+  verifySileroModelOnDisk,
+  writeSileroModelProvenanceMeta
+} from './python_integrity.util';
+import { downloadFileWithSignal } from './sherpa-http-download.util';
+
+export { verifyPythonBundleFiles, verifySileroModelOnDisk };
 
 export function calculateHash(filePath: string): string | null {
-  try {
-    if (!fs.existsSync(filePath)) return null;
-    return crypto.createHash('md5').update(fs.readFileSync(filePath)).digest('hex');
-  } catch {
-    return null;
-  }
+  return computeFileSha256Sync(filePath, true);
 }
 
 export function syncPythonFiles(getPath: (rel: string) => string, mainWindow?: BrowserWindow | null): void {
@@ -39,7 +46,17 @@ export function syncPythonFiles(getPath: (rel: string) => string, mainWindow?: B
     if (!sourcePath || path.resolve(sourcePath) === path.resolve(targetPath)) continue;
 
     if (fs.existsSync(sourcePath)) {
-      const sourceHash = calculateHash(sourcePath);
+      const sourceVerification = verifyBundledPythonSourceFile(file, sourcePath);
+      if (!sourceVerification.ok) {
+        const msg = `[Python Server] Supply-chain check blocked sync of ${file}: ${sourceVerification.reason}`;
+        console.error(msg);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('terminal:log', { type: 'ERROR', message: msg });
+        }
+        continue;
+      }
+
+      const sourceHash = sourceVerification.sha256 || calculateHash(sourcePath);
       const targetHash = calculateHash(targetPath);
 
       if (sourceHash !== targetHash) {
@@ -55,19 +72,19 @@ export function syncPythonFiles(getPath: (rel: string) => string, mainWindow?: B
   }
 
   if (changed) {
-    console.log(`[SILERO SERVER] Code synced, hash: ${lastHash}`);
+    console.log(`[SILERO SERVER] Code synced, sha256: ${lastHash}`);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('terminal:log', { type: 'INFO', message: `[SILERO SERVER] Code synced, hash: ${lastHash}` });
     }
   }
 }
 
-export function isValidSileroModelFile(filePath: string | null | undefined): boolean {
+export function isValidSileroModelFile(filePath: string | null | undefined, opts?: { strict?: boolean }): boolean {
   if (!filePath) return false;
   try {
     if (!fs.existsSync(filePath)) return false;
-    if (process.env.VITEST) return true;
-    return fs.statSync(filePath).size > 10 * 1024 * 1024;
+    const check = verifySileroModelOnDisk(filePath, opts);
+    return check.ok;
   } catch {
     return false;
   }
@@ -78,7 +95,7 @@ export async function cleanupStaleSileroServerOn8002(): Promise<void> {
   try {
     const axios = require('axios');
     await axios.get('http://127.0.0.1:8002/status', { timeout: 800 });
-    return; // Already online with 200 OK
+    return;
   } catch (err: any) {
     if (err?.response?.status !== 503) return;
   }
@@ -102,68 +119,6 @@ export async function cleanupStaleSileroServerOn8002(): Promise<void> {
       }
     } catch {}
   }
-}
-
-function downloadFileWithRedirects(url: string, destPath: string, onProgress?: (pct: number) => void): Promise<void> {
-  const https = require('https');
-  const http = require('http');
-  const tmpPath = `${destPath}.tmp`;
-  return new Promise((resolve, reject) => {
-    const fetchUrl = (targetUrl: string, redirectsLeft: number) => {
-      if (redirectsLeft <= 0) return reject(new Error('Too many redirects'));
-      const mod = targetUrl.startsWith('https') ? https : http;
-      const req = mod.get(targetUrl, { headers: { 'User-Agent': 'ARC-Silero-Provisioner/1.0' } }, (res: any) => {
-        if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location) {
-          const nextUrl = new URL(res.headers.location, targetUrl).toString();
-          res.resume();
-          return fetchUrl(nextUrl, redirectsLeft - 1);
-        }
-        if (res.statusCode !== 200) {
-          res.resume();
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
-        const total = parseInt(res.headers['content-length'] || '0', 10);
-        let received = 0;
-        let lastPct = -1;
-        fs.mkdirSync(path.dirname(destPath), { recursive: true });
-        const fileStream = fs.createWriteStream(tmpPath);
-        res.on('data', (chunk: Buffer) => {
-          received += chunk.length;
-          if (total > 0 && onProgress) {
-            const pct = Math.round((received / total) * 100);
-            if (pct !== lastPct && pct % 10 === 0) {
-              lastPct = pct;
-              onProgress(pct);
-            }
-          }
-        });
-        res.pipe(fileStream);
-        fileStream.on('finish', () => {
-          fileStream.close(() => {
-            try {
-              if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
-              fs.renameSync(tmpPath, destPath);
-              resolve();
-            } catch (e) {
-              reject(e);
-            }
-          });
-        });
-        fileStream.on('error', (err: Error) => {
-          try { fs.unlinkSync(tmpPath); } catch {}
-          reject(err);
-        });
-      });
-      req.on('error', (err: Error) => {
-        try { fs.unlinkSync(tmpPath); } catch {}
-        reject(err);
-      });
-      req.setTimeout(180000, () => {
-        req.destroy(new Error('Download timeout'));
-      });
-    };
-    fetchUrl(url, 5);
-  });
 }
 
 export function removeLegacySileroV55Model(getPath?: (rel: string) => string): void {
@@ -205,26 +160,61 @@ export function removeLegacySileroV55Model(getPath?: (rel: string) => string): v
   }
 }
 
+let activeSileroDownloadAbort: AbortController | null = null;
+
+export function cancelSileroModelDownload(): boolean {
+  if (!activeSileroDownloadAbort) return false;
+  activeSileroDownloadAbort.abort();
+  activeSileroDownloadAbort = null;
+  return true;
+}
+
+export function isSileroModelDownloading(): boolean {
+  return activeSileroDownloadAbort !== null;
+}
+
+export interface EnsureSileroModelOptions {
+  allowDownload?: boolean;
+  onProgress?: (data: {
+    modelId: string;
+    bytesDone: number;
+    totalBytes: number;
+    percent: number;
+    status: 'downloading' | 'verifying' | 'completed' | 'cancelled' | 'error';
+    error?: string;
+  }) => void;
+}
+
 export async function ensureSileroModelReady(
   getPath: (rel: string) => string,
   resolveModelPath: () => string | null,
-  mainWindow?: BrowserWindow | null
+  mainWindow?: BrowserWindow | null,
+  options?: EnsureSileroModelOptions
 ): Promise<string | null> {
-  // Always purge legacy v5.5 model files across known locations
   removeLegacySileroV55Model(getPath);
 
   const existing = resolveModelPath();
-  if (isValidSileroModelFile(existing)) {
+  if (existing && isValidSileroModelFile(existing)) {
     if (!process.env.VITEST) {
       try {
         const bundledDest = getPath(path.join('resources', 'models', 'silero-v5', 'v5_6_ru.pt'));
         if (bundledDest && existing !== bundledDest && !isValidSileroModelFile(bundledDest)) {
           fs.mkdirSync(path.dirname(bundledDest), { recursive: true });
-          fs.copyFileSync(existing!, bundledDest);
+          fs.copyFileSync(existing, bundledDest);
         }
       } catch {}
     }
+    options?.onProgress?.({
+      modelId: 'silero-tts-v5',
+      bytesDone: SILERO_V56_EXPECTED_SIZE,
+      totalBytes: SILERO_V56_EXPECTED_SIZE,
+      percent: 100,
+      status: 'completed'
+    });
     return existing;
+  }
+  if (options?.allowDownload === false) {
+    return null;
   }
   if (process.env.VITEST) return existing;
 
@@ -238,23 +228,140 @@ export async function ensureSileroModelReady(
     }
   }
 
-  console.log(`[Python Server] v5_6_ru.pt missing locally. Downloading Silero v5.6 model to ${destPath}...`);
+  const destDir = path.dirname(destPath);
+  const stagingDir = path.join(destDir, '.staging', `silero-v5-${Date.now()}`);
+  const stagedPart = path.join(stagingDir, 'v5_6_ru.pt.part');
+  const modelUrl = SILERO_TTS_MODEL_MANIFEST.files[0].url;
+
+  console.log(`[Python Server] v5_6_ru.pt missing locally. Downloading verified Silero v5.6 model to ${destPath}...`);
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('app:loading-progress', 'Скачивание модели Silero TTS v5.6 (~100 МБ)...');
+    mainWindow.webContents.send('app:loading-progress', 'Скачивание модели Silero TTS v5.6 (~141 МБ)...');
   }
+
+  const controller = new AbortController();
+  activeSileroDownloadAbort = controller;
+  const emitProg = (bytesDone: number, percent: number, status: 'downloading' | 'verifying' | 'completed' | 'cancelled' | 'error', error?: string) => {
+    options?.onProgress?.({ modelId: 'silero-tts-v5', bytesDone, totalBytes: SILERO_V56_EXPECTED_SIZE, percent, status, error });
+  };
+
   try {
-    await downloadFileWithRedirects('https://models.silero.ai/models/tts/ru/v5_6_ru.pt', destPath, (pct) => {
-      console.log(`[Python Server] Silero v5.6 model download: ${pct}%`);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('app:loading-progress', `Скачивание Silero TTS v5.6: ${pct}%`);
+    fs.mkdirSync(stagingDir, { recursive: true });
+    let loaded = 0;
+    let lastPct = -1;
+    emitProg(0, 0, 'downloading');
+    await downloadFileWithSignal({
+      url: modelUrl,
+      destPartPath: stagedPart,
+      signal: controller.signal,
+      retries: 2,
+      maxBytes: SILERO_V56_EXPECTED_SIZE,
+      headers: { 'User-Agent': 'ARC-Silero-Provisioner/1.0' },
+      onProgressChunk: (chunkSize) => {
+        loaded += chunkSize;
+        const pct = Math.min(99, Math.round((loaded / SILERO_V56_EXPECTED_SIZE) * 100));
+        emitProg(loaded, pct, 'downloading');
+        if (pct !== lastPct && pct % 10 === 0) {
+          lastPct = pct;
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('app:loading-progress', `Скачивание Silero TTS v5.6: ${pct}%`);
+          }
+        }
       }
     });
-    if (isValidSileroModelFile(destPath)) {
-      console.log(`[Python Server] Silero v5.6 model downloaded successfully to ${destPath}`);
-      return destPath;
+
+    emitProg(SILERO_V56_EXPECTED_SIZE, 99, 'verifying');
+    const digestCheck = verifyStagedFileDigest(stagedPart, SILERO_V56_EXPECTED_SIZE, SILERO_V56_EXPECTED_SHA256);
+    if (!digestCheck.ok || !digestCheck.actualSha256) {
+      throw new Error(digestCheck.reason || 'Silero v5.6 SHA-256 verification failed');
     }
+
+    if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
+    fs.renameSync(stagedPart, destPath);
+    writeSileroModelProvenanceMeta(destPath, digestCheck.actualSize, digestCheck.actualSha256);
+    emitProg(digestCheck.actualSize, 100, 'completed');
+    console.log(`[Python Server] Silero v5.6 model verified & published to ${destPath}`);
+    return destPath;
   } catch (err: any) {
-    console.warn(`[Python Server] Failed to download Silero v5.6 model: ${err?.message || err}`);
+    const isCancelled = controller.signal.aborted || /cancel|abort/i.test(String(err?.message || ''));
+    emitProg(0, 0, isCancelled ? 'cancelled' : 'error', isCancelled ? undefined : (err?.message || String(err)));
+    console.warn(`[Python Server] Failed to download/verify Silero v5.6 model: ${err?.message || err}`);
+    return null;
+  } finally {
+    if (activeSileroDownloadAbort === controller) activeSileroDownloadAbort = null;
+    try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch {}
   }
-  return resolveModelPath();
+}
+
+export interface TtsDictsPaths {
+  bundledDictsDir: string;
+  userDictsDir: string;
+  logsDir: string;
+  bundledExists: boolean;
+}
+
+export function resolveTtsDictsPaths(getPath: (rel: string) => string): TtsDictsPaths {
+  const relDicts = path.join('Voice', 'dicts');
+  const isDev = !app?.isPackaged || process.env.NODE_ENV === 'development';
+  const appPath = app?.getAppPath ? app.getAppPath() : process.cwd();
+  const resPath = process.resourcesPath || path.join(appPath, '..');
+
+  const envBundled = process.env.ARC_TTS_DICTS_DIR?.trim();
+  const candidates: string[] = [];
+  if (envBundled) candidates.push(envBundled);
+  if (isDev) {
+    candidates.push(path.join(process.cwd(), relDicts), path.join(appPath, relDicts), getPath(relDicts));
+  } else {
+    candidates.push(path.join(resPath, relDicts), path.join(resPath, 'app.asar.unpacked', relDicts), path.join(appPath, '..', relDicts), getPath(relDicts));
+  }
+
+  let bundledDictsDir = '';
+  let bundledExists = false;
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+        bundledDictsDir = candidate;
+        bundledExists = true;
+        break;
+      }
+    } catch {}
+  }
+  if (!bundledDictsDir) bundledDictsDir = isDev ? path.join(process.cwd(), relDicts) : path.join(resPath, relDicts);
+
+  let userDataBase = '';
+  try { if (app?.getPath) userDataBase = app.getPath('userData'); } catch {}
+  if (!userDataBase) {
+    userDataBase = process.env.APPDATA ? path.join(process.env.APPDATA, 'A.R.C.') : path.join(os.tmpdir(), 'arc_user_data');
+  }
+
+  const userDictsDir = process.env.ARC_TTS_USER_DICTS_DIR?.trim() || path.join(userDataBase, 'tts_dicts');
+  const logsDir = process.env.ARC_TTS_LOGS_DIR?.trim() || path.join(userDataBase, 'logs');
+  return { bundledDictsDir, userDictsDir, logsDir, bundledExists };
+}
+
+export function ensureTtsDictsWritableDirs(paths: TtsDictsPaths): void {
+  for (const dir of [paths.userDictsDir, paths.logsDir]) {
+    if (!dir) continue;
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (err: any) {
+      console.warn(`[Python Server] Failed to create writable directory ${dir}:`, err?.message || err);
+    }
+  }
+}
+
+export function prepareTtsDictsSpawnEnv(
+  getPath: (rel: string) => string,
+  baseEnv: NodeJS.ProcessEnv = process.env
+): { dictsPaths: TtsDictsPaths; spawnEnv: NodeJS.ProcessEnv } {
+  const dictsPaths = resolveTtsDictsPaths(getPath);
+  ensureTtsDictsWritableDirs(dictsPaths);
+  const spawnEnv: NodeJS.ProcessEnv = {
+    ...baseEnv,
+    ARC_TTS_DICTS_DIR: dictsPaths.bundledDictsDir,
+    ARC_TTS_USER_DICTS_DIR: dictsPaths.userDictsDir,
+    ARC_TTS_LOGS_DIR: dictsPaths.logsDir
+  };
+  if (app?.isPackaged && app?.getPath) {
+    spawnEnv.ARC_TTS_CACHE_DIR = path.join(app.getPath('userData'), 'tts_cache');
+  }
+  return { dictsPaths, spawnEnv };
 }

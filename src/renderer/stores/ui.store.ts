@@ -311,13 +311,13 @@ export const useUIStore = defineStore('ui', {
       if (!text) return;
       const lowerText = text.toLowerCase();
       if (lowerText.includes('failed to load') || lowerText.includes('error:') || lowerText.includes('database disk image is malformed')) {
-        console.warn('[TTS] Technical error suppressed from speech:', text);
+        console.warn(`[TTS] Technical error suppressed from speech (${text.length} chars)`);
         return;
       }
       const normalized = text.trim();
       const now = Date.now();
       if (!options?.force && this.lastSpokenResponse === normalized && (now - this.lastSpokenTime < 45000)) {
-        console.warn(`[TTS] Duplicate speak request suppressed in UI (id: ${normalized.substring(0, 30)}...)`);
+        console.warn(`[TTS] Duplicate speak request suppressed in UI (${normalized.length} chars)`);
         return;
       }
       this.lastSpokenResponse = normalized;

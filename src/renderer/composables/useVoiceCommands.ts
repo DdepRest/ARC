@@ -12,7 +12,7 @@ export function useVoiceCommands() {
   const tasksStore = useTasksStore();
   const chatStore = useChatStore();
 
-  const processVoiceCommand = async (rawText: string): Promise<{ handled: boolean; response?: string }> => {
+  const processVoiceCommand = async (rawText: string): Promise<{ handled: boolean; response?: string } | null> => {
     return executeCommandRegistry(rawText, { uiStore, settingsStore, tasksStore, chatStore });
   };
 

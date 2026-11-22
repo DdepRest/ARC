@@ -368,7 +368,7 @@ export function formatTextForSpeech(text: string): string {
 
     if (isMultiDot || isVersionByPrefix || isVersionBySuffix) {
       const parts = cleanNum.split('.');
-      const words = parts.map(p => numberToRussianWords(parseInt(p, 10), 'm')).join(' точка ');
+      const words = parts.map((p: string) => numberToRussianWords(parseInt(p, 10), 'm')).join(' точка ');
       return `${prefix || ''}${words}${suffix || ''}`;
     }
 

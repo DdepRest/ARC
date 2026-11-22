@@ -2,19 +2,24 @@ import { ipcMain } from 'electron';
 import { approvalService } from '../services/approval.service';
 
 export function registerApprovalIpc() {
-  ipcMain.handle('ui:approval-response', async (_event, payload: { id: string; approved: boolean }) => {
-    if (!payload || typeof payload.id !== 'string') {
-      return { success: false, error: 'INVALID_PAYLOAD' };
+  ipcMain.handle('ui:approval-response', async (event, payload: { id: string; approved: boolean }) => {
+    const senderTrust = approvalService.isTrustedSender(event as any);
+    if (!senderTrust.trusted) {
+      console.warn(`[ApprovalIPC] Rejected untrusted approval response (${senderTrust.reason}).`);
+      return { success: false, error: senderTrust.reason || 'UNTRUSTED_SENDER' };
     }
-    const resolved = approvalService.resolveApproval(payload.id, !!payload.approved);
-    return { success: resolved };
-  });
 
-  ipcMain.handle('ui:approval-resolve', async (_event, payload: { id: string; approved: boolean }) => {
-    if (!payload || typeof payload.id !== 'string') {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      typeof payload.id !== 'string' ||
+      !payload.id.trim() ||
+      typeof payload.approved !== 'boolean'
+    ) {
       return { success: false, error: 'INVALID_PAYLOAD' };
     }
-    const resolved = approvalService.resolveApproval(payload.id, !!payload.approved);
-    return { success: resolved };
+
+    const senderId = typeof event?.sender?.id === 'number' ? event.sender.id : undefined;
+    return approvalService.resolveApprovalWithStatus(payload.id, payload.approved, senderId);
   });
 }

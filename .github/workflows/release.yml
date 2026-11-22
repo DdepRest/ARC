@@ -1,0 +1,252 @@
+name: Release Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.0.12). Leave empty to derive v<package.json version>.'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark GitHub Release as prerelease'
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: 'Create GitHub Release as draft (recommended for manual dispatch)'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Lint, Architecture, Test & Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type Check (TypeScript)
+        run: npm run lint
+
+      - name: Strict Type Check (Shared Contracts & Hardened Modules)
+        run: npm run lint:strict
+
+      - name: Static Vue / TS / IPC Boundary Checks
+        run: npm run check-boundaries
+
+      - name: File Size Guard (AGENTS.md limits)
+        run: npm run check-sizes
+
+      - name: Visual Constitution Latch (A.R.C. design tokens)
+        run: npm run check-visual-constitution
+
+      - name: Run Vitest Unit Tests
+        run: npm test
+
+      - name: Build Electron & Renderer bundles
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+          ARC_REQUIRE_BUILD_COMMIT: 'true'
+        run: npm run build
+
+      - name: Generate CycloneDX 1.5 SBOM
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: npm run generate:sbom
+
+  release-win:
+    name: Package & Publish Windows x64 Release
+    needs: validate
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Resolve & Validate Release Tag
+        id: meta
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG_NAME: ${{ inputs.tag_name }}
+          INPUT_DRAFT: ${{ inputs.draft }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $pkg = Get-Content -Path "package.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          $pkgVersion = [string]$pkg.version
+          if ([string]::IsNullOrWhiteSpace($pkgVersion)) {
+            throw "Missing version in package.json"
+          }
+          $expectedTag = "v$pkgVersion"
+
+          if ($env:EVENT_NAME -eq "push") {
+            $tagName = $env:GITHUB_REF_NAME
+            if ($tagName -ne $expectedTag) {
+              throw "Release tag '$tagName' does not match package.json version '$expectedTag'."
+            }
+            $isDraft = "false"
+            $isPrerelease = if ($tagName -match '-') { "true" } else { "false" }
+          } else {
+            $requestedTag = ([string]$env:INPUT_TAG_NAME).Trim()
+            $tagName = if ([string]::IsNullOrWhiteSpace($requestedTag)) { $expectedTag } else { $requestedTag }
+            if ($tagName -ne $expectedTag) {
+              throw "Requested tag '$tagName' does not match package.json version '$expectedTag'."
+            }
+            $isDraft = if ($env:INPUT_DRAFT -eq "true") { "true" } else { "false" }
+            $isPrerelease = if ($env:INPUT_PRERELEASE -eq "true") { "true" } else { "false" }
+          }
+
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          $payload = @(
+            "tag_name=$tagName",
+            "version=$pkgVersion",
+            "is_draft=$isDraft",
+            "is_prerelease=$isPrerelease"
+          ) -join "`n"
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, $payload + "`n", $utf8NoBom)
+          Write-Host "Validated release target: tag=$tagName, version=$pkgVersion, draft=$isDraft, prerelease=$isPrerelease"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Print Toolchain Versions
+        shell: pwsh
+        run: |
+          Write-Host "Node: $(node -v)"
+          Write-Host "npm: $(npm -v)"
+          Write-Host "Electron: $(node -p "require('./node_modules/electron/package.json').version")"
+          Write-Host "electron-builder: $(npx --no-install electron-builder --version)"
+
+      - name: Type Check (TypeScript)
+        run: npm run lint
+
+      - name: Strict Type Check (Shared Contracts & Hardened Modules)
+        run: npm run lint:strict
+
+      - name: Static Vue / TS / IPC Boundary Checks
+        run: npm run check-boundaries
+
+      - name: Run Vitest Unit Tests on Windows
+        run: npm test
+
+      - name: Run Windows Artifact Verifier Self-Tests
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-win-artifacts.ps1 -SelfTest
+
+      - name: Clean Previous Dist Directory
+        shell: pwsh
+        run: |
+          if (Test-Path -Path "dist") {
+            Remove-Item -Path "dist" -Recurse -Force
+          }
+
+      - name: Build & Package Windows x64 Installer
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+          ARC_REQUIRE_BUILD_COMMIT: 'true'
+        run: npm run pack:win
+
+      - name: Verify Artifacts & Generate SHA-256 Checksums
+        id: verify
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-win-artifacts.ps1
+
+      - name: Generate CycloneDX 1.5 SBOM
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: npm run generate:sbom
+
+      - name: Upload Verified Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arc-release-windows-x64-${{ steps.meta.outputs.tag_name }}
+          path: |
+            ${{ steps.verify.outputs.nsis_path }}
+            ${{ steps.verify.outputs.portable_path }}
+            ${{ steps.verify.outputs.nsis_blockmap_path }}
+            dist/SHA256SUMS.txt
+            dist/ARTIFACT_VERIFICATION.json
+            dist/sbom-cyclonedx.json
+            THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ steps.meta.outputs.tag_name }}"
+          $isDraft = "${{ steps.meta.outputs.is_draft }}"
+          $isPrerelease = "${{ steps.meta.outputs.is_prerelease }}"
+          $files = @(
+            "${{ steps.verify.outputs.nsis_path }}",
+            "${{ steps.verify.outputs.portable_path }}",
+            "${{ steps.verify.outputs.nsis_blockmap_path }}",
+            "dist/SHA256SUMS.txt",
+            "dist/ARTIFACT_VERIFICATION.json",
+            "dist/sbom-cyclonedx.json",
+            "THIRD_PARTY_NOTICES.md"
+          )
+
+          foreach ($f in $files) {
+            if (-not (Test-Path -Path $f -PathType Leaf)) {
+              throw "Release asset missing before upload: $f"
+            }
+          }
+
+          $releaseExists = $false
+          & gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            $releaseExists = $true
+          }
+
+          if ($releaseExists) {
+            Write-Host "Uploading verified release assets to existing release $tag..."
+            & gh release upload $tag @files --clobber
+            if ($LASTEXITCODE -ne 0) { throw "gh release upload failed with exit code $LASTEXITCODE" }
+          } else {
+            $argsList = @(
+              "release", "create", $tag
+            ) + $files + @(
+              "--title", "A.R.C. $tag",
+              "--generate-notes",
+              "--target", "${{ github.sha }}"
+            )
+            if ($isDraft -eq "true") {
+              $argsList += "--draft"
+            }
+            if ($isPrerelease -eq "true") {
+              $argsList += "--prerelease"
+            }
+            Write-Host "Creating GitHub Release $tag (draft=$isDraft, prerelease=$isPrerelease)..."
+            & gh @argsList
+            if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
+          }

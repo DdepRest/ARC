@@ -2,6 +2,7 @@ import type fs from 'fs';
 
 export type DatabaseStatusMode =
   | 'NORMAL'
+  | 'DEGRADED'
   | 'RECOVERED_FROM_CORRUPTION'
   | 'DB_SAFE_MODE'
   | 'TEST_MEMORY';
@@ -14,8 +15,25 @@ export type SqliteErrorCategory =
 
 export type StoragePersistenceStatus =
   | 'PERSISTENT_SQLITE'
+  | 'PERSISTENT_JSON_DEGRADED'
   | 'VOLATILE_STORAGE'
   | 'TEST_EPHEMERAL';
+
+export type DatabaseEngineType =
+  | 'sqlite'
+  | 'sqlite-memory'
+  | 'json-degraded'
+  | 'json-safe-mode'
+  | 'json-test';
+
+export interface DatabaseEngineCapabilities {
+  persistent: boolean;
+  supportsTransactions: boolean;
+  supportsRollback: boolean;
+  supportsFts5: boolean;
+  supportsForeignKeys: boolean;
+  supportsSqlIndexes: boolean;
+}
 
 export type SecretStorageMode = 'dpapi' | 'session_memory_only';
 export type SecretReadStatus = 'ok' | 'missing' | 'unreadable';
@@ -34,14 +52,43 @@ export interface QuarantinedFileRecord {
   sha256: string;
 }
 
+export interface DatabaseMigrationRecord {
+  version: number;
+  id: string;
+  name: string;
+  checksum: string;
+  appliedAt: string;
+  executionMs: number;
+  status: 'APPLIED';
+}
+
+export interface DatabaseMigrationStatus {
+  status: 'CURRENT' | 'MIGRATED' | 'FAILED' | 'SCHEMA_DRIFT' | 'BACKUP_FAILED' | 'SKIPPED';
+  fromVersion: number;
+  currentVersion: number;
+  targetVersion: number;
+  appliedMigrations: DatabaseMigrationRecord[];
+  appliedInRun: number[];
+  backupDir?: string;
+  backupFile?: string;
+  backupSha256?: string;
+  failedMigrationId?: string;
+  failedVersion?: number;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
 export interface DatabaseHealthStatus {
   mode: DatabaseStatusMode;
   isSafeMode: boolean;
   readOnly: boolean;
   storageStatus: StoragePersistenceStatus;
-  engine: 'sqlite' | 'json-safe-mode' | 'json-test' | 'sqlite-memory';
+  engine: DatabaseEngineType;
   dbPath: string;
+  schemaVersion?: number;
   backupPath?: string;
+  capabilities?: DatabaseEngineCapabilities;
+  limitations?: string[];
   errorCategory?: SqliteErrorCategory;
   errorCode?: string;
   errorMessage?: string;
@@ -53,6 +100,7 @@ export interface DatabaseHealthStatus {
     quarantined: boolean;
     backupDir?: string;
   };
+  migration?: DatabaseMigrationStatus;
   security?: SystemSecurityStatus;
 }
 

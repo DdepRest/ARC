@@ -1,8 +1,11 @@
 import { BrowserWindow } from 'electron';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as https from 'https';
-import * as http from 'http';
+import {
+  abortableDelay,
+  DownloadCancelledError,
+  isCancellationError,
+  type ActiveDownloadTask
+} from './sherpa-download-task.helper';
+import { downloadFileWithSignal } from './sherpa-http-download.util';
 
 interface CacheEntry<T> {
   data: T;
@@ -88,16 +91,21 @@ export class HfRateLimiterService {
     return this.cancelled;
   }
 
-  public async waitForCooldown(onTick?: (sec: number) => void): Promise<boolean> {
+  public async waitForCooldown(onTick?: (sec: number) => void, signal?: AbortSignal): Promise<boolean> {
     while (Date.now() < this.hfCooldownUntil) {
-      if (this.cancelled) return false;
+      if (this.cancelled || signal?.aborted) return false;
       const sec = this.getRemainingSeconds();
       onTick?.(sec);
       this.broadcastCountdown(sec);
-      await new Promise(r => setTimeout(r, 1000));
+      try {
+        await abortableDelay(1000, signal);
+      } catch (err) {
+        if (isCancellationError(err)) return false;
+        throw err;
+      }
     }
     this.broadcastCountdown(0);
-    return !this.cancelled;
+    return !this.cancelled && !signal?.aborted;
   }
 
   public toMirrorUrl(url: string): string {
@@ -112,126 +120,34 @@ export class HfRateLimiterService {
     url: string,
     dest: string,
     onProgressChunk: (bytes: number) => void,
-    retries = 2
-  ): Promise<void> {
-    const tempDest = `${dest}.tmp.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
+    retries = 2,
+    options?: { signal?: AbortSignal; task?: ActiveDownloadTask; maxBytes?: number }
+  ) {
+    const signal = options?.signal;
+    if (signal?.aborted) {
+      return Promise.reject(new DownloadCancelledError());
+    }
 
-    const fetchUrl = (currentUrl: string, attempt: number): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        let isFinished = false;
-        let fileStream: fs.WriteStream | null = null;
-        const protocol = currentUrl.startsWith('https') ? https : http;
-
-        const cleanup = () => {
-          if (fileStream) {
-            try { fileStream.close(); } catch {}
-            fileStream = null;
-          }
-          try { if (fs.existsSync(tempDest)) fs.unlinkSync(tempDest); } catch {}
-        };
-
-        const req = protocol.get(
-          currentUrl,
-          { headers: { 'User-Agent': 'A.R.C.-GigaAMDownloader/1.0' } },
-          (response) => {
-            if ([301, 302, 307, 308].includes(response.statusCode || 0)) {
-              const redirectUrl = response.headers.location;
-              if (!redirectUrl) {
-                isFinished = true;
-                cleanup();
-                return reject(new Error(`Redirect status ${response.statusCode} without location header`));
-              }
-              const resolvedUrl = new URL(redirectUrl, currentUrl).toString();
-              return fetchUrl(resolvedUrl, attempt).then(resolve).catch(reject);
-            }
-
-            if (response.statusCode !== 200) {
-              if (response.statusCode === 429) {
-                const retryAfter = response.headers['retry-after'];
-                this.record429(retryAfter);
-              }
-              isFinished = true;
-              cleanup();
-              return reject(new Error(`HTTP ${response.statusCode} for ${currentUrl}`));
-            }
-
-            try {
-              fileStream = fs.createWriteStream(tempDest);
-            } catch (err) {
-              isFinished = true;
-              cleanup();
-              return reject(err);
-            }
-
-            fileStream.on('error', (err) => {
-              if (isFinished) return;
-              isFinished = true;
-              cleanup();
-              reject(err);
-            });
-
-            fileStream.on('finish', () => {
-              isFinished = true;
-              if (fileStream) {
-                fileStream.close(() => resolve());
-              } else {
-                resolve();
-              }
-            });
-
-            response.on('data', (chunk: Buffer) => {
-              onProgressChunk(chunk.length);
-            });
-
-            response.pipe(fileStream);
-          }
-        );
-
-        req.on('error', (err) => {
-          if (isFinished) return;
-          isFinished = true;
-          cleanup();
-          reject(err);
-        });
-
-        req.setTimeout(60000, () => {
-          if (isFinished) return;
-          isFinished = true;
-          cleanup();
-          req.destroy(new Error('Download request timed out'));
-        });
-      });
-    };
-
-    const tryDownload = async (attempt: number): Promise<void> => {
-      try {
-        // Mirror first, HF fallback only if not rate limited
-        let targetUrl = url;
-        if (attempt === 1) {
-          targetUrl = this.toMirrorUrl(url);
-        } else {
-          if (this.isRateLimited()) {
-            targetUrl = this.toMirrorUrl(url);
-          } else {
-            targetUrl = this.toHfUrl(url);
-          }
+    return downloadFileWithSignal({
+      url,
+      destPartPath: dest,
+      onProgressChunk,
+      signal,
+      task: options?.task,
+      headers: { 'User-Agent': 'A.R.C.-GigaAMDownloader/1.0' },
+      retries,
+      retryDelayMs: 1500,
+      maxBytes: options?.maxBytes,
+      resolveAttemptUrl: (baseUrl, attempt) => {
+        if (attempt === 1) return this.toMirrorUrl(baseUrl);
+        return this.isRateLimited() ? this.toMirrorUrl(baseUrl) : this.toHfUrl(baseUrl);
+      },
+      onHttpStatus: (statusCode, headers) => {
+        if (statusCode === 429) {
+          this.record429(headers['retry-after']);
         }
-        await fetchUrl(targetUrl, attempt);
-        if (fs.existsSync(dest)) {
-          try { fs.unlinkSync(dest); } catch {}
-        }
-        fs.renameSync(tempDest, dest);
-      } catch (err: any) {
-        try { if (fs.existsSync(tempDest)) fs.unlinkSync(tempDest); } catch {}
-        if (attempt >= retries || this.cancelled) {
-          throw err;
-        }
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
-        return tryDownload(attempt + 1);
       }
-    };
-
-    return tryDownload(1);
+    });
   }
 
   private broadcastCountdown(remainingSec: number) {

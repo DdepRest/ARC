@@ -210,8 +210,8 @@ describe('ObjectiveEngine Decomposition (DRAFT + Approve, Idempotency)', () => {
 
     const loaded = engine.getObjective(obj.id);
     expect(loaded).not.toBeNull();
-    expect(loaded!.outcomes.length).toBeGreaterThan(0);
-    expect(loaded!.risks.length).toBeGreaterThan(0);
+    expect(loaded!.outcomes?.length ?? 0).toBeGreaterThan(0);
+    expect(loaded!.risks?.length ?? 0).toBeGreaterThan(0);
     const decisions = decisionEngine.getDecisionsByObjective(obj.id);
     expect(decisions.length).toBeGreaterThan(0);
   });

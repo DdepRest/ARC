@@ -316,6 +316,8 @@
           :target-memory-gb="targetMemoryGb"
           :tts-verification-status="ttsVerificationStatus"
           :download-state="downloadState"
+          :integrity-map="modelIntegrityMap"
+          :quant-state-map="quantStateMap"
           :confirm-low-ram="confirmLowRam"
           :is-quant-downloading="isQuantDownloading"
           :get-quant-progress="getQuantProgress"
@@ -346,6 +348,8 @@ const {
   diskCheckStatus,
   diskCheckError,
   downloadState,
+  modelIntegrityMap,
+  quantStateMap,
   sttDownloadState,
   ttsVerificationStatus,
   confirmLowRam,

@@ -16,37 +16,32 @@ export function useMicTest() {
   let mediaRecorder: MediaRecorder | null = null;
   let recordedChunks: Blob[] = [];
   let playbackAudio: HTMLAudioElement | null = null;
+  let activeObjectUrl: string | null = null;
   let countdownTimer: any = null;
   let playbackTimer: any = null;
+  let errorResetTimer: any = null;
+  let abortedByDisconnect = false;
+
+  const revokeActiveUrl = () => {
+    if (activeObjectUrl) {
+      try { URL.revokeObjectURL(activeObjectUrl); } catch {}
+      activeObjectUrl = null;
+    }
+  };
 
   const cleanupAudio = () => {
-    if (countdownTimer) {
-      clearInterval(countdownTimer);
-      countdownTimer = null;
-    }
-    if (playbackTimer) {
-      clearTimeout(playbackTimer);
-      playbackTimer = null;
-    }
-    if (animId) {
-      cancelAnimationFrame(animId);
-      animId = null;
-    }
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    if (playbackTimer) { clearTimeout(playbackTimer); playbackTimer = null; }
+    if (errorResetTimer) { clearTimeout(errorResetTimer); errorResetTimer = null; }
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      try {
-        mediaRecorder.stop();
-      } catch {
-        // ignore
-      }
-      mediaRecorder = null;
+      try { mediaRecorder.stop(); } catch {}
     }
+    mediaRecorder = null;
     if (stream) {
       stream.getTracks().forEach(track => {
-        try {
-          track.stop();
-        } catch {
-          // ignore
-        }
+        track.onended = null;
+        try { track.stop(); } catch {}
       });
       stream = null;
     }
@@ -54,25 +49,25 @@ export function useMicTest() {
       if (audioCtx.state !== 'closed') {
         try {
           const p = audioCtx.close();
-          if (p && typeof p.catch === 'function') {
-            p.catch(() => {});
-          }
-        } catch {
-          // ignore
-        }
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        } catch {}
       }
       audioCtx = null;
     }
     analyser = null;
 
     if (playbackAudio) {
+      playbackAudio.onended = null;
+      playbackAudio.onerror = null;
       playbackAudio.pause();
       playbackAudio.src = '';
       playbackAudio = null;
     }
+    revokeActiveUrl();
   };
 
   const stopMicTest = () => {
+    abortedByDisconnect = false;
     cleanupAudio();
     isTesting.value = false;
     phase.value = 'idle';
@@ -80,20 +75,49 @@ export function useMicTest() {
     secondsRemaining.value = 3;
   };
 
+  const acquireMicStream = async (deviceId?: string): Promise<MediaStream> => {
+    if (!deviceId) {
+      return navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } });
+    } catch (err: any) {
+      if (err?.name === 'OverconstrainedError' || err?.name === 'NotFoundError') {
+        return navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      throw err;
+    }
+  };
+
   const startMicTest = async (deviceId?: string) => {
     stopMicTest();
     errorMessage.value = '';
     recordedChunks = [];
+    abortedByDisconnect = false;
     isTesting.value = true;
     phase.value = 'recording';
     secondsRemaining.value = 3;
 
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: deviceId ? { deviceId: { exact: deviceId } } : true
-      };
+      stream = await acquireMicStream(deviceId);
 
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Guard against unexpected USB microphone unplugging mid-recording
+      const onUnexpectedTrackEnd = () => {
+        if (phase.value !== 'recording') return;
+        abortedByDisconnect = true;
+        cleanupAudio();
+        isTesting.value = false;
+        rmsLevel.value = 0;
+        errorMessage.value = 'Микрофон был отключён во время проверки';
+        phase.value = 'error';
+        errorResetTimer = setTimeout(() => {
+          if (phase.value === 'error') stopMicTest();
+        }, 3000);
+      };
+      stream.getAudioTracks().forEach((track) => {
+        track.onended = onUnexpectedTrackEnd;
+      });
+
       audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const source = audioCtx.createMediaStreamSource(stream);
       analyser = audioCtx.createAnalyser();
@@ -117,8 +141,8 @@ export function useMicTest() {
       updateRms();
 
       // Setup MediaRecorder
-      const options = MediaRecorder.isTypeSupported('audio/webm') 
-        ? { mimeType: 'audio/webm' } 
+      const options = MediaRecorder.isTypeSupported('audio/webm')
+        ? { mimeType: 'audio/webm' }
         : undefined;
       mediaRecorder = new MediaRecorder(stream, options);
 
@@ -129,26 +153,22 @@ export function useMicTest() {
       };
 
       mediaRecorder.onstop = () => {
-        if (recordedChunks.length === 0) {
-          stopMicTest();
+        if (abortedByDisconnect || recordedChunks.length === 0) {
+          if (!abortedByDisconnect) stopMicTest();
           return;
         }
 
         const blob = new Blob(recordedChunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+        revokeActiveUrl();
         const audioUrl = URL.createObjectURL(blob);
+        activeObjectUrl = audioUrl;
 
         phase.value = 'playing';
         secondsRemaining.value = 3;
 
         playbackAudio = new Audio(audioUrl);
-        playbackAudio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
-          stopMicTest();
-        };
-        playbackAudio.onerror = () => {
-          URL.revokeObjectURL(audioUrl);
-          stopMicTest();
-        };
+        playbackAudio.onended = () => { stopMicTest(); };
+        playbackAudio.onerror = () => { stopMicTest(); };
 
         playbackAudio.play().catch(e => {
           console.warn('[useMicTest] Playback error:', e);
@@ -156,10 +176,7 @@ export function useMicTest() {
         });
 
         playbackTimer = setTimeout(() => {
-          if (phase.value === 'playing') {
-            URL.revokeObjectURL(audioUrl);
-            stopMicTest();
-          }
+          if (phase.value === 'playing') stopMicTest();
         }, 4000);
       };
 
@@ -170,25 +187,26 @@ export function useMicTest() {
         if (secondsRemaining.value <= 0) {
           clearInterval(countdownTimer);
           countdownTimer = null;
+          if (stream) {
+            stream.getTracks().forEach(t => { t.onended = null; });
+          }
           if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
           }
-          // Stop stream tracks immediately to free mic
           if (stream) {
-            stream.getTracks().forEach(t => t.stop());
+            stream.getTracks().forEach(t => { try { t.stop(); } catch {} });
           }
         }
       }, 1000);
-
     } catch (err: any) {
       console.error('[useMicTest] Microphone test failed:', err);
+      cleanupAudio();
+      isTesting.value = false;
+      rmsLevel.value = 0;
       errorMessage.value = err?.message || 'Не удалось получить доступ к микрофону';
       phase.value = 'error';
-      cleanupAudio();
-      setTimeout(() => {
-        if (phase.value === 'error') {
-          stopMicTest();
-        }
+      errorResetTimer = setTimeout(() => {
+        if (phase.value === 'error') stopMicTest();
       }, 3000);
     }
   };
