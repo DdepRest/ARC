@@ -4,7 +4,13 @@ import type { ReactorLighting } from './reactor-lighting';
 import type { ReactorPostFX } from './reactor-postfx';
 import type { ReactorTextureRegistry } from './reactor-texture-registry';
 
-export type Stage1ViewPreset = 'default' | 'chamber' | 'materials' | 'oblique';
+export type Stage1ViewPreset = 'default' | 'front' | 'oblique' | 'chamber' | 'materials';
+
+export const DEFAULT_REACTOR_CAMERA = {
+  fov: 24,
+  position: [8.6, 5.8, 40.2] as const,
+  target: [0, 0, 0] as const,
+};
 
 export interface Stage1DiagnosticsDeps {
   scene: THREE.Scene;
@@ -22,7 +28,7 @@ export interface Stage1DiagnosticsController {
 }
 
 export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1DiagnosticsController {
-  const { scene, camera, renderer, materials, lighting, postfx, textureRegistry } = deps;
+  const { scene, camera, renderer, materials, postfx, textureRegistry } = deps;
 
   let activeView: Stage1ViewPreset = 'default';
   let bloomOverride: boolean | null = null;
@@ -41,16 +47,16 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
     const rig = new THREE.Group();
     rig.name = 'arc-stage1-neutral-studio-rig';
 
-    const key = new THREE.DirectionalLight(0xfffaf2, 2.8);
-    key.position.set(16, 22, 26);
+    const key = new THREE.DirectionalLight(0xfffaf2, 2.75);
+    key.position.set(18, 22, 26);
     rig.add(key);
 
     const fill = new THREE.DirectionalLight(0xeef4ff, 1.45);
     fill.position.set(-22, 8, 18);
     rig.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xffffff, 1.9);
-    rim.position.set(0, -18, 16);
+    const rim = new THREE.DirectionalLight(0xffffff, 1.85);
+    rim.position.set(-6, -20, 14);
     rig.add(rim);
 
     const hemi = new THREE.HemisphereLight(0xf6f8fc, 0x262a34, 0.85);
@@ -82,7 +88,7 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
     swatchMats.forEach(([name, mat], i) => {
       const m = new THREE.Mesh(sphereGeo, mat);
       m.name = name;
-      m.position.set((i - 2.5) * 1.15, -6.55, 0.6);
+      m.position.set((i - 2.5) * 1.15, -6.75, 0.6);
       strip.add(m);
     });
 
@@ -92,21 +98,25 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
 
   const applyCameraPreset = () => {
     if (activeView === 'default') {
-      camera.fov = 12;
-      camera.position.set(0, 0, 81.5);
+      camera.fov = DEFAULT_REACTOR_CAMERA.fov;
+      camera.position.set(...DEFAULT_REACTOR_CAMERA.position);
+      camera.lookAt(...DEFAULT_REACTOR_CAMERA.target);
+    } else if (activeView === 'front') {
+      camera.fov = 24;
+      camera.position.set(0, 0, 41.5);
       camera.lookAt(0, 0, 0);
-    } else if (activeView === 'chamber') {
-      camera.fov = 12;
-      camera.position.set(0, 0, 31.0);
-      camera.lookAt(0, 0, 0);
-    } else if (activeView === 'materials') {
-      camera.fov = 12;
-      camera.position.set(2.9, 2.7, 29.0);
-      camera.lookAt(2.4, 2.2, 0);
     } else if (activeView === 'oblique') {
-      camera.fov = 14;
-      camera.position.set(21.0, -25.0, 58.0);
-      camera.lookAt(0, 0, 0);
+      camera.fov = 24;
+      camera.position.set(18.5, 11.2, 34.0);
+      camera.lookAt(0, 0, -0.2);
+    } else if (activeView === 'chamber') {
+      camera.fov = 22;
+      camera.position.set(3.4, 2.5, 15.8);
+      camera.lookAt(0, 0, -0.15);
+    } else if (activeView === 'materials') {
+      camera.fov = 22;
+      camera.position.set(7.4, 5.8, 16.5);
+      camera.lookAt(3.8, 2.6, -0.15);
     }
     camera.updateProjectionMatrix();
   };
@@ -167,7 +177,6 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
     if (!needsOverride) return;
 
     applyCameraPreset();
-
     if (neutralStudioEnabled) {
       applyNeutralLightingState();
     }
@@ -185,39 +194,43 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
     postfx.composer.render();
   };
 
+  /**
+   * Measures REAL WebGL draw calls and rendered triangles directly from `renderer.info.render`
+   * (temporarily disabling autoReset around a clean primary scene pass and full composer pass).
+   */
   const getSceneStats = () => {
+    const prevAutoReset = renderer.info.autoReset;
+    const prevTarget = renderer.getRenderTarget();
+
+    renderer.info.autoReset = false;
+    renderer.info.reset();
+    renderer.setRenderTarget(postfx.composer.renderTarget1 ?? null);
+    renderer.render(scene, camera);
+    const sceneRenderCalls = renderer.info.render.calls;
+    const sceneRenderTriangles = renderer.info.render.triangles;
+    const sceneRenderPoints = renderer.info.render.points;
+    const sceneRenderLines = renderer.info.render.lines;
+
+    renderer.setRenderTarget(prevTarget);
+    renderer.info.reset();
+    postfx.composer.render();
+    const composerTotalCalls = renderer.info.render.calls;
+    const composerTotalTriangles = renderer.info.render.triangles;
+    renderer.info.autoReset = prevAutoReset;
+
     let totalMeshes = 0;
-    let visibleMeshes = 0;
     let instancedMeshes = 0;
     let totalInstances = 0;
-    let sprites = 0;
-    let triangles = 0;
-    let vertices = 0;
     let pointLights = 0;
-    const namedObjects: string[] = [];
 
     scene.traverse((obj) => {
-      if (obj.name) namedObjects.push(obj.name);
       if (obj instanceof THREE.PointLight) pointLights++;
-      if (obj instanceof THREE.Sprite && obj.visible) sprites++;
       if (obj instanceof THREE.InstancedMesh) {
         instancedMeshes++;
         totalInstances += obj.count;
         totalMeshes++;
-        if (obj.visible) visibleMeshes++;
-        const pos = obj.geometry.getAttribute('position');
-        const idx = obj.geometry.index;
-        const tris = idx ? idx.count / 3 : pos ? pos.count / 3 : 0;
-        triangles += Math.round(tris * obj.count);
-        vertices += pos ? pos.count * obj.count : 0;
       } else if (obj instanceof THREE.Mesh) {
         totalMeshes++;
-        if (obj.visible) visibleMeshes++;
-        const pos = obj.geometry.getAttribute('position');
-        const idx = obj.geometry.index;
-        const tris = idx ? idx.count / 3 : pos ? pos.count / 3 : 0;
-        triangles += Math.round(tris);
-        vertices += pos ? pos.count : 0;
       }
     });
 
@@ -244,14 +257,17 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
     }));
 
     return {
+      rendererRender: {
+        sceneCalls: sceneRenderCalls,
+        sceneTriangles: sceneRenderTriangles,
+        scenePoints: sceneRenderPoints,
+        sceneLines: sceneRenderLines,
+        composerTotalCalls,
+        composerTotalTriangles,
+      },
       totalMeshes,
-      visibleMeshes,
       instancedMeshes,
       totalInstances,
-      sprites,
-      estimatedDrawCalls: visibleMeshes + sprites,
-      triangles,
-      vertices,
       pointLights,
       rendererMemory: {
         geometries: renderer.info.memory.geometries,
@@ -259,11 +275,10 @@ export function attachStage1Diagnostics(deps: Stage1DiagnosticsDeps): Stage1Diag
       },
       textureStats: textureRegistry.getTextureStats(),
       pbrAudit,
-      namedObjectCount: namedObjects.length,
     };
   };
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && import.meta.env?.DEV) {
     (window as any).__reactorStage1Debug = {
       setView: (preset: Stage1ViewPreset) => {
         activeView = preset;

@@ -158,6 +158,37 @@ export function createBeveledHexagon(
 }
 
 /**
+ * Creates a centered, beveled custom polygon prism in the XY plane (extruded along Z).
+ * Used for angular industrial nacelles, asymmetric auxiliary pods, structural gussets, and iris blades.
+ */
+export function createBeveledPolygon(
+  points: Array<[number, number]>,
+  depth: number,
+  bevelSize = 0.04,
+  bevelThickness = 0.04,
+  uvScale = 0.32
+): THREE.BufferGeometry {
+  const shape = new THREE.Shape();
+  points.forEach(([x, y], idx) => {
+    if (idx === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  });
+  shape.closePath();
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth,
+    bevelEnabled: true,
+    bevelThickness,
+    bevelSize,
+    bevelSegments: 2,
+    curveSegments: 4,
+  });
+  geo.translate(0, 0, -depth * 0.5);
+  geo.computeVertexNormals();
+  return applyBoxProjectedUvs(geo, uvScale);
+}
+
+/**
  * Builds an equilateral triangle path pointing downwards by default (vertices at -90°, 30°, 150°).
  */
 function buildTrianglePoints(radius: number, rotationOffset = -Math.PI / 2): THREE.Vector2[] {

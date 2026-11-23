@@ -156,18 +156,25 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
     expect(result.internalTurbine.children.length).toBeGreaterThanOrEqual(2);
     expect(result.internalTurbineSecondary.children.length).toBeGreaterThanOrEqual(1);
 
-    // State-driver critical named contracts
+    // Verify solid circular rear disc is completely removed (open-frame exoskeleton)
+    expect(scene.getObjectByName('arc-bulkhead-deck-carbon')).toBeUndefined();
+
+    // State-driver critical named contracts + Stage I.1 open-frame industrial modules
     const requiredNames = [
       'arc-reactor-root',
       'arc-central-chamber-root',
       'arc-chamber-shell',
       'arc-chamber-clamps',
       'arc-aperture-inner-rim',
+      'arc-iris-shutter-blades',
       'arc-triangular-core-mesh',
       'arc-inner-wire-triangle',
+      'arc-chamber-optic-glass',
       'arc-central-letters-logo',
-      'arc-outer-containment-ring',
-      'arc-merged-armor-sectors',
+      'arc-rear-structural-hub',
+      'arc-merged-nacelles-anodizedBlack',
+      'arc-asymmetric-outer-modules',
+      'arc-merged-outerMods-heatTintedMetal',
       'arc-inner-plasma-tube-0',
       'arc-inner-plasma-tube-1',
       'arc-inner-plasma-tube-2',
@@ -193,13 +200,21 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
       expect(scene.getObjectByName(name), `Missing named object: ${name}`).toBeTruthy();
     }
 
-    // Aperture iris & core mesh must be real visible geometry
+    // Verify genuine physical 3D depth across the reactor and central chamber
+    const bounds = new THREE.Box3().setFromObject(result.reactorGroup);
+    const size = new THREE.Vector3();
+    bounds.getSize(size);
+    expect(size.z).toBeGreaterThanOrEqual(1.8);
+
+    // Aperture iris & core mesh must be real visible geometry, separated cleanly from glass viewport
     const iris = scene.getObjectByName('arc-aperture-inner-rim') as THREE.Mesh;
     const core = scene.getObjectByName('arc-triangular-core-mesh') as THREE.Mesh;
+    const glass = scene.getObjectByName('arc-chamber-optic-glass') as THREE.Mesh;
     expect(iris.visible).toBe(true);
     expect(iris.geometry.getAttribute('position').count).toBeGreaterThan(100);
     expect(core.visible).toBe(true);
     expect(core.geometry.getAttribute('position').count).toBeGreaterThan(20);
+    expect(glass.position.z - core.position.z).toBeGreaterThanOrEqual(0.7);
 
     // 3-band audio tubes must have distinct cloned material instances
     const tubeMats = [0, 1, 2].map(
@@ -222,7 +237,7 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
         }
       }
     });
-    expect(instancedCount).toBeGreaterThanOrEqual(8);
+    expect(instancedCount).toBeGreaterThanOrEqual(7);
     expect(totalMeshes).toBeLessThanOrEqual(105);
 
     mats.dispose();

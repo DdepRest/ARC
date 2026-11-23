@@ -27,6 +27,7 @@ import {
 } from "./modules/reactor-quality-manager";
 import {
   attachStage1Diagnostics,
+  DEFAULT_REACTOR_CAMERA,
   type Stage1DiagnosticsController,
 } from "./modules/reactor-stage1-diagnostics";
 
@@ -392,8 +393,9 @@ export function useReactor3D(
     const height = Math.max(container.value.clientHeight || window.innerHeight, 300);
 
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(12, width / height, 0.1, 1000);
-    camera.position.z = 81.5;
+    camera = new THREE.PerspectiveCamera(DEFAULT_REACTOR_CAMERA.fov, width / height, 0.5, 500);
+    camera.position.set(...DEFAULT_REACTOR_CAMERA.position);
+    camera.lookAt(...DEFAULT_REACTOR_CAMERA.target);
 
     // antialias: false on default backbuffer because EffectComposer.renderTarget2 owns MSAA
     try {
@@ -567,15 +569,17 @@ export function useReactor3D(
       getAudioTargets: () => ({ bassTarget, midTarget, trebleTarget, currentAudioTarget }),
     });
 
-    stage1Diagnostics = attachStage1Diagnostics({
-      scene,
-      camera,
-      renderer,
-      materials,
-      lighting,
-      postfx,
-      textureRegistry,
-    });
+    if (import.meta.env?.DEV) {
+      stage1Diagnostics = attachStage1Diagnostics({
+        scene,
+        camera,
+        renderer,
+        materials,
+        lighting,
+        postfx,
+        textureRegistry,
+      });
+    }
 
     // Resize Observer for Stage
     resizeObserver = new ResizeObserver(() => {
