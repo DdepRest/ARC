@@ -25,6 +25,10 @@ import {
   createGraphicsQualityManager,
   type GraphicsQualityManager,
 } from "./modules/reactor-quality-manager";
+import {
+  attachStage1Diagnostics,
+  type Stage1DiagnosticsController,
+} from "./modules/reactor-stage1-diagnostics";
 
 export interface ReactorProps {
   state?: ReactorState;
@@ -69,6 +73,7 @@ export function useReactor3D(
   let geometry: ReactorGeometryResult | null = null;
   let textureRegistry: ReactorTextureRegistry | null = null;
   let qualityManager: GraphicsQualityManager | null = null;
+  let stage1Diagnostics: Stage1DiagnosticsController | null = null;
   let stateDriver: { updateFrame: (delta: number) => void; triggerPulse: () => void } | null = null;
 
   const clock = new THREE.Clock();
@@ -284,6 +289,7 @@ export function useReactor3D(
     if (stateDriver) {
       stateDriver.updateFrame(delta);
     }
+    stage1Diagnostics?.applyPostUpdateAndRender();
   };
 
   // ==========================================
@@ -304,6 +310,9 @@ export function useReactor3D(
     // 2. Materials (THREE.Material instances only)
     // 3. Shared Texture Registries & Static Caches (disposed exactly once)
     // 4. Particles & PostFX render targets / passes
+    stage1Diagnostics?.dispose();
+    stage1Diagnostics = null;
+
     qualityManager?.dispose();
     qualityManager = null;
 
@@ -556,6 +565,16 @@ export function useReactor3D(
       getSystemStore: () => systemStore,
       getUIStore: () => uiStore,
       getAudioTargets: () => ({ bassTarget, midTarget, trebleTarget, currentAudioTarget }),
+    });
+
+    stage1Diagnostics = attachStage1Diagnostics({
+      scene,
+      camera,
+      renderer,
+      materials,
+      lighting,
+      postfx,
+      textureRegistry,
     });
 
     // Resize Observer for Stage
