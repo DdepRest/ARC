@@ -297,27 +297,70 @@ export function registerAiIpc() {
     try { DialogLogger.log(userText, arcResponse, details || {}); return { success: true }; }
     catch (err: any) { console.error(`[AI-IPC] Manual dialog log failed: ${sanitizeError(err)}`); return { success: false, error: err?.message }; }
   });
-  ipcMain.handle('ai:analyze-vision', async () => {
-    try {
-      const tmpFile = os.platform() === 'win32' ? path.join(os.tmpdir(), 'arc_screen.png') : '/tmp/arc_screen.png';
-      if (!fs_native.existsSync(tmpFile)) throw new Error("Скриншот не найден.");
-      const base64Data = fs_native.readFileSync(tmpFile, { encoding: 'base64' });
-      const config = providerManager.resolveMultimodalGeminiConfig();
-      if (!config.apiKey.value) return { success: false, error: 'Gemini API key is not configured.' };
-      const ai = new GoogleGenAI({ apiKey: config.apiKey.value, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
-      const response = await ai.models.generateContent({
-        model: config.model,
-        contents: [
-          { inlineData: { mimeType: 'image/png', data: base64Data } },
-          "Что ты видишь на экране? Опиши кратко, емко и по делу, как ИИ-ассистент A.R.C. Отвечай от первого лица, сразу к делу. Если спрашивают, что ты видишь - перечисли основные элементы."
-        ]
-      });
-      return response.text || "Не удалось проанализировать изображение.";
-    } catch (e: any) {
-      console.error(`[Vision] Analysis error: ${sanitizeError(e)}`);
-      return `Произошла ошибка при анализе изображения: ${e?.message || sanitizeError(e)}`;
+  ipcMain.handle(
+    'ai:analyze-vision',
+    async (
+      _event,
+      payload?: { imageBase64?: string; mimeType?: string; prompt?: string }
+    ) => {
+      try {
+        let base64Data = '';
+        let mimeType = 'image/png';
+        if (payload && typeof payload.imageBase64 === 'string' && payload.imageBase64.trim()) {
+          const raw = payload.imageBase64.trim();
+          const dataUriMatch = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(raw);
+          if (dataUriMatch) {
+            mimeType = dataUriMatch[1];
+            base64Data = dataUriMatch[2];
+          } else {
+            base64Data = raw;
+            if (typeof payload.mimeType === 'string' && payload.mimeType.startsWith('image/')) {
+              mimeType = payload.mimeType;
+            }
+          }
+          if (base64Data.length > 10 * 1024 * 1024) {
+            return { success: false, error: 'Размер изображения превышает допустимый лимит (10 МБ).' };
+          }
+        } else {
+          const tmpFile =
+            os.platform() === 'win32'
+              ? path.join(os.tmpdir(), 'arc_screen.png')
+              : '/tmp/arc_screen.png';
+          if (!fs_native.existsSync(tmpFile)) throw new Error('Скриншот не найден.');
+          base64Data = fs_native.readFileSync(tmpFile, { encoding: 'base64' });
+        }
+
+        const config = providerManager.resolveMultimodalGeminiConfig();
+        if (!config.apiKey.value) {
+          return { success: false, error: 'Gemini API key is not configured.' };
+        }
+        const ai = new GoogleGenAI({
+          apiKey: config.apiKey.value,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        });
+        const promptText =
+          typeof payload?.prompt === 'string' && payload.prompt.trim()
+            ? payload.prompt.trim()
+            : 'Что ты видишь на изображении? Опиши кратко, емко и по делу, как ИИ-ассистент A.R.C. Отвечай от первого лица, сразу к делу. Перечисли основные объекты и состояние сцены.';
+        const response = await ai.models.generateContent({
+          model: config.model,
+          contents: [{ inlineData: { mimeType, data: base64Data } }, promptText]
+        });
+        const text = response.text || 'Не удалось проанализировать изображение.';
+        if (payload && typeof payload.imageBase64 === 'string') {
+          return { success: true, text, model: config.model };
+        }
+        return text;
+      } catch (e: any) {
+        console.error(`[Vision] Analysis error: ${sanitizeError(e)}`);
+        const errMsg = `Произошла ошибка при анализе изображения: ${e?.message || sanitizeError(e)}`;
+        if (payload && typeof payload.imageBase64 === 'string') {
+          return { success: false, error: errMsg };
+        }
+        return errMsg;
+      }
     }
-  });
+  );
   ipcMain.handle('ai:get-multimodal-model', async () => {
     const config = providerManager.resolveMultimodalGeminiConfig();
     return { model: config.model, hasKey: Boolean(config.apiKey.value && config.apiKey.status === 'ok') };

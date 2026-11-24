@@ -10,7 +10,7 @@ import {
 } from '../../shared/config/reset-policy';
 
 export const GITHUB_RELEASES_URL =
-  'https://api.github.com/repos/OWNER/REPO/releases/latest'; // TODO: Заменить OWNER/REPO на актуальные
+  'https://api.github.com/repos/DdepRest/ARC/releases/latest';
 
 export function semverGt(latest: string, current: string): boolean {
   const cleanA = String(latest || '').trim().replace(/^v/i, '').split('-')[0];

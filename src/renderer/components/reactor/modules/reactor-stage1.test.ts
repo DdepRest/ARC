@@ -7,6 +7,7 @@ import {
 import { createReactorMaterials } from './reactor-materials';
 import { createReactorLighting } from './reactor-lighting';
 import { buildReactorGeometry } from './reactor-geometry';
+import { DEFAULT_REACTOR_CAMERA } from './reactor-stage1-diagnostics';
 
 // Minimal deterministic canvas mock for Vitest node/dom environments
 function ensureCanvas2dMock() {
@@ -239,6 +240,26 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
     });
     expect(instancedCount).toBeGreaterThanOrEqual(7);
     expect(totalMeshes).toBeLessThanOrEqual(105);
+
+    // Verify 120-degree vertex alignment on corner clamps (-90°, 30°, 150° at r = 4.46)
+    const expectedAngles = [-Math.PI / 2, Math.PI / 6, (5 * Math.PI) / 6];
+    for (let i = 0; i < 3; i++) {
+      const clamp = scene.getObjectByName(`arc-corner-clamp-${i}`) as THREE.Group;
+      expect(clamp).toBeTruthy();
+      expect(clamp.position.x).toBeCloseTo(Math.cos(expectedAngles[i]) * 4.46, 2);
+      expect(clamp.position.y).toBeCloseTo(Math.sin(expectedAngles[i]) * 4.46, 2);
+    }
+
+    // Verify A.R.C. central logo is integrated into the central chamber bezel (z = 0.38)
+    const logoGroup = scene.getObjectByName('arc-central-letters-logo') as THREE.Group;
+    expect(logoGroup.position.z).toBeCloseTo(0.38, 2);
+
+    // Verify DEFAULT_REACTOR_CAMERA retains slight perspective angle without excessive offset skew
+    expect(DEFAULT_REACTOR_CAMERA.position[0]).toBeGreaterThan(1.0);
+    expect(DEFAULT_REACTOR_CAMERA.position[0]).toBeLessThan(4.0);
+    expect(DEFAULT_REACTOR_CAMERA.position[1]).toBeGreaterThan(1.0);
+    expect(DEFAULT_REACTOR_CAMERA.position[1]).toBeLessThan(3.0);
+    expect(DEFAULT_REACTOR_CAMERA.position[2]).toBeGreaterThan(40.0);
 
     mats.dispose();
     registry.disposeAll();

@@ -163,6 +163,9 @@ export class MacroSchedulerService {
       const tz = this.timeZoneFn();
       const today = localDateStr(now, tz);
 
+      const validSlotKeys = new Set<string>();
+      const corruptedMacroIds = new Set<string>();
+
       for (const file of files) {
         const macroId = file.replace(/\.json$/i, '');
         let macroData: any;
@@ -171,14 +174,19 @@ export class MacroSchedulerService {
           const rawJson = fs.promises?.readFile ? await fs.promises.readFile(fullPath, 'utf-8') : fs.readFileSync(fullPath, 'utf-8');
           macroData = JSON.parse(rawJson);
         } catch (err) {
+          corruptedMacroIds.add(macroId);
           logger.warn(`[MacroScheduler] Skipping corrupted macro file ${file}:`, err);
           continue;
         }
-        if (!macroData || macroData.enabled === false) continue;
+        if (!macroData) continue;
 
         const nodes: any[] = Array.isArray(macroData.nodes) ? macroData.nodes : Array.isArray(macroData.data?.nodes) ? macroData.data.nodes : [];
         const timerNodes = nodes.filter((n) => n && n.type === 'triggers/timer');
-        if (timerNodes.length === 0) continue;
+        for (const timerNode of timerNodes) {
+          validSlotKeys.add(`${macroId}::${timerNode.id ?? 0}`);
+        }
+
+        if (macroData.enabled === false || timerNodes.length === 0) continue;
 
         const hasShellNode = nodes.some((n) => n && n.type === 'actions/shell');
         const macroName = String(macroData.name || macroId);
@@ -228,6 +236,20 @@ export class MacroSchedulerService {
             this.releaseMacro(macroId);
           }
         }
+      }
+
+      let prunedCount = 0;
+      for (const existingKey of Object.keys(this.state)) {
+        const sepIdx = existingKey.indexOf('::');
+        const keyMacroId = sepIdx >= 0 ? existingKey.slice(0, sepIdx) : existingKey;
+        if (corruptedMacroIds.has(keyMacroId)) continue;
+        if (!validSlotKeys.has(existingKey)) {
+          delete this.state[existingKey];
+          prunedCount++;
+        }
+      }
+      if (prunedCount > 0) {
+        this.saveState();
       }
     } catch (err) {
       logger.error('[MacroScheduler] Unexpected error during checkNow:', err);

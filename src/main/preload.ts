@@ -93,6 +93,8 @@ contextBridge.exposeInMainWorld('api', {
   checkOllamaOnline: () => ipcRenderer.invoke('ai:check-ollama-online'),
   logDialog: (userText: string, arcResponse: string, details?: any) => ipcRenderer.invoke('ai:log-dialog', { userText, arcResponse, details }),
   analyzeScreenVision: () => ipcRenderer.invoke('ai:analyze-vision'),
+  analyzeVision: (payload?: { imageBase64?: string; mimeType?: string; prompt?: string }) =>
+    ipcRenderer.invoke('ai:analyze-vision', plain(payload)),
   memoryGetAll: () => ipcRenderer.invoke('memory:getAll'),
   memorySearch: (query: string, category?: string) => ipcRenderer.invoke('memory:search', query, category),
   memoryGetByKey: (key: string) => ipcRenderer.invoke('memory:getByKey', key),

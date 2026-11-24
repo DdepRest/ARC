@@ -97,6 +97,32 @@ describe('ai.ipc Provider Allowlist Tests', () => {
     expect(res.success).toBe(false);
     expect(res.error).toContain('EACCES');
   });
+
+  it('ai:analyze-vision accepts direct camera frame { imageBase64, mimeType } payload and returns structured result', async () => {
+    const { ipcMain } = await import('electron');
+    const { registerAiIpc } = await import('./ai.ipc');
+    const { providerManager } = await import('../services/llm/providers/provider-manager');
+
+    vi.spyOn(providerManager, 'resolveMultimodalGeminiConfig').mockReturnValue({
+      model: 'gemini-2.5-flash',
+      apiKey: { status: 'missing', value: '', storageMode: 'dpapi' },
+      source: 'default'
+    });
+
+    registerAiIpc();
+    const handleCalls = (ipcMain.handle as any).mock.calls;
+    const visionCall = handleCalls.filter((c: any[]) => c[0] === 'ai:analyze-vision').pop();
+    expect(visionCall).toBeDefined();
+
+    const missingKeyRes = await visionCall[1](null, {
+      imageBase64: 'data:image/jpeg;base64,aGVsbG8=',
+      mimeType: 'image/jpeg'
+    });
+    expect(missingKeyRes).toEqual({
+      success: false,
+      error: 'Gemini API key is not configured.'
+    });
+  });
 });
 
 

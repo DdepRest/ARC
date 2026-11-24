@@ -126,28 +126,31 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
     const cx = size / 2;
     const cy = size / 2;
 
-    // Dark high-energy background
+    // Restrained high-energy plasma background without blinding white center hotspot
     const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
     const r = (hexColor >> 16) & 255;
     const g = (hexColor >> 8) & 255;
     const b = hexColor & 255;
-    bgGrad.addColorStop(0, '#ffffff');
-    bgGrad.addColorStop(0.2, `rgba(${r}, ${g}, ${b}, 0.8)`);
-    bgGrad.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.4)`);
-    bgGrad.addColorStop(0.8, `rgba(${r}, ${g}, ${b}, 0.1)`);
+    bgGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.68)`);
+    bgGrad.addColorStop(0.28, `rgba(${r}, ${g}, ${b}, 0.52)`);
+    bgGrad.addColorStop(0.62, `rgba(${r}, ${g}, ${b}, 0.24)`);
+    bgGrad.addColorStop(0.88, `rgba(${r}, ${g}, ${b}, 0.08)`);
     bgGrad.addColorStop(1.0, '#000000');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, size, size);
 
-    // Procedural turbulent plasma filaments
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.lineWidth = 1.5;
-    for (let r = 12; r < size * 0.45; r += 10) {
+    // Subtle turbulent plasma filaments
+    const hiR = Math.min(255, r + 55);
+    const hiG = Math.min(255, g + 35);
+    const hiB = Math.min(255, b + 35);
+    ctx.strokeStyle = `rgba(${hiR}, ${hiG}, ${hiB}, 0.24)`;
+    ctx.lineWidth = 1.25;
+    for (let rad = 16; rad < size * 0.45; rad += 12) {
       ctx.beginPath();
       for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.15) {
-        const noise = Math.sin(a * 7 + r * 0.2) * 3 + Math.cos(a * 11) * 2;
-        const x = cx + Math.cos(a) * (r + noise);
-        const y = cy + Math.sin(a) * (r + noise);
+        const noise = Math.sin(a * 6 + rad * 0.2) * 2.5 + Math.cos(a * 9) * 1.5;
+        const x = cx + Math.cos(a) * (rad + noise);
+        const y = cy + Math.sin(a) * (rad + noise);
         if (a === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -155,15 +158,15 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
       ctx.stroke();
     }
 
-    // Radial energy filament rays
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    for (let i = 0; i < 24; i++) {
-      const angle = (Math.PI * 2 / 24) * i;
+    // Restrained 3-fold harmonic radial energy rays (12 rays)
+    ctx.strokeStyle = `rgba(${hiR}, ${hiG}, ${hiB}, 0.16)`;
+    for (let i = 0; i < 12; i++) {
+      const angle = ((Math.PI * 2) / 12) * i;
       ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(angle) * 8, cy + Math.sin(angle) * 8);
+      ctx.moveTo(cx + Math.cos(angle) * 14, cy + Math.sin(angle) * 14);
       ctx.lineTo(
-        cx + Math.cos(angle + (Math.sin(i) * 0.2)) * (size * 0.46),
-        cy + Math.sin(angle + (Math.sin(i) * 0.2)) * (size * 0.46)
+        cx + Math.cos(angle) * (size * 0.45),
+        cy + Math.sin(angle) * (size * 0.45)
       );
       ctx.stroke();
     }
@@ -395,75 +398,110 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
     ctx.clearRect(0, 0, size, size);
 
-    // Balanced coordinates forming an inverted triangle matching the central core aperture
+    // Balanced coordinates forming an inverted triangle matching the central chamber aperture
     const letters = [
-      { char: 'A', x: cx - 240 * scale, y: cy - 140 * scale },
-      { char: 'R', x: cx + 240 * scale, y: cy - 140 * scale },
-      { char: 'C', x: cx,               y: cy + 220 * scale },
+      { char: 'A', x: cx - 224 * scale, y: cy - 128 * scale },
+      { char: 'R', x: cx + 224 * scale, y: cy - 128 * scale },
+      { char: 'C', x: cx,               y: cy + 206 * scale },
     ];
 
-    // 1. Subtle holographic connecting lines between the letters (triangle constellation)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
-    ctx.lineWidth = 1.5 * scale;
-    ctx.setLineDash([8 * scale, 8 * scale]);
+    // 1. Subtle dark obsidian triangular backing layer inside the central chamber
+    //    Prevents core plasma emission from washing out A.R.C. while preserving perimeter glow
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx - 385 * scale, cy - 245 * scale);
+    ctx.lineTo(cx + 385 * scale, cy - 245 * scale);
+    ctx.lineTo(cx, cy + 410 * scale);
+    ctx.closePath();
+    const shieldGrad = ctx.createRadialGradient(cx, cy - 20 * scale, 10 * scale, cx, cy - 20 * scale, 410 * scale);
+    shieldGrad.addColorStop(0, 'rgba(8, 10, 14, 0.88)');
+    shieldGrad.addColorStop(0.75, 'rgba(10, 12, 17, 0.80)');
+    shieldGrad.addColorStop(1.0, 'rgba(12, 15, 20, 0.35)');
+    ctx.fillStyle = shieldGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(220, 226, 236, 0.22)';
+    ctx.lineWidth = 2.2 * scale;
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. Clean triangular datum lines connecting A - R - C
+    ctx.strokeStyle = 'rgba(228, 234, 242, 0.20)';
+    ctx.lineWidth = 1.8 * scale;
     ctx.beginPath();
     ctx.moveTo(letters[0].x, letters[0].y);
     ctx.lineTo(letters[1].x, letters[1].y);
     ctx.lineTo(letters[2].x, letters[2].y);
     ctx.closePath();
     ctx.stroke();
-    ctx.setLineDash([]); // Reset dash
 
-    // 2. Render each letter crisp, solid, restrained, and clean (no destructive cuts or neon offsets)
-    letters.forEach((item, index) => {
-      ctx.font = `600 ${Math.round(145 * scale)}px "Montserrat", "Helvetica Neue", "Segoe UI", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      // Sharp core pass (no blurring shadow pass)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(item.char, item.x, item.y);
-
-      // Technical HUD subtext below each letter
-      ctx.font = `600 ${Math.round(16 * scale)}px "JetBrains Mono", "Courier New", monospace`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-      const subtexts = ['SYS_A // SEC_01', 'SYS_R // SEC_02', 'SYS_C // SEC_03'];
-      ctx.fillText(subtexts[index], item.x, item.y + 88 * scale);
-
-      // Tech bracket targets around each letter (compact and proportioned)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 1.5 * scale;
-      const bW = 68 * scale; // half width of bracket box
-      const bH = 68 * scale; // half height of bracket box
-      const tL = 12 * scale; // tick length
-
-      // Top-Left corner
+    // 3. Precision dark backing medallions + deterministic vector glyphs for A, R, C
+    const drawPrecisionGlyph = (char: string, gx: number, gy: number) => {
+      // Dark matte contrast disc behind each letter
       ctx.beginPath();
-      ctx.moveTo(item.x - bW, item.y - bH + tL);
-      ctx.lineTo(item.x - bW, item.y - bH);
-      ctx.lineTo(item.x - bW + tL, item.y - bH);
+      ctx.arc(gx, gy, 88 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(7, 9, 13, 0.92)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(225, 232, 242, 0.26)';
+      ctx.lineWidth = 1.8 * scale;
       ctx.stroke();
 
-      // Top-Right corner
-      ctx.beginPath();
-      ctx.moveTo(item.x + bW, item.y - bH + tL);
-      ctx.lineTo(item.x + bW, item.y - bH);
-      ctx.lineTo(item.x + bW - tL, item.y - bH);
-      ctx.stroke();
+      ctx.save();
+      ctx.strokeStyle = '#f2f5fa';
+      ctx.fillStyle = '#f2f5fa';
+      ctx.lineCap = 'butt';
+      ctx.lineJoin = 'miter';
+      ctx.miterLimit = 6;
+      const sw = 21 * scale; // crisp structural stroke width
+      ctx.lineWidth = sw;
+      const h = 58 * scale; // half height of glyph
+      const w = 44 * scale; // half width of glyph
 
-      // Bottom-Left corner
-      ctx.beginPath();
-      ctx.moveTo(item.x - bW, item.y + bH - tL);
-      ctx.lineTo(item.x - bW, item.y + bH);
-      ctx.lineTo(item.x - bW + tL, item.y + bH);
-      ctx.stroke();
+      if (char === 'A') {
+        // Crisp geometric 'A' with wide open apex and clear crossbar
+        ctx.beginPath();
+        ctx.moveTo(gx - w, gy + h);
+        ctx.lineTo(gx, gy - h);
+        ctx.lineTo(gx + w, gy + h);
+        ctx.stroke();
 
-      // Bottom-Right corner
-      ctx.beginPath();
-      ctx.moveTo(item.x + bW, item.y + bH - tL);
-      ctx.lineTo(item.x + bW, item.y + bH);
-      ctx.lineTo(item.x + bW - tL, item.y + bH);
-      ctx.stroke();
+        ctx.beginPath();
+        ctx.lineWidth = sw * 0.85;
+        ctx.moveTo(gx - w * 0.56, gy + h * 0.24);
+        ctx.lineTo(gx + w * 0.56, gy + h * 0.24);
+        ctx.stroke();
+      } else if (char === 'R') {
+        // Precision engineered 'R' with unmistakable open upper bowl counter and distinct angled leg
+        const leftX = gx - w * 0.88;
+        const bowlRightX = gx + w * 0.42;
+        const midY = gy + 2 * scale;
+        const bowlRadius = (h + 2 * scale) * 0.5;
+        const bowlCenterY = gy - h + bowlRadius;
+
+        // Vertical stem + upper bowl loop (leaving large, dark open counter inside)
+        ctx.beginPath();
+        ctx.moveTo(leftX, gy + h);
+        ctx.lineTo(leftX, gy - h);
+        ctx.lineTo(gx + w * 0.14, gy - h);
+        ctx.arc(gx + w * 0.14, bowlCenterY, bowlRadius, -Math.PI / 2, Math.PI / 2, false);
+        ctx.lineTo(leftX, midY);
+        ctx.stroke();
+
+        // Diagonal kick leg of 'R' clearly separated from the vertical stem
+        ctx.beginPath();
+        ctx.moveTo(gx + w * 0.04, midY);
+        ctx.lineTo( bowlRightX + w * 0.46, gy + h);
+        ctx.stroke();
+      } else if (char === 'C') {
+        // Crisp geometric 'C' with wide open right aperture
+        ctx.beginPath();
+        ctx.arc(gx + 4 * scale, gy, h * 0.94, 0.24 * Math.PI, 1.76 * Math.PI, false);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+
+    letters.forEach((item) => {
+      drawPrecisionGlyph(item.char, item.x, item.y);
     });
   }
 

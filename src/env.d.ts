@@ -87,6 +87,10 @@ interface Window {
     macrosLoad: (id: string) => Promise<any>;
     macrosDelete: (id: string) => Promise<boolean>;
     macrosExecute: (id: string) => Promise<boolean>;
+    analyzeScreenVision?: () => Promise<string | { success: boolean; text?: string; error?: string }>;
+    analyzeVision?: (payload?: { imageBase64?: string; mimeType?: string; prompt?: string }) => Promise<
+      string | { success: boolean; text?: string; model?: string; error?: string }
+    >;
     
     // Objective-First Engine API Declarations
     objectiveGetAll: () => Promise<any[]>;

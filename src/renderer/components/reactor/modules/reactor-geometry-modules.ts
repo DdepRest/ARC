@@ -60,17 +60,16 @@ export function buildAsymmetricOuterModules(
     { angle: -Math.PI / 2, role: 'ventral' },      // 270° Bottom Ventral
   ];
 
-  // Secondary micro-module geometries
-  const finGeo = createBeveledTrapezoid(0.048, 0.04, 0.50, 0.24, 0.006, 0.006);
-  const cylGeo = new THREE.CylinderGeometry(0.14, 0.14, 1.12, 18);
+  // Secondary micro-module geometries (balanced visual mass across all 3 bays)
+  const finGeo = createBeveledTrapezoid(0.046, 0.038, 0.46, 0.22, 0.006, 0.006);
+  const cylGeo = new THREE.CylinderGeometry(0.105, 0.105, 0.92, 16);
   cylGeo.rotateZ(Math.PI / 2);
   ensureUv2(cylGeo);
-  const bandGeo = new THREE.TorusGeometry(0.15, 0.022, 8, 18);
+  const bandGeo = new THREE.TorusGeometry(0.112, 0.018, 8, 16);
   bandGeo.rotateY(Math.PI / 2);
   ensureUv2(bandGeo);
-  const endCapGeo = createBeveledHexagon(0.14, 0.08, 0.016, 0.016);
-  const keelGeo = createBeveledTrapezoid(0.24, 0.14, 0.82, 0.20, 0.025, 0.025);
-  const exhaustGlowGeo = new THREE.BoxGeometry(0.16, 0.28, 0.08);
+  const endCapGeo = createBeveledHexagon(0.11, 0.06, 0.014, 0.014);
+  const keelGeo = createBeveledTrapezoid(0.20, 0.13, 0.52, 0.20, 0.022, 0.022);
 
   for (const cfg of bayConfigs) {
     const g = new THREE.Group();
@@ -108,9 +107,9 @@ export function buildAsymmetricOuterModules(
     g.add(topLip);
     titanium.push(topLip);
 
-    // 5. Recessed Controlled Reactor-Red Thermal/Energy Vent Slit
+    // 5. Recessed Controlled Reactor-Red Thermal/Energy Vent Slit (identical across all 3 bays)
     const ventSlit = new THREE.Mesh(ventSlitGeo, materials.neonTubeMat);
-    ventSlit.position.set(0, -0.02, 0.24);
+    ventSlit.position.set(0, -0.02, 0.22);
     g.add(ventSlit);
     neon.push(ventSlit);
 
@@ -122,33 +121,33 @@ export function buildAsymmetricOuterModules(
         new THREE.Vector3(side * 1.66, -0.60, -0.24),
       ]);
       const pipe = new THREE.Mesh(
-        new THREE.TubeGeometry(pipeCurve, 12, 0.046, 8, false),
+        new THREE.TubeGeometry(pipeCurve, 12, 0.044, 8, false),
         materials.ringFrameMat
       );
       g.add(pipe);
       anodized.push(pipe);
     }
 
-    // 7. Restrained, Purposeful Secondary Engineering Detail inside the unified footprint
+    // 7. Restrained, Purposeful Secondary Engineering Detail with equal visual weight
     if (cfg.role === 'thermal') {
       // 5 flush dark burnished copper thermal louver fins inside the bay cassette
       for (let f = -2; f <= 2; f++) {
         const fin = new THREE.Mesh(finGeo, materials.copperWinding);
-        fin.position.set(f * 0.22, 0.24, 0.20);
+        fin.position.set(f * 0.21, 0.24, 0.18);
         g.add(fin);
         copper.push(fin);
       }
     } else if (cfg.role === 'cryo') {
       // Flush compact twin carbon-wrapped micro cryo-capacitors nestled inside bay shroud
       for (let row = 0; row < 2; row++) {
-        const yOff = row === 0 ? 0.10 : 0.40;
-        const zOff = row === 0 ? 0.20 : 0.14;
+        const yOff = row === 0 ? 0.12 : 0.36;
+        const zOff = row === 0 ? 0.18 : 0.13;
         const cyl = new THREE.Mesh(cylGeo, materials.darkCarbon);
         cyl.position.set(0, yOff, zOff);
         g.add(cyl);
         carbon.push(cyl);
 
-        for (const xBand of [-0.34, 0.0, 0.34]) {
+        for (const xBand of [-0.26, 0.26]) {
           const band = new THREE.Mesh(bandGeo, row === 0 ? materials.darkCeramic : materials.brushedTitanium);
           band.position.set(xBand, yOff, zOff);
           g.add(band);
@@ -159,31 +158,35 @@ export function buildAsymmetricOuterModules(
         for (const side of [-1, 1]) {
           const cap = new THREE.Mesh(endCapGeo, materials.brushedTitanium);
           cap.rotation.y = Math.PI / 2;
-          cap.position.set(side * 0.58, yOff, zOff);
+          cap.position.set(side * 0.48, yOff, zOff);
           g.add(cap);
           titanium.push(cap);
         }
       }
       const busbar = new THREE.Mesh(
-        createBeveledTrapezoid(0.68, 0.58, 0.08, 0.06, 0.01, 0.01),
+        createBeveledTrapezoid(0.62, 0.54, 0.07, 0.05, 0.01, 0.01),
         materials.copperWinding
       );
-      busbar.position.set(0, -0.22, 0.22);
+      busbar.position.set(0, -0.20, 0.20);
       g.add(busbar);
       copper.push(busbar);
     } else {
-      // Sleek centered ventral stabilizer fin + twin subtle exhaust core slits
+      // Sleek centered ventral stabilizer fin + balanced matte ceramic & copper damper vanes (no extra red glow blocks)
       const keel = new THREE.Mesh(keelGeo, materials.darkCarbon);
-      keel.position.set(0, 0.22, 0.22);
+      keel.position.set(0, 0.24, 0.19);
       g.add(keel);
       carbon.push(keel);
 
-      for (let side = -1; side <= 1; side += 2) {
-        const glow = new THREE.Mesh(exhaustGlowGeo, materials.neonTubeMat);
-        glow.position.set(side * 0.42, 0.20, 0.23);
-        glow.rotation.z = -side * 0.12;
-        g.add(glow);
-        neon.push(glow);
+      for (const side of [-1, 1]) {
+        const innerVane = new THREE.Mesh(finGeo, materials.copperWinding);
+        innerVane.position.set(side * 0.24, 0.24, 0.18);
+        g.add(innerVane);
+        copper.push(innerVane);
+
+        const outerVane = new THREE.Mesh(finGeo, materials.darkCeramic);
+        outerVane.position.set(side * 0.44, 0.24, 0.17);
+        g.add(outerVane);
+        ceramic.push(outerVane);
       }
     }
 

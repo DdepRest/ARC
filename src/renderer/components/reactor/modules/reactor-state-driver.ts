@@ -486,10 +486,10 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     postfx.bloomPass.enabled = !isBloomDisabled;
     if (gfx && typeof gfx.bloomRadius === "number") {
       const clampedR = Math.max(0.2, Math.min(0.8, gfx.bloomRadius));
-      postfx.bloomPass.radius = 0.28 + ((clampedR - 0.2) / 0.6) * 0.22;
+      postfx.bloomPass.radius = 0.18 + ((clampedR - 0.2) / 0.6) * 0.14;
     }
     if (gfx && typeof gfx.bloomThreshold === "number") {
-      postfx.bloomPass.threshold = Math.max(0.35, Math.min(0.85, gfx.bloomThreshold));
+      postfx.bloomPass.threshold = Math.max(0.58, Math.min(0.85, gfx.bloomThreshold));
     }
     const bloomOffEmissiveBoost = isBloomDisabled ? 1.25 : 1.0;
 
@@ -561,25 +561,25 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         ? (1.1 + smoothBass * 0.9 + smoothMid * 0.6)
         : (1.0 + smoothBass * 0.85 + smoothMid * 0.55 + smoothTotal * 0.7 + manualPulseValue * 0.4);
       materials.singularityCoreEmissiveMat.emissiveIntensity =
-        (0.85 + currentVisuals.coreIntensity * 0.7) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
+        (0.52 + currentVisuals.coreIntensity * 0.44) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
 
       materials.singularityInnerWireMat.color.copy(activeColor);
-      materials.singularityInnerWireMat.opacity = Math.min(0.95, (0.45 + smoothTotal * 0.55 + smoothBass * 0.3) * stageCenter);
+      materials.singularityInnerWireMat.opacity = Math.min(0.46, (0.24 + smoothTotal * 0.26 + smoothBass * 0.16) * stageCenter);
 
-      materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.25);
+      materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.18);
       materials.singularityFacetedMat.emissive.copy(activeColor);
-      materials.singularityFacetedMat.emissiveIntensity = (0.22 + smoothTotal * 0.35) * stageCenter * bloomOffEmissiveBoost;
+      materials.singularityFacetedMat.emissiveIntensity = (0.16 + smoothTotal * 0.24) * stageCenter * bloomOffEmissiveBoost;
 
       // Stage 2: Waveguides, Channel Trenches, Plasma Vortex & Port Diodes
-      // Emissive compensation (+0.10) when outer perimeter PointLights are culled in Eco/Standard tiers
+      // Emissive compensation (+0.08) when outer perimeter PointLights are culled in Eco/Standard tiers
       const lightTier = gfx?.dynamicPointLights ?? "standard";
       const isFullPerimeterLights = diagFlags.overrideActive
         ? diagFlags.enablePerimeterPointLights
         : lightTier === "full" || diagFlags.enablePerimeterPointLights;
-      const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.1;
+      const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.08;
       materials.neonTubeMat.color.copy(tempTrenchColor);
       materials.neonTubeMat.emissive.copy(activeColor);
-      const baseTubeIntensity = (1.50 + perimeterLightComp + smoothTotal * 0.55 + smoothBass * 0.45 + manualPulseValue * 0.45) * stageTrench * bloomOffEmissiveBoost;
+      const baseTubeIntensity = (1.12 + perimeterLightComp + smoothTotal * 0.42 + smoothBass * 0.34 + manualPulseValue * 0.32) * stageTrench * bloomOffEmissiveBoost;
       materials.neonTubeMat.emissiveIntensity = baseTubeIntensity;
 
       // Idea 8: 3-Band Spatial Audio Mapping across the 3 inner triangle plasma tubes (bass, mid, treble)
@@ -589,8 +589,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         const mid = smoothMid || 0;
         const treble = smoothTreble || 0;
         const bandValues = use3Band ? [bass, mid, treble] : [smoothTotal, smoothTotal, smoothTotal];
-        const innerBaseIntensity = (1.64 + perimeterLightComp + smoothTotal * 0.62 + manualPulseValue * 0.45) * stageTrench * bloomOffEmissiveBoost;
-        const freqMultiplier = 0.55 * stageTrench * bloomOffEmissiveBoost;
+        const innerBaseIntensity = (1.18 + perimeterLightComp + smoothTotal * 0.45 + manualPulseValue * 0.34) * stageTrench * bloomOffEmissiveBoost;
+        const freqMultiplier = 0.42 * stageTrench * bloomOffEmissiveBoost;
         for (let idx = 0; idx < 3; idx++) {
           const tube = innerEdgeTubes[idx];
           if (tube?.material instanceof THREE.MeshStandardMaterial) {
@@ -605,36 +605,36 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
       materials.coreDiodeMat.color.copy(tempTrenchColor);
       materials.coreDiodeMat.emissive.copy(activeColor);
-      materials.coreDiodeMat.emissiveIntensity = (1.65 + perimeterLightComp + smoothBass * 0.7 + manualPulseValue * 0.45) * stageTrench * bloomOffEmissiveBoost;
+      materials.coreDiodeMat.emissiveIntensity = (1.22 + perimeterLightComp + smoothBass * 0.52 + manualPulseValue * 0.34) * stageTrench * bloomOffEmissiveBoost;
 
       materials.plasmaVortexMat.color.copy(activeColor);
       materials.plasmaVortexMat.emissive.copy(activeColor);
-      materials.plasmaVortexMat.emissiveIntensity = (1.25 + smoothTotal * 0.85) * stageTrench * bloomOffEmissiveBoost;
-      materials.plasmaVortexMat.opacity = Math.min(0.92, (0.68 + smoothTotal * 0.25) * stageTrench);
+      materials.plasmaVortexMat.emissiveIntensity = (0.96 + smoothTotal * 0.65) * stageTrench * bloomOffEmissiveBoost;
+      materials.plasmaVortexMat.opacity = Math.min(0.84, (0.56 + smoothTotal * 0.22) * stageTrench);
 
       // Stage 3: Containment Rings, Energy Conduits & Wavefields
       materials.ringFrameMat.emissive.copy(activeColor);
-      materials.ringFrameMat.emissiveIntensity = 0.14 * stageRings * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
+      materials.ringFrameMat.emissiveIntensity = 0.10 * stageRings * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
 
       materials.energyWaveMat.color.copy(activeColor);
       const shockwaveFactor = !gfx || gfx.shockwavesEnabled !== false ? 1.0 + manualPulseValue * 0.45 : 0.25;
-      materials.energyWaveMat.opacity = (0.2 + smoothBass * 0.4) * stageRings * shockwaveFactor;
+      materials.energyWaveMat.opacity = (0.16 + smoothBass * 0.32) * stageRings * shockwaveFactor;
       materials.energyArcMat.color.copy(activeColor);
-      materials.energyArcMat.opacity = 0.3 * stageRings;
+      materials.energyArcMat.opacity = 0.24 * stageRings;
       materials.coronaMat.color.copy(activeColor);
-      materials.coronaMat.opacity = 0.25 * stageRings;
+      materials.coronaMat.opacity = 0.20 * stageRings;
 
       // Stage 4: Outer Perimeter, Locks, Outer Glass Tint & Critical Accents
       materials.outerGlassRingMat.color.copy(tempOuterColor);
       materials.criticalWhite.emissive.copy(activeColor);
-      materials.criticalWhite.emissiveIntensity = 1.15 * stageOuter * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
+      materials.criticalWhite.emissiveIntensity = 0.92 * stageOuter * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
     }
 
-    // Synchronize central holographic triangular ARC logo (Crisp white below 0.48 bloom threshold)
+    // Synchronize central triangular A.R.C. logo (Crisp neutral-white below 0.58 bloom threshold)
     if (materials.arcCenterLogoMat) {
-      materials.arcCenterLogoMat.color.setHex(0xd0d0d6);
+      materials.arcCenterLogoMat.color.setHex(0xe2e6ee);
       materials.arcCenterLogoMat.opacity = isGlowActive
-        ? Math.min(0.88, (0.62 + stageCenter * 0.22 + smoothBass * 0.04) * stageCenter)
+        ? Math.min(0.95, (0.76 + stageCenter * 0.18 + smoothBass * 0.02) * stageCenter)
         : 0.0;
     }
 
@@ -711,7 +711,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         }
         if (isGlowActive) {
           materials.singularityCoreEmissiveMat.emissiveIntensity =
-            (0.85 + currentVisuals.coreIntensity * 0.7) * (0.95 + patternBoost * 0.85 + manualPulseValue * 0.35) * stageCenter * bloomOffEmissiveBoost;
+            (0.52 + currentVisuals.coreIntensity * 0.44) * (0.92 + patternBoost * 0.65 + manualPulseValue * 0.28) * stageCenter * bloomOffEmissiveBoost;
         } else {
           materials.singularityCoreEmissiveMat.emissiveIntensity = 0.0;
         }
@@ -1381,21 +1381,21 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       particles.dataNodes.visible = false;
     }
 
-    // 13. Bloom Strength & Studio Accent Lighting (Phased by Stage — Calibrated HDR Glow)
+    // 13. Bloom Strength & Studio Accent Lighting (Phased by Stage — Controlled Optical Glow)
     const ramPulseMult = computeRamGlowPulse(ramUsage, elapsedTime);
     const clampedStrength = gfx ? Math.max(50, Math.min(150, gfx.bloomStrength)) : 95;
-    const userBloomMult = 0.72 + ((clampedStrength - 50) / 100) * 0.56;
+    const userBloomMult = 0.62 + ((clampedStrength - 50) / 100) * 0.42;
     let finalBloom =
-      ((0.28 + currentVisuals.bloomStrength * 0.28) * (0.95 + (ramPulseMult - 1.0) * 0.14) + smoothTotal * 0.18 + manualPulseValue * 0.18) *
+      ((0.18 + currentVisuals.bloomStrength * 0.18) * (0.95 + (ramPulseMult - 1.0) * 0.12) + smoothTotal * 0.12 + manualPulseValue * 0.12) *
       masterGlow *
       userBloomMult;
     if (state === "speaking") {
-      finalBloom *= 1.0 + 0.22 * smoothMid + 0.12 * smoothBass;
+      finalBloom *= 1.0 + 0.18 * smoothMid + 0.10 * smoothBass;
     }
     if (currentSignature.coreJitter > 0.2 && !prefersReducedMotion) {
-      finalBloom *= (0.88 + Math.random() * 0.24);
+      finalBloom *= (0.90 + Math.random() * 0.20);
     }
-    finalBloom = Math.max(0.0, Math.min(0.68, finalBloom));
+    finalBloom = Math.max(0.0, Math.min(0.42, finalBloom));
     postfx.bloomPass.strength += (finalBloom - postfx.bloomPass.strength) * 0.2;
 
     // Update dynamic lights per tier:

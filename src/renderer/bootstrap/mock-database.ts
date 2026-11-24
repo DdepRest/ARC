@@ -634,6 +634,11 @@ export function setupElectronApiMock() {
         return { success: true, summary: sum };
       },
       logDialog: async () => ({ success: true }),
+      analyzeScreenVision: async () => 'Браузерный режим превью: анализ экрана требует настольного контура Electron + Gemini Vision.',
+      analyzeVision: async () => ({
+        success: false,
+        error: 'Браузерный режим превью: мультимодальный анализ кадра камеры требует настольного контура Electron и настроенного ключа Gemini.'
+      }),
       
       filesList: async (dirPath?: string) => {
         return {

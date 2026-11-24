@@ -89,8 +89,21 @@
         </button>
       </div>
 
-      <!-- Active State Control: Stop/Disable Camera -->
-      <div v-else class="absolute top-4 right-4 z-20">
+      <!-- Active State Control: Analyze Frame & Stop/Disable Camera -->
+      <div v-else class="absolute top-4 right-4 z-20 flex items-center gap-2">
+        <button
+          @click="analyzeCurrentFrame"
+          type="button"
+          :disabled="isAnalyzing"
+          data-testid="vision-analyze-frame"
+          class="text-xs font-mono border border-[var(--arc-hairline)] rounded-[10px] bg-[var(--arc-plane)] hover:bg-[var(--arc-hover)] text-[var(--arc-text-primary)] disabled:opacity-50 px-3 py-1.5 cursor-pointer transition uppercase flex items-center gap-1.5"
+        >
+          <span
+            class="w-1.5 h-1.5 rounded-full"
+            :class="isAnalyzing ? 'bg-[var(--status-warn)] animate-pulse' : 'bg-[var(--accent)]'"
+          ></span>
+          {{ isAnalyzing ? 'АНАЛИЗ...' : 'АНАЛИЗ КАДРА' }}
+        </button>
         <button 
           @click="$emit('stopCamera')" 
           type="button"
@@ -111,11 +124,48 @@
       }"
     >
       <div class="flex items-center gap-2 text-xs font-mono text-[var(--arc-text-machine)] uppercase tracking-wider">
-        <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-off)]"></span>
-        <span>МОДУЛЬ НЕЙРОСЕТЕВОГО АНАЛИЗА: НЕАКТИВЕН</span>
+        <span
+          class="w-1.5 h-1.5 rounded-full"
+          :class="
+            isAnalyzing
+              ? 'bg-[var(--status-warn)] animate-pulse'
+              : analysisError
+                ? 'bg-[var(--status-err)]'
+                : analysisResult
+                  ? 'bg-[var(--status-ok)]'
+                  : 'bg-[var(--status-off)]'
+          "
+        ></span>
+        <span>
+          {{
+            isAnalyzing
+              ? 'МОДУЛЬ МУЛЬТИМОДАЛЬНОГО АНАЛИЗА: ОБРАБОТКА КАДРА'
+              : analysisError
+                ? 'МОДУЛЬ МУЛЬТИМОДАЛЬНОГО АНАЛИЗА: ОШИБКА'
+                : analysisResult
+                  ? `МОДУЛЬ МУЛЬТИМОДАЛЬНОГО АНАЛИЗА: ГОТОВ${analysisModel ? ` (${analysisModel})` : ''}`
+                  : isCameraActive
+                    ? 'МОДУЛЬ МУЛЬТИМОДАЛЬНОГО АНАЛИЗА: ГОТОВ К ЗАХВАТУ КАДРА'
+                    : 'МОДУЛЬ МУЛЬТИМОДАЛЬНОГО АНАЛИЗА: ОЖИДАНИЕ КАМЕРЫ'
+          }}
+        </span>
       </div>
-      <p class="text-xs text-[var(--arc-text-hint)] font-sans max-w-[420px] leading-relaxed">
-        Распознавание объектов и сегментация сцен перенесены в Фазу 2. Оптический канал готов к прямому захвату кадров.
+      <p
+        v-if="analysisError"
+        data-testid="vision-analysis-error"
+        class="text-xs text-[var(--status-err)] font-sans max-w-[640px] leading-relaxed"
+      >
+        {{ analysisError }}
+      </p>
+      <p
+        v-else-if="analysisResult"
+        data-testid="vision-analysis-result"
+        class="text-xs text-[var(--arc-text-primary)] font-sans max-w-[640px] leading-relaxed whitespace-pre-wrap"
+      >
+        {{ analysisResult }}
+      </p>
+      <p v-else class="text-xs text-[var(--arc-text-hint)] font-sans max-w-[460px] leading-relaxed">
+        Включите оптический канал и нажмите «АНАЛИЗ КАДРА» для мультимодального распознавания текущего кадра камеры через настроенный контур Gemini Vision.
       </p>
     </div>
   </div>
@@ -140,8 +190,62 @@ defineEmits<{
 }>();
 
 const videoPlayerRef = ref<HTMLVideoElement | null>(null);
+const isAnalyzing = ref(false);
+const analysisResult = ref<string | null>(null);
+const analysisError = ref<string | null>(null);
+const analysisModel = ref<string | null>(null);
 
-// TODO(P2): expose ai:analyze-vision via preload; button activates when window.api.analyzeVision is available
+async function analyzeCurrentFrame() {
+  if (isAnalyzing.value) return;
+  analysisError.value = null;
+
+  const videoEl = videoPlayerRef.value;
+  if (!videoEl || !props.isCameraActive) {
+    analysisError.value = 'Камера не активна.';
+    return;
+  }
+
+  const analyzeFn = window.api?.analyzeVision;
+  if (typeof analyzeFn !== 'function') {
+    analysisError.value = 'Канал мультимодального анализа (window.api.analyzeVision) недоступен.';
+    return;
+  }
+
+  try {
+    isAnalyzing.value = true;
+    const width = videoEl.videoWidth > 0 ? videoEl.videoWidth : 640;
+    const height = videoEl.videoHeight > 0 ? videoEl.videoHeight : 360;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      analysisError.value = 'Не удалось инициализировать 2D-контекст захвата кадра.';
+      return;
+    }
+    ctx.drawImage(videoEl, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+    const response = await analyzeFn({
+      imageBase64: dataUrl,
+      mimeType: 'image/jpeg'
+    });
+
+    if (typeof response === 'string') {
+      analysisResult.value = response;
+      analysisModel.value = null;
+    } else if (response && response.success) {
+      analysisResult.value = response.text || 'Кадр проанализирован.';
+      analysisModel.value = response.model || null;
+    } else {
+      analysisError.value = response?.error || 'Не удалось выполнить анализ кадра.';
+    }
+  } catch (err: any) {
+    analysisError.value = err?.message || 'Ошибка при захвате или отправке кадра.';
+  } finally {
+    isAnalyzing.value = false;
+  }
+}
 
 watch(
   () => props.videoPlayer,

@@ -59,7 +59,15 @@ export function createGraphicsQualityManager(params: {
   let disposed = false;
 
   const computeEffectiveConfig = (): GraphicsConfig => {
-    const source = showcaseOverrideActive ? cloneGraphicsConfig(SHOWCASE_CONFIG_OVERRIDE) : baseConfig;
+    const source = showcaseOverrideActive
+      ? {
+          ...cloneGraphicsConfig(SHOWCASE_CONFIG_OVERRIDE),
+          dofEnabled: false,
+          bloomStrength: 92,
+          bloomRadius: 0.36,
+          bloomThreshold: 0.60,
+        }
+      : baseConfig;
     const safe = sanitizeConfigForCapabilities(source, capabilities);
 
     if (adaptiveOverrides.disableAo) {

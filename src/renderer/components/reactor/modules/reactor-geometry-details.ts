@@ -21,18 +21,18 @@ export function buildOuterMicroDetails(
 ): void {
   const dummy = new THREE.Object3D();
 
-  // 1. 18 Functional Hex Anchor Bolts placed strictly on the 3 refined nacelle decks (6 each)
-  const boltGeo = createBeveledHexagon(0.052, 0.06, 0.012, 0.012);
-  const boltInst = new THREE.InstancedMesh(boltGeo, materials.ringFrameMat, 18);
+  // 1. 12 Functional Hex Anchor Bolts placed symmetrically on the 3 nacelle decks (4 each)
+  const boltGeo = createBeveledHexagon(0.048, 0.055, 0.011, 0.011);
+  const boltInst = new THREE.InstancedMesh(boltGeo, materials.ringFrameMat, 12);
   boltInst.name = 'arc-instanced-hex-bolts';
 
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
-  const boltOffsets = [-0.46, -0.34, -0.22, 0.22, 0.34, 0.46];
+  const boltOffsets = [-0.38, -0.18, 0.18, 0.38];
   let boltIdx = 0;
   for (const centerA of nacelleAngles) {
     for (const off of boltOffsets) {
       const a = centerA + off;
-      const r = Math.abs(off) > 0.3 ? 4.86 : 5.30;
+      const r = 5.14;
       dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, -0.04);
       dummy.rotation.set(0, 0, a);
       dummy.scale.setScalar(1.0);
@@ -46,18 +46,18 @@ export function buildOuterMicroDetails(
   boltInst.matrixAutoUpdate = false;
   outerEnvelope.add(boltInst);
 
-  // 2. 12 Dark-Metal Accelerator Tunnel Bridge Clamps securing the continuous 360° optical ring
-  const clampGeo = createBeveledTrapezoid(0.32, 0.24, 0.12, 0.14, 0.016, 0.016);
-  const clampInst = new THREE.InstancedMesh(clampGeo, materials.ringFrameMat, 12);
+  // 2. 6 Dark-Metal Accelerator Tunnel Bridge Clamps securing the continuous 360° optical ring (2 per bay)
+  const clampGeo = createBeveledTrapezoid(0.28, 0.22, 0.11, 0.13, 0.015, 0.015);
+  const clampInst = new THREE.InstancedMesh(clampGeo, materials.ringFrameMat, 6);
   clampInst.name = 'arc-instanced-glass-clamps';
 
   const bayAngles = [Math.PI / 6, (5 * Math.PI) / 6, (3 * Math.PI) / 2];
-  const bayClampOffsets = [-0.44, -0.18, 0.18, 0.44];
+  const bayClampOffsets = [-0.30, 0.30];
   let clampIdx = 0;
   for (const bayA of bayAngles) {
     for (const off of bayClampOffsets) {
       const a = bayA + off;
-      dummy.position.set(Math.cos(a) * ringRadius, Math.sin(a) * ringRadius, 0.14);
+      dummy.position.set(Math.cos(a) * ringRadius, Math.sin(a) * ringRadius, 0.13);
       dummy.rotation.set(0, 0, a);
       dummy.scale.setScalar(1.0);
       dummy.updateMatrix();
@@ -70,15 +70,15 @@ export function buildOuterMicroDetails(
   clampInst.matrixAutoUpdate = false;
   outerEnvelope.add(clampInst);
 
-  // 3. 18 Structural I-Beam Spar Anchor Studs (3 per radial spar)
-  const studGeo = new THREE.CylinderGeometry(0.044, 0.052, 0.11, 8);
+  // 3. 12 Structural I-Beam Spar Anchor Studs (2 per radial spar)
+  const studGeo = new THREE.CylinderGeometry(0.042, 0.048, 0.10, 8);
   studGeo.rotateX(Math.PI / 2);
   ensureUv2(studGeo);
-  const studInst = new THREE.InstancedMesh(studGeo, materials.ringFrameMat, 18);
+  const studInst = new THREE.InstancedMesh(studGeo, materials.ringFrameMat, 12);
   studInst.name = 'arc-instanced-strut-screws';
 
   let studIdx = 0;
-  const studRadii = [2.56, 3.54, 4.46];
+  const studRadii = [2.76, 4.24];
   for (let s = 0; s < 6; s++) {
     const a = (Math.PI / 3) * s + Math.PI / 6;
     for (const r of studRadii) {

@@ -298,4 +298,50 @@ describe('MacroSchedulerService (Task 3.3)', () => {
     const savedState = JSON.parse(fs.readFileSync(stateFilePath, 'utf-8'));
     expect(savedState['shell-cleanup::1']?.lastRunDate).toBe('2026-04-19');
   });
+
+  it('prunes obsolete macroId::nodeId entries from macros-schedule-state.json when macros or timer nodes are deleted, while retaining disabled macros', async () => {
+    writeMacro('active-macro', {
+      name: 'Active Macro',
+      enabled: true,
+      nodes: [{ id: 1, type: 'triggers/timer', properties: { time: '09:00' } }],
+    });
+    writeMacro('disabled-macro', {
+      name: 'Disabled Macro',
+      enabled: false,
+      nodes: [{ id: 2, type: 'triggers/timer', properties: { time: '10:00' } }],
+    });
+
+    // Pre-seed state with active, disabled, deleted macro and removed timer node
+    fs.writeFileSync(
+      stateFilePath,
+      JSON.stringify(
+        {
+          'active-macro::1': { lastRunDate: '2026-04-18', lastRunTs: 1000 },
+          'active-macro::99': { lastRunDate: '2026-04-18', lastRunTs: 1000 },
+          'disabled-macro::2': { lastRunDate: '2026-04-18', lastRunTs: 1000 },
+          'deleted-macro::1': { lastRunDate: '2026-04-18', lastRunTs: 1000 },
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+
+    const executeMock = vi.fn().mockResolvedValue(undefined);
+    const scheduler = new MacroSchedulerService({
+      macrosDir,
+      stateFilePath,
+      nowFn: () => new Date('2026-04-19T07:00:00.000Z'),
+      timeZoneFn: () => 'UTC',
+      executor: { execute: executeMock },
+    });
+
+    await scheduler.checkNow();
+
+    const savedState = JSON.parse(fs.readFileSync(stateFilePath, 'utf-8'));
+    expect(savedState['active-macro::1']).toBeDefined();
+    expect(savedState['disabled-macro::2']).toBeDefined();
+    expect(savedState['active-macro::99']).toBeUndefined();
+    expect(savedState['deleted-macro::1']).toBeUndefined();
+  });
 });

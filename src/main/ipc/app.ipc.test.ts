@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import axios from 'axios';
-import { semverGt, registerAppIpc } from './app.ipc';
+import { semverGt, registerAppIpc, GITHUB_RELEASES_URL } from './app.ipc';
 
 const { handlers } = vi.hoisted(() => ({
   handlers: new Map<string, (...args: any[]) => any>()
@@ -87,12 +87,13 @@ describe('app.ipc Channels', () => {
     expect(ver).toBe('1.0.0');
   });
 
-  it('app:check-updates returns hasUpdate: true when latest tag is newer than current', async () => {
+  it('app:check-updates queries DdepRest/ARC and returns hasUpdate: true when latest tag is newer than current', async () => {
+    expect(GITHUB_RELEASES_URL).toBe('https://api.github.com/repos/DdepRest/ARC/releases/latest');
     const mockResponse = {
       data: {
         tag_name: 'v1.1.0',
         body: 'Release notes for 1.1.0',
-        html_url: 'https://github.com/OWNER/REPO/releases/tag/v1.1.0'
+        html_url: 'https://github.com/DdepRest/ARC/releases/tag/v1.1.0'
       }
     };
     (axios.get as any).mockResolvedValueOnce(mockResponse);
@@ -101,13 +102,14 @@ describe('app.ipc Channels', () => {
     expect(handler).toBeDefined();
     const result = await handler!();
 
+    expect(axios.get).toHaveBeenCalledWith(GITHUB_RELEASES_URL, expect.any(Object));
     expect(result).toEqual({
       success: true,
       hasUpdate: true,
       currentVersion: '1.0.0',
       latestVersion: '1.1.0',
       changelog: 'Release notes for 1.1.0',
-      downloadUrl: 'https://github.com/OWNER/REPO/releases/tag/v1.1.0'
+      downloadUrl: 'https://github.com/DdepRest/ARC/releases/tag/v1.1.0'
     });
   });
 
@@ -116,7 +118,7 @@ describe('app.ipc Channels', () => {
       data: {
         tag_name: 'v1.0.0',
         body: 'Initial release',
-        html_url: 'https://github.com/OWNER/REPO/releases/tag/v1.0.0'
+        html_url: 'https://github.com/DdepRest/ARC/releases/tag/v1.0.0'
       }
     };
     (axios.get as any).mockResolvedValueOnce(mockResponse);
@@ -130,7 +132,7 @@ describe('app.ipc Channels', () => {
       currentVersion: '1.0.0',
       latestVersion: '1.0.0',
       changelog: 'Initial release',
-      downloadUrl: 'https://github.com/OWNER/REPO/releases/tag/v1.0.0'
+      downloadUrl: 'https://github.com/DdepRest/ARC/releases/tag/v1.0.0'
     });
   });
 

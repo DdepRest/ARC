@@ -18,71 +18,35 @@ export interface DiagnosticsReport {
   timestamp: string;
   schemaVersion: 1;
   app: {
-    version: string;
-    commit: string;
-    commitSource: BuildCommitSource;
-    nodeVersion: string;
-    chromeVersion: string;
-    electronVersion: string;
-    platform: string;
-    arch: string;
+    version: string; commit: string; commitSource: BuildCommitSource;
+    nodeVersion: string; chromeVersion: string; electronVersion: string;
+    platform: string; arch: string;
   };
   system: {
-    osRelease: string;
-    cpuModel?: string;
-    cpuCores?: number;
-    totalMemoryMb?: number;
-    freeMemoryMb?: number;
-    uptimeSeconds?: number;
+    osRelease: string; cpuModel?: string; cpuCores?: number;
+    totalMemoryMb?: number; freeMemoryMb?: number; uptimeSeconds?: number;
     gpuControllers: Array<{ model: string; vram: number | null }>;
   };
   metrics: {
-    cpuLoadPercent?: number;
-    ramUsedMb?: number;
-    ramTotalMb?: number;
-    gpuModel?: string;
-    gpuTemperature?: number | null;
-    vramUsedMb?: number | null;
-    vramTotalMb?: number | null;
+    cpuLoadPercent?: number; ramUsedMb?: number; ramTotalMb?: number;
+    gpuModel?: string; gpuTemperature?: number | null;
+    vramUsedMb?: number | null; vramTotalMb?: number | null;
   };
   storage: {
     dbStatus: {
-      mode: string;
-      engine: string;
-      storageStatus: string;
-      readOnly: boolean;
-      isSafeMode: boolean;
-      schemaVersion: number;
-      capabilities: DatabaseEngineCapabilities;
-      limitations: string[];
+      mode: string; engine: string; storageStatus: string;
+      readOnly: boolean; isSafeMode: boolean; schemaVersion: number;
+      capabilities: DatabaseEngineCapabilities; limitations: string[];
     };
-    counts: {
-      tasks: number;
-      sessions: number;
-      objectives: number;
-      memories: number;
-    };
-    launcherIndex: {
-      exists: boolean;
-      totalItems?: number;
-      indexedAt?: string;
-      sizeBytes?: number;
-    };
+    counts: { tasks: number; sessions: number; objectives: number; memories: number };
+    launcherIndex: { exists: boolean; totalItems?: number; indexedAt?: string; sizeBytes?: number };
+    folderSizesBytes: { database: number; logs: number; models: number; macros: number };
   };
   providers: Array<{
-    id: string;
-    name: string;
-    type: 'cloud' | 'local';
-    enabled: boolean;
-    model: string;
-    hasApiKey: boolean;
-    apiKeyStatus?: string;
+    id: string; name: string; type: 'cloud' | 'local';
+    enabled: boolean; model: string; hasApiKey: boolean; apiKeyStatus?: string;
   }>;
-  scheduler: {
-    activeTimerCount: number;
-    cronCount: number;
-    macrosScheduleEntries: number;
-  };
+  scheduler: { activeTimerCount: number; cronCount: number; macrosScheduleEntries: number };
   recentLogTail: string[];
 }
 
@@ -255,6 +219,30 @@ export class DiagnosticsService {
     ) as StoragePersistenceStatus;
     const engineMeta = getDatabaseEngineMetadata(rawEngine, rawStorageStatus);
 
+    const measureDirectBytes = (dirPath: string): number => {
+      try {
+        if (!fs.existsSync(dirPath)) return 0;
+        const lstat = fs.lstatSync(dirPath);
+        if (lstat.isSymbolicLink()) return 0;
+        if (lstat.isFile()) return lstat.size;
+        if (!lstat.isDirectory()) return 0;
+        let total = 0;
+        for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+          if (entry.isSymbolicLink() || !entry.isFile()) continue;
+          try { total += fs.statSync(path.join(dirPath, entry.name)).size; } catch (_) {}
+        }
+        return total;
+      } catch (_) { return 0; }
+    };
+
+    const rootDbFiles = ['arc.db', 'arc.db-wal', 'arc.db-shm', 'arc_fallback.json'];
+    const folderSizesBytes = {
+      database: rootDbFiles.reduce((acc, f) => acc + measureDirectBytes(path.join(userDataPath, f)), measureDirectBytes(path.join(userDataPath, 'database'))),
+      logs: measureDirectBytes(path.join(userDataPath, 'logs')) + measureDirectBytes(path.join(userDataPath, 'logs', 'dialogs')),
+      models: measureDirectBytes(path.join(userDataPath, 'models')),
+      macros: measureDirectBytes(path.join(userDataPath, 'macros'))
+    };
+
     const storage = {
       dbStatus: {
         mode: healthStatus.mode || 'NORMAL',
@@ -269,7 +257,8 @@ export class DiagnosticsService {
           : engineMeta.limitations
       },
       counts,
-      launcherIndex
+      launcherIndex,
+      folderSizesBytes
     };
 
     // 5. Providers (clean list without raw keys)

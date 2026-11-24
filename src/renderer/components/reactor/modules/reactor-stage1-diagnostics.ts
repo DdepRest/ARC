@@ -8,8 +8,8 @@ export type Stage1ViewPreset = 'default' | 'front' | 'oblique' | 'chamber' | 'ma
 
 export const DEFAULT_REACTOR_CAMERA = {
   fov: 24,
-  position: [8.6, 5.8, 40.2] as const,
-  target: [0, 0, 0] as const,
+  position: [2.2, 1.6, 41.2] as const,
+  target: [0, 0, 0.05] as const,
 };
 
 export interface Stage1DiagnosticsDeps {

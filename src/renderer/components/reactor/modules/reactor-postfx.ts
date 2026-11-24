@@ -92,7 +92,7 @@ export function createReactorPostFX(
 
   const mapBloomRadius = (uiRadius: number): number => {
     const clamped = Math.max(0.2, Math.min(0.8, uiRadius));
-    return 0.28 + ((clamped - 0.2) / 0.6) * 0.22;
+    return 0.18 + ((clamped - 0.2) / 0.6) * 0.14;
   };
 
   const resolveBufferType = (cfg: GraphicsConfig, caps: GpuCapabilities): THREE.TextureDataType => {
@@ -208,9 +208,9 @@ export function createReactorPostFX(
       Math.max(1, Math.round(currentWidth * effectiveDpr * initBloomScale)),
       Math.max(1, Math.round(currentHeight * effectiveDpr * initBloomScale))
     ),
-    0.38 * (activeConfig.bloomStrength / 100),
+    0.26 * (activeConfig.bloomStrength / 100),
     mapBloomRadius(activeConfig.bloomRadius),
-    activeConfig.bloomThreshold
+    Math.max(0.58, activeConfig.bloomThreshold)
   );
   bloomPass.enabled = activeConfig.bloomEnabled;
   composer.addPass(bloomPass);
@@ -293,12 +293,12 @@ export function createReactorPostFX(
     }
 
     if (bokehPass) {
-      bokehPass.enabled = Boolean(activeConfig.dofEnabled) && !activeCaps.isSoftwareGl;
+      bokehPass.enabled = false;
     }
 
     bloomPass.enabled = activeConfig.bloomEnabled;
     bloomPass.radius = mapBloomRadius(activeConfig.bloomRadius);
-    bloomPass.threshold = Math.max(0.35, Math.min(0.85, activeConfig.bloomThreshold));
+    bloomPass.threshold = Math.max(0.58, Math.min(0.85, activeConfig.bloomThreshold));
 
     const wantGrading = activeConfig.colorGrading;
     const vig = Math.max(0, Math.min(0.35, activeConfig.vignetteStrength));

@@ -262,15 +262,18 @@ export function buildCentralChamber(
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.54, 0.24, 0.035, 0.035), materials.singularityCoreEmissiveMat);
+  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.62, 0.22, 0.035, 0.035), materials.singularityCoreEmissiveMat);
   triangularCoreMesh.name = "arc-triangular-core-mesh";
   triangularCoreMesh.position.z = -0.46;
   group.add(triangularCoreMesh);
 
-  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.68, 0.52, 0.14, 0.016, 0.016), materials.singularityInnerWireMat);
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.68, 0.52, 0.12, 0.016, 0.016), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
   innerTriWireMesh.position.z = -0.28;
   group.add(innerTriWireMesh);
+
+  // Subtle dark matte backing shield inside the central chamber so core emission frames the perimeter without overpowering A.R.C. lettering
+  addStatic(shell, createBeveledTriangleSolid(0.74, 0.045, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.15);
 
   // LAYER 6: Recessed Armored Optical Protective Glass Viewport + 3 Retaining Clips
   const glassWindow = new THREE.Mesh(createBeveledTriangleSolid(1.66, 0.04, 0.018, 0.018), materials.opticGlass);
@@ -281,17 +284,17 @@ export function buildCentralChamber(
   glassWindow.matrixAutoUpdate = false;
   group.add(glassWindow);
 
-  const clipGeo = createBeveledTrapezoid(0.28, 0.20, 0.34, 0.10, 0.018, 0.018);
+  const clipGeo = createBeveledTrapezoid(0.26, 0.18, 0.30, 0.09, 0.016, 0.016);
   for (let i = 0; i < 3; i++) {
     const a = angles[i];
-    addStatic(clamps, clipGeo, materials.brushedTitanium, chamberTitanium, Math.cos(a) * 1.54, Math.sin(a) * 1.54, 0.40, a + Math.PI / 2);
+    addStatic(clamps, clipGeo, materials.brushedTitanium, chamberTitanium, Math.cos(a) * 1.54, Math.sin(a) * 1.54, 0.39, a + Math.PI / 2);
   }
 
-  // LAYER 7: Crisp Floating A.R.C. Central Mark
+  // LAYER 7: Integrated Central Chamber A.R.C. Logo Assembly
   const lettersGroup = new THREE.Group();
   lettersGroup.name = "arc-central-letters-logo";
-  lettersGroup.position.set(0, 0.0, 0.52);
-  const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.12, 2.12), materials.arcCenterLogoMat);
+  lettersGroup.position.set(0, 0.0, 0.38);
+  const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.98, 1.98), materials.arcCenterLogoMat);
   hudMesh.name = "arc-central-hud-mesh";
   hudMesh.renderOrder = 6;
   lettersGroup.add(hudMesh);
@@ -304,12 +307,10 @@ export function buildCentralChamber(
   runnersGroup.name = "arc-conduit-runners-group";
   const runners: THREE.Mesh[] = [];
 
-  const termHexGeo = createBeveledHexagon(0.26, 0.30, 0.032, 0.032);
-  const termBaseGeo = createBeveledHexagon(0.38, 0.64, 0.04, 0.04);
-  const bandGeo = new THREE.CylinderGeometry(0.095, 0.095, 0.07, 12);
-  const saddleGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.11, 10);
-  const pierGeo = createBeveledTrapezoid(0.22, 0.16, 0.28, 0.92, 0.02, 0.02);
-  ensureUv2(bandGeo);
+  const termHexGeo = createBeveledHexagon(0.24, 0.28, 0.028, 0.028);
+  const termBaseGeo = createBeveledHexagon(0.34, 0.58, 0.036, 0.036);
+  const saddleGeo = new THREE.CylinderGeometry(0.105, 0.115, 0.10, 10);
+  const pierGeo = createBeveledTrapezoid(0.20, 0.15, 0.26, 0.88, 0.02, 0.02);
   ensureUv2(saddleGeo);
 
   for (let i = 0; i < 3; i++) {
@@ -319,25 +320,18 @@ export function buildCentralChamber(
     pMid.z = 0.40;
     const curve = new THREE.QuadraticBezierCurve3(pStart, pMid, pEnd);
 
-    addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.068, 8, false), materials.anodizedBlack, chamberAnodized, 0, 0, 0);
-    addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.028, 8, false), materials.neonTubeMat, chamberNeon, 0, 0, 0);
+    addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.064, 8, false), materials.anodizedBlack, chamberAnodized, 0, 0, 0);
+    addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.022, 8, false), materials.neonTubeMat, chamberNeon, 0, 0, 0);
 
     const midPt = curve.getPoint(0.5);
     addStatic(conduitsGroup, pierGeo, materials.anodizedBlack, chamberAnodized, midPt.x, midPt.y, -0.14, angles[i] + Math.PI / 2);
 
-    [0.24, 0.5, 0.76].forEach((u, idx) => {
-      const pt = curve.getPoint(u);
-      const tangent = curve.getTangent(u);
-      const bandMesh = new THREE.Mesh(
-        idx === 1 ? saddleGeo : bandGeo,
-        idx === 1 ? materials.darkCeramic : materials.brushedTitanium
-      );
-      bandMesh.position.copy(pt);
-      bandMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
-      conduitsGroup.add(bandMesh);
-      if (idx === 1) chamberCeramic.push(bandMesh);
-      else chamberTitanium.push(bandMesh);
-    });
+    const tangent = curve.getTangent(0.5);
+    const bandMesh = new THREE.Mesh(saddleGeo, materials.brushedTitanium);
+    bandMesh.position.copy(midPt);
+    bandMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+    conduitsGroup.add(bandMesh);
+    chamberTitanium.push(bandMesh);
 
     addStatic(conduitsGroup, termBaseGeo, materials.anodizedBlack, chamberAnodized, pEnd.x, pEnd.y, pEnd.z - 0.34);
     addStatic(conduitsGroup, termHexGeo, materials.brushedTitanium, chamberTitanium, pEnd.x, pEnd.y, pEnd.z);

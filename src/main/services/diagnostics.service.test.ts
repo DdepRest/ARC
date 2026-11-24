@@ -116,6 +116,18 @@ describe('DiagnosticsService', () => {
       'line 1\n{"userText":"private input"}\nline 3\n'
     );
 
+    // Create mock db, models and macros files for folderSizesBytes
+    fs.writeFileSync(path.join(tmpDir, 'arc.db'), Buffer.alloc(1024));
+    const modelsDir = path.join(tmpDir, 'models');
+    fs.mkdirSync(modelsDir, { recursive: true });
+    fs.writeFileSync(path.join(modelsDir, 'sample.bin'), Buffer.alloc(2048));
+    // Nested subfolder inside models should NOT be summed (non-recursive 4-subfolder limit)
+    fs.mkdirSync(path.join(modelsDir, 'nested'), { recursive: true });
+    fs.writeFileSync(path.join(modelsDir, 'nested', 'deep.bin'), Buffer.alloc(4096));
+    const macrosDir = path.join(tmpDir, 'macros');
+    fs.mkdirSync(macrosDir, { recursive: true });
+    fs.writeFileSync(path.join(macrosDir, 'm1.json'), '{"id":"m1"}');
+
     const report = await DiagnosticsService.collectReport(tmpDir);
 
     expect(report.schemaVersion).toBe(1);
@@ -141,13 +153,17 @@ describe('DiagnosticsService', () => {
     expect(report.metrics.gpuModel).toBe('NVIDIA RTX 4080');
     expect(report.metrics.vramTotalMb).toBe(16384);
 
-    // Storage and DB counts
+    // Storage and DB counts + folderSizesBytes
     expect(report.storage.counts.tasks).toBe(12);
     expect(report.storage.counts.sessions).toBe(5);
     expect(report.storage.counts.objectives).toBe(3);
     expect(report.storage.counts.memories).toBe(20);
     expect(report.storage.launcherIndex.exists).toBe(true);
     expect(report.storage.launcherIndex.totalItems).toBe(45);
+    expect(report.storage.folderSizesBytes.database).toBe(1024);
+    expect(report.storage.folderSizesBytes.logs).toBeGreaterThan(0);
+    expect(report.storage.folderSizesBytes.models).toBe(2048);
+    expect(report.storage.folderSizesBytes.macros).toBe(11);
 
     // Scheduler macrosScheduleEntries
     expect(report.scheduler.macrosScheduleEntries).toBe(2);
@@ -163,7 +179,7 @@ describe('DiagnosticsService', () => {
     expect(report.recentLogTail[1]).toContain('[STRIPPED]');
   });
 
-  it('3. storage.counts and scheduler.macrosScheduleEntries fall back cleanly to 0 if db/files throw or are missing', async () => {
+  it('3. storage.counts, folderSizesBytes and scheduler.macrosScheduleEntries fall back cleanly to 0 if db/files throw or are missing', async () => {
     DatabaseService.db = {
       prepare: vi.fn(() => {
         throw new Error('Table corrupted');
@@ -175,6 +191,12 @@ describe('DiagnosticsService', () => {
     expect(report.storage.counts.sessions).toBe(0);
     expect(report.storage.counts.objectives).toBe(0);
     expect(report.storage.counts.memories).toBe(0);
+    expect(report.storage.folderSizesBytes).toEqual({
+      database: 0,
+      logs: 0,
+      models: 0,
+      macros: 0
+    });
     expect(report.scheduler.macrosScheduleEntries).toBe(0);
   });
 
