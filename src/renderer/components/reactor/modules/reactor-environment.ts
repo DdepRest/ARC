@@ -36,29 +36,29 @@ function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
     envScene.add(mesh);
   };
 
-  // 1. Primary overhead architectural softbox (warm-neutral specular highlight on upper bevels)
-  addPanel(16, 7, 0xfff5e8, 2.4, [-3.5, 11.5, 7.0]);
+  // 1. Primary overhead neutral architectural softbox (crisp bevel catch on obsidian black)
+  addPanel(16, 7, 0xfaf9f7, 2.05, [-3.5, 11.5, 7.0]);
 
-  // 2. Front-left cool technical fill strip (reveals dark titanium grain)
-  addPanel(5.5, 13, 0xc8dcf8, 1.35, [-12.5, 2.5, 8.5]);
+  // 2. Front-left neutral studio fill strip (reveals dark anodized grain without blue cast)
+  addPanel(5.5, 13, 0xe6e8ec, 1.35, [-12.5, 2.5, 8.5]);
 
-  // 3. Front-right subtle warm alloy accent strip (highlights copper windings & right bevels)
-  addPanel(4.5, 11, 0xffdfc2, 1.15, [13.0, -1.5, 7.5]);
+  // 3. Front-right neutral-warm accent strip (highlights dark copper & right chamfers)
+  addPanel(4.5, 11, 0xf2ece6, 1.15, [13.0, -1.5, 7.5]);
 
-  // 4. Lower bounce panel (prevents underside of clamps from collapsing into pure black)
-  addPanel(14, 5, 0x4b566a, 0.55, [0, -11.5, 5.5]);
+  // 4. Neutral graphite lower bounce panel (keeps undersides legible as dark machinery)
+  addPanel(14, 5, 0x585b62, 0.65, [0, -11.5, 5.5]);
 
   if (!isEco) {
-    // 5. Crisp upper-right specular rim bar for optical glass Fresnel edge catching
-    addPanel(12, 1.6, 0xffffff, isHigh ? 3.2 : 2.1, [5.5, 8.5, -9.5]);
+    // 5. Crisp upper-right neutral rim bar for smoked glass Fresnel & dark bevel edge catching
+    addPanel(12, 1.6, 0xf7f8fa, isHigh ? 2.6 : 1.85, [5.5, 8.5, -9.5]);
 
-    // 6. Subtle back-left rim bar to separate outer ring silhouette
-    addPanel(2.2, 11, 0xd4e2ff, isHigh ? 2.1 : 1.3, [-10.5, -2.0, -9.0]);
+    // 6. Neutral back-left rim bar separating black outer silhouette from deep space
+    addPanel(2.2, 11, 0xe8eaee, isHigh ? 1.9 : 1.25, [-10.5, -2.0, -9.0]);
   }
 
   if (isHigh) {
-    // 7. High-tier precision razor specular strip directly overhead for chamfered metallic glints
-    addPanel(18, 0.9, 0xffffff, 3.8, [0, 13.0, 2.5]);
+    // 7. High-tier precision razor specular strip overhead for subtle obsidian chamfer glints
+    addPanel(18, 0.9, 0xffffff, 3.0, [0, 13.0, 2.5]);
   }
 
   return envScene;

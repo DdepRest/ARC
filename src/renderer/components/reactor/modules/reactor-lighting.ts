@@ -29,12 +29,12 @@ export function createReactorLighting(
   scene: THREE.Scene,
   initialColorHex: number
 ): ReactorLighting {
-  // Subtle hemisphere bounce keeps dark anodized titanium legible without washing out black space
-  const hemiLight = new THREE.HemisphereLight(0xaec4e8, 0x0b0c10, 0.42);
+  // Neutral studio hemisphere fill reveals obsidian black forms without blue wash
+  const hemiLight = new THREE.HemisphereLight(0xd8dce0, 0x0d0e11, 0.52);
   scene.add(hemiLight);
 
-  // A. Key Light (sole shadow caster, tight orthographic frustum tailored to r=5.6 reactor)
-  const keyLight = new THREE.DirectionalLight(0xfff5e8, 2.25);
+  // A. Key Light (sole shadow caster, neutral studio white with crisp bevel catch)
+  const keyLight = new THREE.DirectionalLight(0xfcfaf6, 1.95);
   keyLight.position.set(-10, 14, 18);
   keyLight.castShadow = false;
   keyLight.shadow.mapSize.set(1024, 1024);
@@ -49,30 +49,30 @@ export function createReactorLighting(
   keyLight.shadow.radius = 2.5;
   scene.add(keyLight);
 
-  // B. Cool architectural Fill Light from lower-right
-  const fillLight = new THREE.DirectionalLight(0x7c93b8, 0.85);
-  fillLight.position.set(14, -12, 14);
+  // B. Neutral studio Fill Light from lower-right (eliminates blue/cyan cast)
+  const fillLight = new THREE.DirectionalLight(0xd4d7dc, 0.82);
+  fillLight.position.set(14, -12, 15);
   fillLight.castShadow = false;
   scene.add(fillLight);
 
-  // Overhead edge-catching grazing light for brushed bezels & clamp chamfers
-  const topSpot = new THREE.DirectionalLight(0xeef3ff, 0.72);
-  topSpot.position.set(2, 20, 9);
+  // Overhead edge-catching neutral grazing light for dark titanium bevels
+  const topSpot = new THREE.DirectionalLight(0xf2f4f6, 0.78);
+  topSpot.position.set(2, 19, 10);
   topSpot.castShadow = false;
   scene.add(topSpot);
 
-  // C. Controlled Back-Rim Light separating outer titanium ring from deep space
-  const rimLight = new THREE.PointLight(initialColorHex, 0.0, 22.0, 1.9);
+  // C. Controlled Back-Rim Light separating outer silhouette from deep black space
+  const rimLight = new THREE.PointLight(initialColorHex, 0.0, 20.0, 2.0);
   rimLight.position.set(0, 0, -4.8);
   rimLight.castShadow = false;
   scene.add(rimLight);
 
-  // D. Local Core Dynamic Lights (never cast shadows)
-  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 8.5, 2.1);
+  // D. Local Core Dynamic Lights (restrained radius so red energy never washes out black chassis)
+  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 7.5, 2.2);
   coreLight.position.z = 0.42;
   coreLight.castShadow = false;
 
-  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 6.2, 2.0);
+  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 5.6, 2.1);
   innerChamberLight.position.z = -0.15;
   innerChamberLight.castShadow = false;
 
@@ -118,10 +118,10 @@ export function createReactorLighting(
       }
     }
 
-    // Balance studio key/fill slightly when shadows are active vs contact/off
+    // Balance neutral studio key/fill cleanly across shadow tiers
     const shadowBoost = quality === 'soft1024' || quality === 'soft2048' ? 1.08 : 1.0;
-    keyLight.intensity = (config.dynamicPointLights === 'eco' ? 1.95 : 2.25) * shadowBoost;
-    fillLight.intensity = config.shadowQuality === 'contact' ? 0.72 : 0.85;
+    keyLight.intensity = (config.dynamicPointLights === 'eco' ? 1.72 : 1.95) * shadowBoost;
+    fillLight.intensity = config.shadowQuality === 'contact' ? 0.72 : 0.82;
     topSpot.visible = config.dynamicPointLights !== 'eco';
   };
 
