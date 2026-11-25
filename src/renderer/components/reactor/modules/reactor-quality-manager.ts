@@ -63,9 +63,9 @@ export function createGraphicsQualityManager(params: {
       ? {
           ...cloneGraphicsConfig(SHOWCASE_CONFIG_OVERRIDE),
           dofEnabled: false,
-          bloomStrength: 92,
-          bloomRadius: 0.36,
-          bloomThreshold: 0.60,
+          bloomStrength: 84,
+          bloomRadius: 0.32,
+          bloomThreshold: 0.62,
         }
       : baseConfig;
     const safe = sanitizeConfigForCapabilities(source, capabilities);

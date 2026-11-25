@@ -127,7 +127,7 @@ export function buildTrenches(
       trenchRingFrame.push(cap2);
     }
 
-    const softGlowLight = new THREE.PointLight(materials.currentColor.getHex(), 0.24, 3.0, 2.0);
+    const softGlowLight = new THREE.PointLight(materials.currentColor.getHex(), 0.18, 2.8, 2.1);
     softGlowLight.position.set(0, apothem, 0.30);
     edgeGroup.add(softGlowLight);
     lighting.trenchLights.push(softGlowLight);
@@ -265,7 +265,7 @@ export function buildCornerClamps(
       pistonInst.setMatrixAt(pistonIdx++, dummyPiston.matrixWorld);
     }
 
-    const clampLight = new THREE.PointLight(materials.currentColor.getHex(), 0.32, 3.2, 2.0);
+    const clampLight = new THREE.PointLight(materials.currentColor.getHex(), 0.24, 3.0, 2.1);
     clampLight.position.set(0, 0, 0.56);
     clampLight.name = `arc-clamp-light-${i}`;
     clampGroup.add(clampLight);
@@ -328,19 +328,6 @@ export function buildFiberOpticsAndDataModules(
     box.position.z = 0.06;
     moduleGroup.add(box);
     nodeTitaniumMeshes.push(box);
-
-    // Slim armored feeder conduit routing outward (-Y) into nacelle / substation
-    const conduitCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0, -0.12, 0.03),
-      new THREE.Vector3(0, -0.50, -0.12),
-      new THREE.Vector3(0, -1.00, -0.28),
-    ]);
-    const conduitMesh = new THREE.Mesh(
-      new THREE.TubeGeometry(conduitCurve, 12, 0.032, 8, false),
-      materials.anodizedBlack
-    );
-    moduleGroup.add(conduitMesh);
-    nodeAnodizedMeshes.push(conduitMesh);
 
     const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.048), materials.neonTubeMat.clone());
     panel.name = `arc-node-screen-${i}`;

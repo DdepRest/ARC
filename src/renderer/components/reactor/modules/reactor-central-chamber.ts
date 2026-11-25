@@ -188,7 +188,7 @@ export function buildCentralChamber(
     cornerGroup.add(diodeMesh);
     portDiodeMeshes.push(diodeMesh);
 
-    const vertexLight = new THREE.PointLight(materials.currentColor.getHex(), 0.35, 4.5, 2.0);
+    const vertexLight = new THREE.PointLight(materials.currentColor.getHex(), 0.26, 4.2, 2.1);
     vertexLight.position.set(v.x, v.y, v.z + 0.36);
     vertexLight.name = `arc-vertex-light-${i}`;
     group.add(vertexLight);
@@ -262,17 +262,17 @@ export function buildCentralChamber(
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.64, 0.22, 0.035, 0.035), materials.singularityCoreEmissiveMat);
+  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.58, 0.20, 0.032, 0.032), materials.singularityCoreEmissiveMat);
   triangularCoreMesh.name = "arc-triangular-core-mesh";
   triangularCoreMesh.position.z = -0.44;
   group.add(triangularCoreMesh);
 
-  // Recessed open-center dark ceramic framing bezel around the core (never occludes the emissive center)
-  addStatic(shell, createBeveledTriangleFrame(0.84, 0.58, 0.08, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.36);
+  // Recessed open-center dark ceramic framing bezel around the core (clean mechanical step separating core from iris)
+  addStatic(shell, createBeveledTriangleFrame(0.86, 0.58, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.35);
 
-  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.68, 0.50, 0.10, 0.016, 0.016), materials.singularityInnerWireMat);
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.64, 0.52, 0.08, 0.014, 0.014), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
-  innerTriWireMesh.position.z = -0.24;
+  innerTriWireMesh.position.z = -0.25;
   group.add(innerTriWireMesh);
 
   // LAYER 6: Recessed Armored Optical Protective Glass Viewport + 3 Retaining Clips
