@@ -36,29 +36,29 @@ function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
     envScene.add(mesh);
   };
 
-  // 1. Primary overhead neutral architectural softbox (crisp bevel catch on obsidian black)
-  addPanel(16, 7, 0xfaf9f7, 2.05, [-3.5, 11.5, 7.0]);
+  // 1. Primary overhead neutral architectural softbox (restrained so top horizontal module matches lower diagonals)
+  addPanel(14, 6.2, 0xfaf9f7, 1.75, [-2.5, 11.5, 7.0]);
 
-  // 2. Front-left neutral studio fill strip (reveals dark anodized grain without blue cast)
-  addPanel(5.5, 13, 0xe6e8ec, 1.35, [-12.5, 2.5, 8.5]);
+  // 2. Lower-left neutral studio fill strip (illuminates 210° lower-left diagonal module & dark anodized grain)
+  addPanel(5.8, 13, 0xe6e8ec, 1.38, [-12.0, -3.5, 8.5]);
 
-  // 3. Front-right neutral-warm accent strip (highlights dark copper & right chamfers)
-  addPanel(4.5, 11, 0xf2ece6, 1.15, [13.0, -1.5, 7.5]);
+  // 3. Lower-right neutral-warm accent strip (illuminates 330° lower-right diagonal module & dark copper chamfers)
+  addPanel(5.2, 12, 0xf2ece6, 1.26, [12.0, -3.5, 8.0]);
 
-  // 4. Neutral graphite lower bounce panel (keeps undersides legible as dark machinery)
-  addPanel(14, 5, 0x585b62, 0.65, [0, -11.5, 5.5]);
+  // 4. Neutral graphite lower bounce panel (balances ventral 270° and diagonal undersides)
+  addPanel(14, 5.5, 0x62666e, 0.86, [0, -11.5, 6.2]);
 
   if (!isEco) {
     // 5. Crisp upper-right neutral rim bar for smoked glass Fresnel & dark bevel edge catching
-    addPanel(12, 1.6, 0xf7f8fa, isHigh ? 2.6 : 1.85, [5.5, 8.5, -9.5]);
+    addPanel(11, 1.5, 0xf7f8fa, isHigh ? 2.25 : 1.68, [6.5, 7.5, -9.5]);
 
     // 6. Neutral back-left rim bar separating black outer silhouette from deep space
-    addPanel(2.2, 11, 0xe8eaee, isHigh ? 1.9 : 1.25, [-10.5, -2.0, -9.0]);
+    addPanel(2.4, 11, 0xe8eaee, isHigh ? 1.95 : 1.32, [-10.5, -2.5, -9.0]);
   }
 
   if (isHigh) {
     // 7. High-tier precision razor specular strip overhead for subtle obsidian chamfer glints
-    addPanel(18, 0.9, 0xffffff, 3.0, [0, 13.0, 2.5]);
+    addPanel(15, 0.8, 0xffffff, 2.2, [0, 13.0, 2.5]);
   }
 
   return envScene;

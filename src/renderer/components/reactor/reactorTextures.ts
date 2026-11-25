@@ -400,9 +400,9 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
     // Balanced coordinates forming an inverted triangle matching the central chamber aperture
     const letters = [
-      { char: 'A', x: cx - 216 * scale, y: cy - 124 * scale },
-      { char: 'R', x: cx + 216 * scale, y: cy - 124 * scale },
-      { char: 'C', x: cx,               y: cy + 200 * scale },
+      { char: 'A', x: cx - 224 * scale, y: cy - 128 * scale },
+      { char: 'R', x: cx + 224 * scale, y: cy - 128 * scale },
+      { char: 'C', x: cx,               y: cy + 206 * scale },
     ];
 
     // 1. Unified Integrated Triangular Emblem Frame (open center so the emissive core remains visible)
@@ -428,14 +428,14 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
       // Restrained satin titanium connecting bridge (integrated into chamber bezel, not bright white HUD)
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(186, 196, 210, 0.44)';
+      ctx.strokeStyle = 'rgba(186, 196, 210, 0.42)';
       ctx.lineWidth = 2.8 * scale;
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
     };
 
-    const gapR = 82 * scale;
+    const gapR = 92 * scale;
     drawSegmentWithGap(letters[0].x, letters[0].y, letters[1].x, letters[1].y, gapR);
     drawSegmentWithGap(letters[1].x, letters[1].y, letters[2].x, letters[2].y, gapR);
     drawSegmentWithGap(letters[2].x, letters[2].y, letters[0].x, letters[0].y, gapR);
@@ -451,7 +451,7 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
       sw: number,
       isContourPass: boolean
     ) => {
-      ctx.lineWidth = isContourPass ? sw + 15 * scale : sw;
+      ctx.lineWidth = isContourPass ? sw + 18 * scale : sw;
       if (char === 'A') {
         ctx.beginPath();
         ctx.moveTo(gx - w, gy + h);
@@ -460,16 +460,16 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.lineWidth = (isContourPass ? sw + 13 * scale : sw) * 0.86;
-        ctx.moveTo(gx - w * 0.56, gy + h * 0.24);
-        ctx.lineTo(gx + w * 0.56, gy + h * 0.24);
+        ctx.lineWidth = (isContourPass ? sw + 15 * scale : sw) * 0.85;
+        ctx.moveTo(gx - w * 0.56, gy + h * 0.25);
+        ctx.lineTo(gx + w * 0.56, gy + h * 0.25);
         ctx.stroke();
       } else if (char === 'R') {
-        // Distinct geometric 'R': crisp vertical stem, clear upper D-bowl counter, and well-separated diagonal leg
+        // Distinct geometric 'R': crisp vertical stem, open upper D-bowl counter, and well-separated diagonal leg
         const leftX = gx - w * 0.88;
-        const bowlApexX = gx + w * 0.16;
-        const midY = gy + 2 * scale;
-        const bowlRadius = (h + 2 * scale) * 0.5;
+        const bowlApexX = gx + w * 0.18;
+        const midY = gy + 3 * scale;
+        const bowlRadius = (h + 3 * scale) * 0.5;
         const bowlCenterY = gy - h + bowlRadius;
 
         ctx.beginPath();
@@ -481,44 +481,44 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.moveTo(gx + w * 0.08, midY + 1 * scale);
-        ctx.lineTo(gx + w * 0.92, gy + h);
+        ctx.moveTo(gx + w * 0.12, midY + 2 * scale);
+        ctx.lineTo(gx + w * 0.94, gy + h);
         ctx.stroke();
       } else if (char === 'C') {
         ctx.beginPath();
-        ctx.arc(gx + 4 * scale, gy, h * 0.94, 0.24 * Math.PI, 1.76 * Math.PI, false);
+        ctx.arc(gx + 5 * scale, gy, h * 0.94, 0.24 * Math.PI, 1.76 * Math.PI, false);
         ctx.stroke();
       }
     };
 
     const drawPrecisionGlyph = (char: string, gx: number, gy: number) => {
       // Compact borderless radial shadow cushion (no large opaque backing or medallion ring)
-      const haloGrad = ctx.createRadialGradient(gx, gy, 10 * scale, gx, gy, 68 * scale);
-      haloGrad.addColorStop(0, 'rgba(6, 8, 12, 0.64)');
-      haloGrad.addColorStop(0.58, 'rgba(6, 8, 12, 0.36)');
+      const haloGrad = ctx.createRadialGradient(gx, gy, 12 * scale, gx, gy, 76 * scale);
+      haloGrad.addColorStop(0, 'rgba(6, 8, 12, 0.68)');
+      haloGrad.addColorStop(0.58, 'rgba(6, 8, 12, 0.38)');
       haloGrad.addColorStop(1.0, 'rgba(6, 8, 12, 0.0)');
       ctx.fillStyle = haloGrad;
       ctx.beginPath();
-      ctx.arc(gx, gy, 68 * scale, 0, Math.PI * 2);
+      ctx.arc(gx, gy, 76 * scale, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.save();
       ctx.lineCap = 'butt';
       ctx.lineJoin = 'miter';
       ctx.miterLimit = 6;
-      const sw = 20.5 * scale;
-      const h = 57 * scale;
-      const w = 44 * scale;
+      const sw = 23 * scale;
+      const h = 65 * scale;
+      const w = 50 * scale;
 
       // Pass 1: Tight obsidian machined bezel contour directly behind glyph strokes
-      ctx.strokeStyle = 'rgba(6, 8, 12, 0.94)';
+      ctx.strokeStyle = 'rgba(6, 8, 12, 0.95)';
       strokeGlyphPath(char, gx, gy, h, w, sw, true);
 
       // Pass 2: Machined satin titanium-silver glyph face (subtle top-to-bottom metallic gradient)
       const metalGrad = ctx.createLinearGradient(gx, gy - h, gx, gy + h);
-      metalGrad.addColorStop(0, '#eef2f7');
-      metalGrad.addColorStop(0.52, '#d8dfe9');
-      metalGrad.addColorStop(1, '#bcc5d3');
+      metalGrad.addColorStop(0, '#f0f4f9');
+      metalGrad.addColorStop(0.52, '#dae1eb');
+      metalGrad.addColorStop(1, '#bfc8d6');
       ctx.strokeStyle = metalGrad;
       strokeGlyphPath(char, gx, gy, h, w, sw, false);
       ctx.restore();

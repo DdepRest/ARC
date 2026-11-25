@@ -262,15 +262,15 @@ export function buildCentralChamber(
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.58, 0.20, 0.032, 0.032), materials.singularityCoreEmissiveMat);
+  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.48, 0.20, 0.030, 0.030), materials.singularityCoreEmissiveMat);
   triangularCoreMesh.name = "arc-triangular-core-mesh";
   triangularCoreMesh.position.z = -0.44;
   group.add(triangularCoreMesh);
 
-  // Recessed open-center dark ceramic framing bezel around the core (clean mechanical step separating core from iris)
-  addStatic(shell, createBeveledTriangleFrame(0.86, 0.58, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.35);
+  // Recessed open-center dark ceramic framing bezel around the core (clean mechanical step separating core from A/R/C letters)
+  addStatic(shell, createBeveledTriangleFrame(0.88, 0.48, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.35);
 
-  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.64, 0.52, 0.08, 0.014, 0.014), materials.singularityInnerWireMat);
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.52, 0.42, 0.08, 0.012, 0.012), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
   innerTriWireMesh.position.z = -0.25;
   group.add(innerTriWireMesh);
@@ -294,7 +294,7 @@ export function buildCentralChamber(
   const lettersGroup = new THREE.Group();
   lettersGroup.name = "arc-central-letters-logo";
   lettersGroup.position.set(0, 0.0, 0.38);
-  const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.98, 1.98), materials.arcCenterLogoMat);
+  const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.08, 2.08), materials.arcCenterLogoMat);
   hudMesh.name = "arc-central-hud-mesh";
   hudMesh.renderOrder = 6;
   lettersGroup.add(hudMesh);
@@ -321,7 +321,7 @@ export function buildCentralChamber(
     const curve = new THREE.QuadraticBezierCurve3(pStart, pMid, pEnd);
 
     addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.064, 8, false), materials.anodizedBlack, chamberAnodized, 0, 0, 0);
-    addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.022, 8, false), materials.neonTubeMat, chamberNeon, 0, 0, 0);
+    addStatic(conduitsGroup, new THREE.TubeGeometry(curve, 20, 0.017, 8, false), materials.neonTubeMat, chamberNeon, 0, 0, 0);
 
     const midPt = curve.getPoint(0.5);
     addStatic(conduitsGroup, pierGeo, materials.anodizedBlack, chamberAnodized, midPt.x, midPt.y, -0.14, angles[i] + Math.PI / 2);
@@ -336,7 +336,7 @@ export function buildCentralChamber(
     addStatic(conduitsGroup, termBaseGeo, materials.anodizedBlack, chamberAnodized, pEnd.x, pEnd.y, pEnd.z - 0.34);
     addStatic(conduitsGroup, termHexGeo, materials.brushedTitanium, chamberTitanium, pEnd.x, pEnd.y, pEnd.z);
 
-    const runnerMesh = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), materials.neonTubeMat);
+    const runnerMesh = new THREE.Mesh(new THREE.SphereGeometry(0.064, 12, 12), materials.neonTubeMat);
     runnerMesh.name = `arc-conduit-runner-${i}`;
     runnerMesh.position.copy(pStart);
     runnersGroup.add(runnerMesh);

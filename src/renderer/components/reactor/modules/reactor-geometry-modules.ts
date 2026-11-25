@@ -34,25 +34,25 @@ export function buildAsymmetricOuterModules(
   const heatMetal: THREE.Mesh[] = [];
   const neon: THREE.Mesh[] = [];
 
-  // Shared tri-symmetric compact structural cradle & shroud geometries (25-30% leaner)
+  // Shared tri-symmetric compact structural cradle & shroud geometries (balanced visual mass across all 3 bays)
   const cradleGeo = createBeveledPolygon(
     [
-      [-1.08, -0.44],
-      [1.08, -0.44],
-      [0.92, 0.42],
-      [0.52, 0.62],
-      [-0.52, 0.62],
-      [-0.92, 0.42],
+      [-0.94, -0.42],
+      [0.94, -0.42],
+      [0.80, 0.40],
+      [0.46, 0.58],
+      [-0.46, 0.58],
+      [-0.80, 0.40],
     ],
-    0.46,
-    0.045,
-    0.045
+    0.44,
+    0.042,
+    0.042
   );
-  const shroudGeo = createBeveledTrapezoid(1.56, 1.18, 0.64, 0.34, 0.035, 0.035);
-  const barrierGeo = createBeveledTrapezoid(1.70, 1.58, 0.16, 0.30, 0.02, 0.02);
-  const cheekGeo = createBeveledTrapezoid(0.14, 0.10, 0.86, 0.30, 0.018, 0.018);
-  const topLipGeo = createBeveledTrapezoid(1.12, 0.84, 0.22, 0.09, 0.018, 0.018);
-  const ventSlitGeo = new THREE.BoxGeometry(0.96, 0.042, 0.04);
+  const shroudGeo = createBeveledTrapezoid(1.36, 1.04, 0.60, 0.32, 0.032, 0.032);
+  const barrierGeo = createBeveledTrapezoid(1.46, 1.32, 0.15, 0.28, 0.02, 0.02);
+  const cheekGeo = createBeveledTrapezoid(0.13, 0.095, 0.80, 0.28, 0.016, 0.016);
+  const topLipGeo = createBeveledTrapezoid(0.98, 0.74, 0.20, 0.085, 0.016, 0.016);
+  const ventSlitGeo = new THREE.BoxGeometry(0.68, 0.030, 0.032);
 
   const bayConfigs: Array<{ angle: number; role: 'thermal' | 'cryo' | 'ventral' }> = [
     { angle: Math.PI / 6, role: 'thermal' },       // 30° Upper-Right
@@ -61,14 +61,14 @@ export function buildAsymmetricOuterModules(
   ];
 
   // Shared cassette & subtle functional insert geometries (identical visual mass and contrast across all 3 bays)
-  const coreDeckGeo = createBeveledTrapezoid(0.94, 0.80, 0.42, 0.14, 0.018, 0.018);
-  const busbarGeo = createBeveledTrapezoid(0.60, 0.52, 0.065, 0.048, 0.01, 0.01);
-  const endCapGeo = createBeveledHexagon(0.095, 0.055, 0.012, 0.012);
-  const finGeo = createBeveledTrapezoid(0.044, 0.036, 0.36, 0.16, 0.006, 0.006);
-  const cylGeo = new THREE.CylinderGeometry(0.068, 0.068, 0.58, 14);
+  const coreDeckGeo = createBeveledTrapezoid(0.84, 0.72, 0.40, 0.13, 0.016, 0.016);
+  const busbarGeo = createBeveledTrapezoid(0.54, 0.46, 0.06, 0.045, 0.01, 0.01);
+  const endCapGeo = createBeveledHexagon(0.088, 0.052, 0.012, 0.012);
+  const finGeo = createBeveledTrapezoid(0.042, 0.034, 0.34, 0.15, 0.006, 0.006);
+  const cylGeo = new THREE.CylinderGeometry(0.064, 0.064, 0.52, 14);
   cylGeo.rotateZ(Math.PI / 2);
   ensureUv2(cylGeo);
-  const keelGeo = createBeveledTrapezoid(0.11, 0.08, 0.38, 0.16, 0.014, 0.014);
+  const keelGeo = createBeveledTrapezoid(0.10, 0.075, 0.36, 0.15, 0.012, 0.012);
 
   for (const cfg of bayConfigs) {
     const g = new THREE.Group();
@@ -82,9 +82,9 @@ export function buildAsymmetricOuterModules(
     g.add(cradle);
     anodized.push(cradle);
 
-    // 2. Unified Dark Heat-Tinted Outer Shroud tucked tightly into chassis (max r ~5.64)
+    // 2. Unified Dark Heat-Tinted Outer Shroud tucked tightly into chassis (max r ~5.62)
     const shroud = new THREE.Mesh(shroudGeo, materials.heatTintedMetal);
-    shroud.position.set(0, 0.26, 0.04);
+    shroud.position.set(0, 0.24, 0.04);
     g.add(shroud);
     heatMetal.push(shroud);
 
@@ -97,37 +97,37 @@ export function buildAsymmetricOuterModules(
     // 4. Restrained Slim Brushed-Titanium Framing Cheeks & Top Rim Lip
     for (let side = -1; side <= 1; side += 2) {
       const cheek = new THREE.Mesh(cheekGeo, materials.brushedTitanium);
-      cheek.position.set(side * 0.84, 0.14, 0.08);
+      cheek.position.set(side * 0.72, 0.13, 0.08);
       g.add(cheek);
       titanium.push(cheek);
     }
     const topLip = new THREE.Mesh(topLipGeo, materials.brushedTitanium);
-    topLip.position.set(0, 0.50, 0.22);
+    topLip.position.set(0, 0.48, 0.21);
     g.add(topLip);
     titanium.push(topLip);
 
     // 5. Unified Dark-Carbon Core Cassette Deck, Brushed-Titanium End Caps & Burnished Copper Busbar
     const coreDeck = new THREE.Mesh(coreDeckGeo, materials.darkCarbon);
-    coreDeck.position.set(0, 0.24, 0.13);
+    coreDeck.position.set(0, 0.23, 0.13);
     g.add(coreDeck);
     carbon.push(coreDeck);
 
     for (const side of [-1, 1]) {
       const cap = new THREE.Mesh(endCapGeo, materials.brushedTitanium);
       cap.rotation.y = Math.PI / 2;
-      cap.position.set(side * 0.49, 0.24, 0.15);
+      cap.position.set(side * 0.44, 0.23, 0.15);
       g.add(cap);
       titanium.push(cap);
     }
 
     const busbar = new THREE.Mesh(busbarGeo, materials.copperWinding);
-    busbar.position.set(0, -0.19, 0.19);
+    busbar.position.set(0, -0.18, 0.18);
     g.add(busbar);
     copper.push(busbar);
 
     // 6. Recessed Controlled Reactor-Red Thermal/Energy Vent Slit (identical across all 3 bays)
     const ventSlit = new THREE.Mesh(ventSlitGeo, materials.neonTubeMat);
-    ventSlit.position.set(0, -0.02, 0.21);
+    ventSlit.position.set(0, -0.02, 0.20);
     g.add(ventSlit);
     neon.push(ventSlit);
 

@@ -49,15 +49,15 @@ export function createReactorLighting(
   keyLight.shadow.radius = 2.5;
   scene.add(keyLight);
 
-  // B. Neutral studio Fill Light from lower-right (eliminates blue/cyan cast while preserving dark shadows)
-  const fillLight = new THREE.DirectionalLight(0xd4d7dc, 0.72);
-  fillLight.position.set(14, -12, 15);
+  // B. Neutral studio Fill Light from lower-right (balances lower diagonal modules while preserving dark shadows)
+  const fillLight = new THREE.DirectionalLight(0xd4d7dc, 0.78);
+  fillLight.position.set(14, -13, 15);
   fillLight.castShadow = false;
   scene.add(fillLight);
 
-  // Overhead edge-catching neutral grazing light for dark titanium bevels
-  const topSpot = new THREE.DirectionalLight(0xf2f4f6, 0.68);
-  topSpot.position.set(2, 19, 10);
+  // Restrained overhead edge-catching grazing light for dark titanium bevels (prevents top horizontal glare)
+  const topSpot = new THREE.DirectionalLight(0xf2f4f6, 0.48);
+  topSpot.position.set(1.5, 18, 11);
   topSpot.castShadow = false;
   scene.add(topSpot);
 

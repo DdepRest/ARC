@@ -16,14 +16,14 @@ export function buildTrenches(
 ): void {
   const trenchLength = 6.50;
 
-  // Sleek beveled obsidian waveguide walls with crisp physical depth
+  // Sleek beveled obsidian waveguide walls with balanced inward corner taper (no horizontal overhang past clamps)
   const innerWallGeo = createBeveledTrapezoid(trenchLength - 1.05, trenchLength - 1.48, 0.34, 0.46, 0.04, 0.04);
-  const outerWallGeo = createBeveledTrapezoid(trenchLength + 0.42, trenchLength + 0.08, 0.34, 0.46, 0.04, 0.04);
-  const innerRailGeo = createBeveledTrapezoid(trenchLength - 1.40, trenchLength - 1.66, 0.068, 0.05, 0.015, 0.015);
-  const outerRailGeo = createBeveledTrapezoid(trenchLength + 0.08, trenchLength - 0.16, 0.068, 0.05, 0.015, 0.015);
-  const floorGeo = createBeveledTrapezoid(trenchLength - 0.32, trenchLength - 0.02, 0.76, 0.18, 0.02, 0.02);
+  const outerWallGeo = createBeveledTrapezoid(trenchLength - 0.56, trenchLength - 1.02, 0.32, 0.44, 0.038, 0.038);
+  const innerRailGeo = createBeveledTrapezoid(trenchLength - 1.40, trenchLength - 1.66, 0.064, 0.048, 0.014, 0.014);
+  const outerRailGeo = createBeveledTrapezoid(trenchLength - 0.92, trenchLength - 1.24, 0.064, 0.048, 0.014, 0.014);
+  const floorGeo = createBeveledTrapezoid(trenchLength - 0.68, trenchLength - 0.98, 0.74, 0.18, 0.02, 0.02);
   const ceramicBedGeo = createBeveledTrapezoid(trenchLength - 1.22, trenchLength - 1.32, 0.13, 0.12, 0.015, 0.015);
-  const tubeGeo = new THREE.CylinderGeometry(0.062, 0.062, trenchLength - 1.85, 18);
+  const tubeGeo = new THREE.CylinderGeometry(0.054, 0.054, trenchLength - 1.85, 18);
   ensureUv2(tubeGeo);
   const collarGeo = new THREE.CylinderGeometry(0.108, 0.112, 0.12, 16);
   ensureUv2(collarGeo);
@@ -189,7 +189,7 @@ export function buildCornerClamps(
   const copperPinGeo = new THREE.CylinderGeometry(0.028, 0.028, 0.14, 12);
   copperPinGeo.rotateX(Math.PI / 2);
   ensureUv2(copperPinGeo);
-  const slitGeo = new THREE.BoxGeometry(0.42, 0.026, 0.03);
+  const slitGeo = new THREE.BoxGeometry(0.30, 0.020, 0.024);
   const pistonGeo = new THREE.CylinderGeometry(0.042, 0.048, 0.72, 12);
   ensureUv2(pistonGeo);
 
