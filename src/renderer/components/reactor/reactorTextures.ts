@@ -428,10 +428,23 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
       // Machined satin titanium connecting bridge visually uniting A - R - C
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(206, 216, 228, 0.58)';
+      ctx.strokeStyle = 'rgba(208, 218, 230, 0.60)';
       ctx.lineWidth = 3.8 * scale;
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      // Precision recessed end-notches anchoring each connecting bridge toward its glyph
+      const nx = -uy;
+      const ny = ux;
+      const tick = 6.5 * scale;
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(196, 206, 220, 0.52)';
+      ctx.lineWidth = 2.6 * scale;
+      ctx.moveTo(startX - nx * tick, startY - ny * tick);
+      ctx.lineTo(startX + nx * tick, startY + ny * tick);
+      ctx.moveTo(endX - nx * tick, endY - ny * tick);
+      ctx.lineTo(endX + nx * tick, endY + ny * tick);
       ctx.stroke();
     };
 

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import type { ReactorMaterials } from './reactor-materials';
+import type { LightRunner } from './reactor-geometry';
 import {
   ensureUv2,
   createBeveledHexagon,
@@ -7,6 +9,82 @@ import {
 } from './reactor-geometry-primitives';
 
 export { ensureUv2 };
+
+export function addOuterLightRunners(
+  parentGroup: THREE.Object3D,
+  materials: ReactorMaterials,
+  lightRunners: LightRunner[],
+  radius: number,
+  count: number,
+  thickness: number,
+  zOffset = 0
+): void {
+  const arcLengths = [0.44, 0.68, 0.92, 0.54, 1.04, 0.48, 0.74, 1.08, 0.60, 0.82];
+  for (let i = 0; i < count; i++) {
+    const arcLen = arcLengths[i % arcLengths.length];
+    const group = new THREE.Group();
+    group.name = `arc-light-runner-${i}`;
+
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x000000,
+      emissive: materials.currentColor.getHex(),
+      emissiveIntensity: 0,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const glowMat = new THREE.MeshStandardMaterial({
+      color: 0x000000,
+      emissive: materials.currentColor.getHex(),
+      emissiveIntensity: 0,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const coreGeo = new THREE.TorusGeometry(radius, thickness * 0.25, 12, 48, arcLen);
+    const capStartGeo = new THREE.SphereGeometry(thickness * 0.32, 10, 10);
+    capStartGeo.translate(radius, 0, 0);
+    const mergedCoreGeo = BufferGeometryUtils.mergeGeometries([coreGeo, capStartGeo], false) || coreGeo;
+    if (mergedCoreGeo !== coreGeo) coreGeo.dispose();
+    capStartGeo.dispose();
+    const coreMesh = new THREE.Mesh(mergedCoreGeo, coreMat);
+    coreMesh.matrixAutoUpdate = false;
+    group.add(coreMesh);
+
+    const auraGeo = new THREE.TorusGeometry(radius, thickness * 0.56, 12, 48, arcLen);
+    const capEndGeo = new THREE.SphereGeometry(thickness * 0.16, 10, 10);
+    capEndGeo.translate(Math.cos(arcLen) * radius, Math.sin(arcLen) * radius, 0);
+    const mergedAuraGeo = BufferGeometryUtils.mergeGeometries([auraGeo, capEndGeo], false) || auraGeo;
+    if (mergedAuraGeo !== auraGeo) auraGeo.dispose();
+    capEndGeo.dispose();
+    const auraMesh = new THREE.Mesh(mergedAuraGeo, glowMat);
+    auraMesh.matrixAutoUpdate = false;
+    group.add(auraMesh);
+
+    group.position.z = zOffset;
+    group.rotation.z = (i / count) * Math.PI * 2 + (i % 3) * 0.35;
+
+    const dir = i % 2 === 0 ? 1 : -1;
+    const isInitialActive = i % 3 === 0 || i === 5;
+    group.visible = isInitialActive;
+    group.userData = {
+      baseSpeed: dir * (0.22 + ((i * 7) % 5) * 0.05),
+      direction: dir,
+      state: isInitialActive ? 'active' : 'dormant',
+      timer: isInitialActive ? 1.8 + (i % 4) * 1.2 : 0.4 + (i % 3) * 0.7,
+      maxLife: 2.4 + (i % 4) * 1.1,
+      opacity: isInitialActive ? 0.72 : 0.0,
+      pulseFreq: 3.0 + (i % 4) * 1.4,
+      pulseOffset: i * 0.9,
+    };
+
+    parentGroup.add(group);
+    lightRunners.push({ group, coreMat, glowMat });
+  }
+}
 
 /**
  * Adds strictly functional, disciplined mechanical joints via InstancedMesh (only +3 draw calls):
@@ -98,12 +176,15 @@ export function buildOuterMicroDetails(
 
 const SHADOW_CASTER_NAMES = new Set<string>([
   'arc-rear-structural-hub',
+  'arc-outer-carrier-rail',
   'arc-merged-nacelles-anodizedBlack',
   'arc-merged-nacelles-brushedTitanium',
+  'arc-merged-nacelles-ringFrameMat',
   'arc-merged-nacelles-darkCarbon',
   'arc-merged-nacelles-darkCeramic',
   'arc-merged-outerMods-anodizedBlack',
   'arc-merged-outerMods-brushedTitanium',
+  'arc-merged-outerMods-ringFrameMat',
   'arc-merged-outerMods-darkCarbon',
   'arc-merged-outerMods-darkCeramic',
   'arc-merged-outerMods-heatTintedMetal',
@@ -113,13 +194,16 @@ const SHADOW_CASTER_NAMES = new Set<string>([
   'arc-merged-trenches-darkCeramic',
   'arc-merged-trenches-brushedTitanium',
   'arc-merged-trenches-ringFrameMat',
+  'arc-merged-trenches-copperWinding',
   'arc-merged-clamps-anodizedBlack',
   'arc-merged-clamps-brushedTitanium',
+  'arc-merged-clamps-ringFrameMat',
   'arc-merged-clamps-darkCarbon',
   'arc-merged-clamps-darkCeramic',
   'arc-merged-clamps-copperWinding',
   'arc-merged-chamber-anodizedBlack',
   'arc-merged-chamber-brushedTitanium',
+  'arc-merged-chamber-ringFrameMat',
   'arc-merged-chamber-darkCarbon',
   'arc-merged-chamber-darkCeramic',
   'arc-merged-chamber-copperWinding',

@@ -29,13 +29,13 @@ export function createReactorLighting(
   scene: THREE.Scene,
   initialColorHex: number
 ): ReactorLighting {
-  // Neutral studio hemisphere fill reveals obsidian black forms without blue wash or gray glare
-  const hemiLight = new THREE.HemisphereLight(0xd8dce0, 0x0b0c0f, 0.46);
+  // Restrained neutral hemisphere preserves deeply shadowed recessed cavities while revealing obsidian forms
+  const hemiLight = new THREE.HemisphereLight(0xd8dce0, 0x08090c, 0.42);
   scene.add(hemiLight);
 
-  // A. Key Light (sole shadow caster, neutral studio white with controlled bevel catch)
-  const keyLight = new THREE.DirectionalLight(0xfcfaf6, 1.82);
-  keyLight.position.set(-10, 14, 18);
+  // A. Key Light (sole shadow caster, neutral-warm studio grazing angle to expose machined armor bevels)
+  const keyLight = new THREE.DirectionalLight(0xfcfaf6, 1.88);
+  keyLight.position.set(-13, 15, 14.5);
   keyLight.castShadow = false;
   keyLight.shadow.mapSize.set(1024, 1024);
   keyLight.shadow.camera.near = 6;
@@ -49,32 +49,32 @@ export function createReactorLighting(
   keyLight.shadow.radius = 2.5;
   scene.add(keyLight);
 
-  // B. Neutral studio Fill Light from lower-right (balances lower diagonal modules while preserving dark shadows)
-  const fillLight = new THREE.DirectionalLight(0xd4d7dc, 0.78);
-  fillLight.position.set(14, -13, 15);
+  // B. Neutral studio Fill Light from lower-right grazing angle (reveals diagonal conduit rails & chamber steps)
+  const fillLight = new THREE.DirectionalLight(0xd8dbe0, 0.76);
+  fillLight.position.set(14, -12, 13.5);
   fillLight.castShadow = false;
   scene.add(fillLight);
 
-  // Restrained overhead edge-catching grazing light for dark titanium bevels (prevents top horizontal glare)
-  const topSpot = new THREE.DirectionalLight(0xf2f4f6, 0.48);
-  topSpot.position.set(1.5, 18, 11);
+  // Overhead bevel-grazing light exposing the upper armored power bridge spine & central chamber crown
+  const topSpot = new THREE.DirectionalLight(0xf4f5f7, 0.54);
+  topSpot.position.set(1.5, 18, 9.5);
   topSpot.castShadow = false;
   scene.add(topSpot);
 
   // C. Controlled Back-Rim Light separating outer silhouette and internal turbine layers from deep black space
-  const rimLight = new THREE.PointLight(initialColorHex, 0.0, 16.0, 2.0);
+  const rimLight = new THREE.PointLight(initialColorHex, 0.0, 15.5, 2.0);
   rimLight.position.set(0, 0, -4.2);
   rimLight.castShadow = false;
   scene.add(rimLight);
 
-  // D. Local Core Dynamic Lights (compact coreLight radius prevents central hotspot from overlapping A/R/C letters;
-  //    innerChamberLight softly grazes internal radial spars, ceramic chord braces, and turbine blades for 3D depth)
-  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 4.2, 2.4);
+  // D. Local Core Dynamic Lights (compact coreLight keeps central hotspot localized; innerChamberLight gives
+  //    the central chamber subtle focal presence and grazes internal radial spars & ceramic steps)
+  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 4.0, 2.4);
   coreLight.position.z = 0.28;
   coreLight.castShadow = false;
 
-  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 5.6, 2.0);
-  innerChamberLight.position.z = -0.26;
+  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 5.4, 2.0);
+  innerChamberLight.position.z = -0.24;
   innerChamberLight.castShadow = false;
 
   const trenchLights: THREE.PointLight[] = [];

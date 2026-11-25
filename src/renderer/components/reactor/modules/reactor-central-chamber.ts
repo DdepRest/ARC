@@ -69,34 +69,44 @@ export function buildCentralChamber(
 
   const chamberAnodized: THREE.Mesh[] = [];
   const chamberTitanium: THREE.Mesh[] = [];
+  const chamberRingFrame: THREE.Mesh[] = [];
   const chamberCarbon: THREE.Mesh[] = [];
   const chamberCeramic: THREE.Mesh[] = [];
   const chamberCopper: THREE.Mesh[] = [];
   const chamberNeon: THREE.Mesh[] = [];
 
   // =========================================================================
-  // LAYER 1: Deep Extruded Outer Chamber Barrel & Elevated Titanium Armor Crown
+  // LAYER 1: Two-Tier Stepped Outer Armor Frame & Precision Gunmetal Crown Bezel
   // =========================================================================
   const innerChassisGroup = new THREE.Group();
   innerChassisGroup.name = "arc-inner-triangle-chassis";
 
-  // Deep machined outer barrel (0.86 depth — thick architectural walls visible from 3/4 view!)
+  // Level 1A: Deep machined obsidian outer foundation barrel (0.88 depth)
   const mainBarrelMesh = new THREE.Mesh(
-    createBeveledTriangleFrame(2.62, 1.56, 0.86, 0.065, 0.065),
+    createBeveledTriangleFrame(2.64, 1.56, 0.88, 0.068, 0.068),
     materials.anodizedBlack
   );
   mainBarrelMesh.position.z = -0.34;
   innerChassisGroup.add(mainBarrelMesh);
   chamberAnodized.push(mainBarrelMesh);
 
-  // Elevated precision brushed titanium upper crown bezel (separated by cooling stanchions)
-  const crownBezelMesh = new THREE.Mesh(
-    createBeveledTriangleFrame(2.44, 1.78, 0.14, 0.035, 0.035),
-    materials.brushedTitanium
+  // Level 1B: Stepped upper beveled obsidian armor collar (distinct 2nd structural tier)
+  const upperArmorTier = new THREE.Mesh(
+    createBeveledTriangleFrame(2.50, 1.80, 0.18, 0.036, 0.036),
+    materials.anodizedBlack
   );
-  crownBezelMesh.position.z = 0.32;
+  upperArmorTier.position.z = 0.18;
+  innerChassisGroup.add(upperArmorTier);
+  chamberAnodized.push(upperArmorTier);
+
+  // Level 1C: Precision-machined dark gunmetal crown bezel + slim titanium inner rim highlight
+  const crownBezelMesh = new THREE.Mesh(
+    createBeveledTriangleFrame(2.38, 1.88, 0.11, 0.026, 0.026),
+    materials.ringFrameMat
+  );
+  crownBezelMesh.position.z = 0.34;
   innerChassisGroup.add(crownBezelMesh);
-  chamberTitanium.push(crownBezelMesh);
+  chamberRingFrame.push(crownBezelMesh);
 
   // =========================================================================
   // LAYER 2: 3 Edge Waveguide Channels, Riser Stanchions & Clamping Yokes
@@ -218,15 +228,17 @@ export function buildCentralChamber(
     return m;
   };
 
-  addStatic(shell, createBeveledTriangleFrame(1.68, 1.24, 0.44, 0.04, 0.04), materials.darkCeramic, chamberCeramic, 0, 0, -0.14);
-  addStatic(shell, createBeveledTriangleFrame(1.36, 0.96, 0.56, 0.035, 0.035), materials.darkCeramic, chamberCeramic, 0, 0, -0.62);
+  addStatic(shell, createBeveledTriangleFrame(1.74, 1.28, 0.44, 0.04, 0.04), materials.darkCeramic, chamberCeramic, 0, 0, -0.14);
+  addStatic(shell, createBeveledTriangleFrame(1.40, 0.98, 0.56, 0.035, 0.035), materials.darkCeramic, chamberCeramic, 0, 0, -0.60);
   addStatic(shell, createBeveledTriangleSolid(1.12, 0.14, 0.025, 0.025), materials.darkCeramic, chamberCeramic, 0, 0, -0.96);
   addStatic(shell, createBeveledTriangleFrame(0.96, 0.76, 0.18, 0.024, 0.024), materials.copperWinding, chamberCopper, 0, 0, -0.78);
 
   const guideRailGeo = createBeveledTrapezoid(0.14, 0.10, 0.62, 0.16, 0.015, 0.015);
+  const cavityRibGeo = createBeveledTrapezoid(0.24, 0.16, 0.34, 0.12, 0.014, 0.014);
   for (let i = 0; i < 3; i++) {
     const a = angles[i] + Math.PI / 3;
     addStatic(shell, guideRailGeo, materials.brushedTitanium, chamberTitanium, Math.cos(a) * 0.96, Math.sin(a) * 0.96, -0.06, a + Math.PI / 2);
+    addStatic(shell, cavityRibGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(a) * 1.30, Math.sin(a) * 1.30, -0.24, a + Math.PI / 2);
   }
 
   // LAYER 4: True 3D 6-Blade Mechanical Aperture Iris (`arc-aperture-inner-rim`)
@@ -267,8 +279,16 @@ export function buildCentralChamber(
   triangularCoreMesh.position.z = -0.44;
   group.add(triangularCoreMesh);
 
-  // Recessed open-center dark ceramic framing bezel around the core (clean mechanical moat separating core from A/R/C letters)
+  // Recessed open-center dark ceramic framing bezel + 3-jaw precision mechanical emitter mounting cradle
+  // Jaws sit at 90°, 210°, 330° (between A/R/C letters, clear of center ray) clamping the compact core
   addStatic(shell, createBeveledTriangleFrame(0.86, 0.38, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.36);
+  const coreMountJawGeo = createBeveledTrapezoid(0.16, 0.10, 0.34, 0.12, 0.014, 0.014);
+  const coreContactStudGeo = createBeveledTrapezoid(0.06, 0.05, 0.10, 0.08, 0.008, 0.008);
+  for (let i = 0; i < 3; i++) {
+    const jawA = angles[i] + Math.PI / 3; // 90°, 210°, 330°
+    addStatic(shell, coreMountJawGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(jawA) * 0.54, Math.sin(jawA) * 0.54, -0.32, jawA + Math.PI / 2);
+    addStatic(shell, coreContactStudGeo, materials.copperWinding, chamberCopper, Math.cos(jawA) * 0.43, Math.sin(jawA) * 0.43, -0.28, jawA + Math.PI / 2);
+  }
 
   const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.36, 0.29, 0.07, 0.011, 0.011), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
@@ -310,7 +330,8 @@ export function buildCentralChamber(
   const termHexGeo = createBeveledHexagon(0.24, 0.28, 0.028, 0.028);
   const termBaseGeo = createBeveledHexagon(0.34, 0.58, 0.036, 0.036);
   const saddleGeo = new THREE.CylinderGeometry(0.105, 0.115, 0.10, 10);
-  const pierGeo = createBeveledTrapezoid(0.20, 0.15, 0.26, 0.88, 0.02, 0.02);
+  const pierGeo = createBeveledTrapezoid(0.22, 0.16, 0.28, 0.88, 0.02, 0.02);
+  const pierCollarGeo = createBeveledTrapezoid(0.30, 0.24, 0.34, 0.14, 0.016, 0.016);
   ensureUv2(saddleGeo);
 
   for (let i = 0; i < 3; i++) {
@@ -325,6 +346,7 @@ export function buildCentralChamber(
 
     const midPt = curve.getPoint(0.5);
     addStatic(conduitsGroup, pierGeo, materials.anodizedBlack, chamberAnodized, midPt.x, midPt.y, -0.14, angles[i] + Math.PI / 2);
+    addStatic(conduitsGroup, pierCollarGeo, materials.ringFrameMat, chamberRingFrame, midPt.x, midPt.y, 0.24, angles[i] + Math.PI / 2);
 
     const tangent = curve.getTangent(0.5);
     const bandMesh = new THREE.Mesh(saddleGeo, materials.brushedTitanium);
@@ -334,7 +356,7 @@ export function buildCentralChamber(
     chamberTitanium.push(bandMesh);
 
     addStatic(conduitsGroup, termBaseGeo, materials.anodizedBlack, chamberAnodized, pEnd.x, pEnd.y, pEnd.z - 0.34);
-    addStatic(conduitsGroup, termHexGeo, materials.brushedTitanium, chamberTitanium, pEnd.x, pEnd.y, pEnd.z);
+    addStatic(conduitsGroup, termHexGeo, materials.ringFrameMat, chamberRingFrame, pEnd.x, pEnd.y, pEnd.z);
 
     const runnerMesh = new THREE.Mesh(new THREE.SphereGeometry(0.064, 12, 12), materials.neonTubeMat);
     runnerMesh.name = `arc-conduit-runner-${i}`;
@@ -349,6 +371,7 @@ export function buildCentralChamber(
   group.updateMatrixWorld(true);
   mergeGeometryBatch(chamberAnodized, materials.anodizedBlack, group, "arc-merged-chamber-anodizedBlack");
   mergeGeometryBatch(chamberTitanium, materials.brushedTitanium, group, "arc-merged-chamber-brushedTitanium");
+  mergeGeometryBatch(chamberRingFrame, materials.ringFrameMat, group, "arc-merged-chamber-ringFrameMat");
   mergeGeometryBatch(chamberCarbon, materials.darkCarbon, innerChassisGroup, "arc-merged-chamber-darkCarbon");
   mergeGeometryBatch(chamberCeramic, materials.darkCeramic, innerChassisGroup, "arc-merged-chamber-darkCeramic");
   mergeGeometryBatch(chamberCopper, materials.copperWinding, group, "arc-merged-chamber-copperWinding");

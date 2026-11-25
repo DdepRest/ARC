@@ -28,6 +28,7 @@ export function buildAsymmetricOuterModules(
 
   const anodized: THREE.Mesh[] = [];
   const titanium: THREE.Mesh[] = [];
+  const ringFrame: THREE.Mesh[] = [];
   const carbon: THREE.Mesh[] = [];
   const ceramic: THREE.Mesh[] = [];
   const copper: THREE.Mesh[] = [];
@@ -50,6 +51,7 @@ export function buildAsymmetricOuterModules(
   );
   const shroudGeo = createBeveledTrapezoid(1.32, 1.00, 0.56, 0.30, 0.03, 0.03);
   const barrierGeo = createBeveledTrapezoid(1.40, 1.26, 0.14, 0.26, 0.018, 0.018);
+  const ringSaddleGeo = createBeveledTrapezoid(1.86, 1.62, 0.26, 0.22, 0.02, 0.02);
   const cheekGeo = createBeveledTrapezoid(0.12, 0.09, 0.76, 0.26, 0.015, 0.015);
   const topLipGeo = createBeveledTrapezoid(0.94, 0.72, 0.19, 0.08, 0.015, 0.015);
   const ventSlitGeo = new THREE.BoxGeometry(0.64, 0.028, 0.030);
@@ -88,11 +90,16 @@ export function buildAsymmetricOuterModules(
     g.add(shroud);
     heatMetal.push(shroud);
 
-    // 3. Matte Dark Ceramic Thermal Isolation Collar
+    // 3. Matte Dark Ceramic Thermal Isolation Collar & Dark-Gunmetal Containment Ring Saddle
     const barrier = new THREE.Mesh(barrierGeo, materials.darkCeramic);
     barrier.position.set(0, -0.18, 0.02);
     g.add(barrier);
     ceramic.push(barrier);
+
+    const ringSaddle = new THREE.Mesh(ringSaddleGeo, materials.ringFrameMat);
+    ringSaddle.position.set(0, -0.02, 0.10);
+    g.add(ringSaddle);
+    ringFrame.push(ringSaddle);
 
     // 4. Restrained Slim Brushed-Titanium Framing Cheeks & Top Rim Lip
     for (let side = -1; side <= 1; side += 2) {
@@ -178,6 +185,7 @@ export function buildAsymmetricOuterModules(
 
   mergeGeometryBatch(anodized, materials.anodizedBlack, modGroup, 'arc-merged-outerMods-anodizedBlack');
   mergeGeometryBatch(titanium, materials.brushedTitanium, modGroup, 'arc-merged-outerMods-brushedTitanium');
+  mergeGeometryBatch(ringFrame, materials.ringFrameMat, modGroup, 'arc-merged-outerMods-ringFrameMat');
   mergeGeometryBatch(carbon, materials.darkCarbon, modGroup, 'arc-merged-outerMods-darkCarbon');
   mergeGeometryBatch(ceramic, materials.darkCeramic, modGroup, 'arc-merged-outerMods-darkCeramic');
   mergeGeometryBatch(copper, materials.copperWinding, modGroup, 'arc-merged-outerMods-copperWinding');

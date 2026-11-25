@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import type { ReactorMaterials } from "./reactor-materials";
 import type { ReactorLighting } from "./reactor-lighting";
 import {
@@ -10,7 +9,7 @@ import {
 import { buildAsymmetricOuterModules } from "./reactor-geometry-modules";
 import { buildCoreDecorations } from "./reactor-geometry-core-decor";
 import {
-  ensureUv2,
+  addOuterLightRunners,
   buildOuterMicroDetails,
   applySelectiveShadowFlags,
 } from "./reactor-geometry-details";
@@ -48,90 +47,6 @@ export function buildReactorGeometry(
 
   const lightRunners: LightRunner[] = [];
 
-  const addRunners = (
-    parentGroup: THREE.Object3D,
-    radius: number,
-    count: number,
-    thickness: number,
-    zOffset: number = 0
-  ) => {
-    const arcLengths = [0.44, 0.68, 0.92, 0.54, 1.04, 0.48, 0.74, 1.08, 0.60, 0.82];
-    for (let i = 0; i < count; i++) {
-      const arcLen = arcLengths[i % arcLengths.length];
-      const group = new THREE.Group();
-      group.name = `arc-light-runner-${i}`;
-
-      const coreMat = new THREE.MeshStandardMaterial({
-        color: 0x000000,
-        emissive: materials.currentColor.getHex(),
-        emissiveIntensity: 0,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-
-      const glowMat = new THREE.MeshStandardMaterial({
-        color: 0x000000,
-        emissive: materials.currentColor.getHex(),
-        emissiveIntensity: 0,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-
-      // High-resolution smooth plasma runner core & soft optical aura
-      const coreGeo = new THREE.TorusGeometry(radius, thickness * 0.25, 12, 48, arcLen);
-      const capStartGeo = new THREE.SphereGeometry(thickness * 0.32, 10, 10);
-      capStartGeo.translate(radius, 0, 0);
-      const mergedCoreGeo =
-        BufferGeometryUtils.mergeGeometries([coreGeo, capStartGeo], false) || coreGeo;
-      if (mergedCoreGeo !== coreGeo) coreGeo.dispose();
-      capStartGeo.dispose();
-      const coreMesh = new THREE.Mesh(mergedCoreGeo, coreMat);
-      coreMesh.matrixAutoUpdate = false;
-      group.add(coreMesh);
-
-      const auraGeo = new THREE.TorusGeometry(radius, thickness * 0.56, 12, 48, arcLen);
-      const capEndGeo = new THREE.SphereGeometry(thickness * 0.16, 10, 10);
-      capEndGeo.translate(Math.cos(arcLen) * radius, Math.sin(arcLen) * radius, 0);
-      const mergedAuraGeo =
-        BufferGeometryUtils.mergeGeometries([auraGeo, capEndGeo], false) || auraGeo;
-      if (mergedAuraGeo !== auraGeo) auraGeo.dispose();
-      capEndGeo.dispose();
-      const auraMesh = new THREE.Mesh(mergedAuraGeo, glowMat);
-      auraMesh.matrixAutoUpdate = false;
-      group.add(auraMesh);
-
-      group.position.z = zOffset;
-      group.rotation.z = (i / count) * Math.PI * 2 + (i % 3) * 0.35;
-
-      const dir = i % 2 === 0 ? 1 : -1;
-      const baseSpeed = dir * (0.22 + ((i * 7) % 5) * 0.05);
-      const isInitialActive = i % 3 === 0 || i === 5;
-      const state: "igniting" | "active" | "dissipating" | "dormant" =
-        isInitialActive ? "active" : "dormant";
-      const timer = isInitialActive ? 1.8 + (i % 4) * 1.2 : 0.4 + (i % 3) * 0.7;
-      const curOpacity = isInitialActive ? 0.72 : 0.0;
-
-      group.visible = isInitialActive;
-      group.userData = {
-        baseSpeed,
-        direction: dir,
-        state,
-        timer,
-        maxLife: 2.4 + (i % 4) * 1.1,
-        opacity: curOpacity,
-        pulseFreq: 3.0 + (i % 4) * 1.4,
-        pulseOffset: i * 0.9,
-      };
-
-      parentGroup.add(group);
-      lightRunners.push({ group, coreMat, glowMat });
-    }
-  };
-
   // ==========================================
   // REFINED OPEN-FRAME EXOSKELETON & TRI-SYMMETRIC CONTAINMENT NACELLES
   // (Sleeker proportions, Obsidian Black body, continuous 360° optical raceway)
@@ -160,30 +75,59 @@ export function buildReactorGeometry(
   rearHub.matrixAutoUpdate = false;
   outerEnvelope.add(rearHub);
 
-  // 2. Three Sleek Segmented Containment Nacelles (centered at 90°, 210°, 330°; 52° arcs)
-  // Restrained arc & radial profile preserve crisp breathing room around the 30°/150°/270° bays and circular optical ring
+  // 2. Continuous Recessed Dark-Gunmetal Structural Carrier Rail (mechanically unites optical ring, 3 nacelles & 3 outer nodes)
+  const carrierRailGeo = createChamferedRingLathe(
+    [
+      [4.92, -0.32],
+      [5.24, -0.32],
+      [5.26, -0.18],
+      [5.18, -0.13],
+      [4.98, -0.13],
+      [4.90, -0.18],
+      [4.92, -0.32],
+    ],
+    96
+  );
+  const carrierRail = new THREE.Mesh(carrierRailGeo, materials.ringFrameMat);
+  carrierRail.name = "arc-outer-carrier-rail";
+  carrierRail.updateMatrix();
+  carrierRail.matrixAutoUpdate = false;
+  outerEnvelope.add(carrierRail);
+
+  // 3. Three Layered Segmented Containment Armor Carriers (centered at 90°, 210°, 330°; 52° outer arc + 28° raised stepped crown)
   const nacelleAnodized: THREE.Mesh[] = [];
   const nacelleTitanium: THREE.Mesh[] = [];
+  const nacelleRingFrame: THREE.Mesh[] = [];
   const nacelleCarbon: THREE.Mesh[] = [];
   const nacelleCeramic: THREE.Mesh[] = [];
 
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
-  const halfArc = (26 * Math.PI) / 180; // 52° total arc per nacelle — restores intentional negative space
+  const halfArc = (26 * Math.PI) / 180; // 52° total arc per carrier segment — preserves crisp breathing room
+  const crownHalfArc = (14 * Math.PI) / 180; // 28° central raised stepped armor plate
 
   for (const centerA of nacelleAngles) {
     const a0 = centerA - halfArc;
     const a1 = centerA + halfArc;
 
-    // Primary obsidian anodized armor hull (slimmed inward edge to r = 4.70 for crisp separation from internal frame)
+    // Layer A: Primary obsidian anodized armor carrier base
     const hull = new THREE.Mesh(
-      createBeveledArcSector(4.70, 5.46, a0, a1, 0.52, 0.046, 0.046, 24),
+      createBeveledArcSector(4.70, 5.46, a0, a1, 0.50, 0.044, 0.044, 24),
       materials.anodizedBlack
     );
-    hull.position.z = -0.44;
+    hull.position.z = -0.45;
     outerEnvelope.add(hull);
     nacelleAnodized.push(hull);
 
-    // Restrained slim dark-gunmetal outer perimeter trim rail
+    // Layer B: Stepped central raised armor crown segment (creates multi-level industrial depth instead of a uniform arc)
+    const crownPlate = new THREE.Mesh(
+      createBeveledArcSector(4.78, 5.42, centerA - crownHalfArc, centerA + crownHalfArc, 0.18, 0.026, 0.026, 18),
+      materials.anodizedBlack
+    );
+    crownPlate.position.z = -0.25;
+    outerEnvelope.add(crownPlate);
+    nacelleAnodized.push(crownPlate);
+
+    // Layer C: Machined dark-gunmetal outer perimeter trim rail + twin end transition bevel caps
     const bumper = new THREE.Mesh(
       createBeveledArcSector(5.38, 5.52, a0 + 0.04, a1 - 0.04, 0.18, 0.024, 0.024, 22),
       materials.brushedTitanium
@@ -192,16 +136,24 @@ export function buildReactorGeometry(
     outerEnvelope.add(bumper);
     nacelleTitanium.push(bumper);
 
+    const crownTrim = new THREE.Mesh(
+      createBeveledArcSector(5.32, 5.44, centerA - crownHalfArc + 0.03, centerA + crownHalfArc - 0.03, 0.10, 0.016, 0.016, 16),
+      materials.ringFrameMat
+    );
+    crownTrim.position.z = -0.14;
+    outerEnvelope.add(crownTrim);
+    nacelleRingFrame.push(crownTrim);
+
     // Recessed obsidian carbon-composite channel bed beneath the continuous optical ring
     const serviceDeck = new THREE.Mesh(
-      createBeveledArcSector(4.80, 5.30, a0 + 0.04, a1 - 0.04, 0.10, 0.016, 0.016, 20),
+      createBeveledArcSector(4.82, 5.28, a0 + 0.04, a1 - 0.04, 0.10, 0.016, 0.016, 20),
       materials.darkCarbon
     );
     serviceDeck.position.z = -0.16;
     outerEnvelope.add(serviceDeck);
     nacelleCarbon.push(serviceDeck);
 
-    // Slim matte dark ceramic inner thermal liner (retracted from r = 4.28 to r = 4.58)
+    // Slim matte graphite-ceramic inner thermal liner
     const thermalLiner = new THREE.Mesh(
       createBeveledArcSector(4.58, 4.74, a0 + 0.03, a1 - 0.03, 0.34, 0.02, 0.02, 20),
       materials.darkCeramic
@@ -211,11 +163,11 @@ export function buildReactorGeometry(
     nacelleCeramic.push(thermalLiner);
   }
 
-  // 3. Restrained Radial Load-Bearing I-Beam Spars & Reference-Scale Transverse Chord Cross-Braces
-  // Connects central chamber (r = 2.20) to outer nacelles (r = 4.68) with clean open bays between spans
+  // 4. Restrained Radial Load-Bearing I-Beam Spars & Transverse Chord Cross-Braces with Machined Splice Collars
   const sparBodyGeo = createBeveledTrapezoid(0.32, 0.24, 2.48, 0.30, 0.026, 0.026);
   const sparFlangeGeo = createBeveledTrapezoid(0.11, 0.08, 2.30, 0.07, 0.012, 0.012);
   const braceGeo = createBeveledTrapezoid(2.22, 2.04, 0.20, 0.18, 0.02, 0.02);
+  const braceSpliceGeo = createBeveledTrapezoid(0.46, 0.38, 0.26, 0.22, 0.018, 0.018);
 
   for (let i = 0; i < 6; i++) {
     const a = (Math.PI / 3) * i + Math.PI / 6;
@@ -230,21 +182,28 @@ export function buildReactorGeometry(
     sparFlange.position.set(Math.cos(a) * rMid, Math.sin(a) * rMid, -0.45);
     sparFlange.rotation.z = a + Math.PI / 2;
     outerEnvelope.add(sparFlange);
-    nacelleTitanium.push(sparFlange);
+    nacelleRingFrame.push(sparFlange);
   }
 
-  // 3 restrained transverse chord cross-braces anchored at r = 3.56, recessed cleanly behind the trenches
+  // 3 restrained transverse chord cross-braces anchored at r = 3.56 with gunmetal center splice brackets
   for (let i = 0; i < 3; i++) {
     const a = ((Math.PI * 2) / 3) * i;
+    const bx = Math.cos(a + Math.PI / 2) * 3.56;
+    const by = Math.sin(a + Math.PI / 2) * 3.56;
     const brace = new THREE.Mesh(braceGeo, materials.darkCeramic);
-    brace.position.set(Math.cos(a + Math.PI / 2) * 3.56, Math.sin(a + Math.PI / 2) * 3.56, -0.66);
+    brace.position.set(bx, by, -0.66);
     brace.rotation.z = a;
     outerEnvelope.add(brace);
     nacelleCeramic.push(brace);
+
+    const splice = new THREE.Mesh(braceSpliceGeo, materials.ringFrameMat);
+    splice.position.set(bx, by, -0.62);
+    splice.rotation.z = a;
+    outerEnvelope.add(splice);
+    nacelleRingFrame.push(splice);
   }
 
-  // 4. Continuous 360° Smoked Optical Accelerator Raceway + Restrained Plasma Guide + High-Res Runners
-  // Rides cleanly at z = +0.04 above recessed nacelle decks and through containment bays
+  // 5. Continuous 360° Smoked Optical Accelerator Raceway + Restrained Plasma Guide + High-Res Runners
   const glassTunnelMesh = new THREE.Mesh(
     new THREE.TorusGeometry(ringRadius, 0.115, 18, 96),
     materials.outerGlassRingMat
@@ -266,15 +225,16 @@ export function buildReactorGeometry(
   plasmaGuideMesh.matrixAutoUpdate = false;
   outerEnvelope.add(plasmaGuideMesh);
 
-  addRunners(outerEnvelope, ringRadius, 10, 0.105, 0.04);
+  addOuterLightRunners(outerEnvelope, materials, lightRunners, ringRadius, 10, 0.105, 0.04);
 
   outerEnvelope.updateMatrixWorld(true);
   mergeGeometryBatch(nacelleAnodized, materials.anodizedBlack, outerEnvelope, "arc-merged-nacelles-anodizedBlack");
   mergeGeometryBatch(nacelleTitanium, materials.brushedTitanium, outerEnvelope, "arc-merged-nacelles-brushedTitanium");
+  mergeGeometryBatch(nacelleRingFrame, materials.ringFrameMat, outerEnvelope, "arc-merged-nacelles-ringFrameMat");
   mergeGeometryBatch(nacelleCarbon, materials.darkCarbon, outerEnvelope, "arc-merged-nacelles-darkCarbon");
   mergeGeometryBatch(nacelleCeramic, materials.darkCeramic, outerEnvelope, "arc-merged-nacelles-darkCeramic");
 
-  // 5. Balanced Tri-Symmetric Outer Substations (with restrained secondary engineering details)
+  // 6. Balanced Tri-Symmetric Outer Substations (mechanically interlocked with containment carrier rail)
   buildAsymmetricOuterModules(outerEnvelope, materials);
   buildOuterMicroDetails(outerEnvelope, materials, ringRadius);
   reactorGroup.add(outerEnvelope);
