@@ -254,6 +254,44 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
     const logoGroup = scene.getObjectByName('arc-central-letters-logo') as THREE.Group;
     expect(logoGroup.position.z).toBeCloseTo(0.38, 2);
 
+    // P0: Verify central emissive core is NOT occluded along the Z-axis by any opaque backing mesh
+    scene.updateMatrixWorld(true);
+    const raycaster = new THREE.Raycaster(
+      new THREE.Vector3(0, 0, 5),
+      new THREE.Vector3(0, 0, -1)
+    );
+    const hits = raycaster.intersectObject(result.reactorGroup, true);
+    const coreHitIndex = hits.findIndex((h) => h.object.name === 'arc-triangular-core-mesh');
+    expect(coreHitIndex).toBeGreaterThanOrEqual(0);
+    // Any hit before the core must be transparent (opticGlass or logo decal plane), never opaque ceramic/carbon/anodized
+    const hitsBeforeCore = hits.slice(0, coreHitIndex);
+    for (const hit of hitsBeforeCore) {
+      const meshMat = (hit.object as THREE.Mesh).material as THREE.Material;
+      expect(
+        meshMat.transparent,
+        `Opaque mesh "${hit.object.name || hit.object.uuid}" occluded arc-triangular-core-mesh at z=${hit.point.z}`
+      ).toBe(true);
+    }
+
+    // P1: Verify the 3 outer modules at 30°, 150°, 270° (r = 5.30) are balanced and present at exact 120° intervals
+    const outerModsGroup = scene.getObjectByName('arc-asymmetric-outer-modules') as THREE.Group;
+    expect(outerModsGroup).toBeTruthy();
+    const outerBounds = new THREE.Box3().setFromObject(outerModsGroup);
+    const outerCenter = new THREE.Vector3();
+    outerBounds.getCenter(outerCenter);
+    expect(Math.abs(outerCenter.x)).toBeLessThan(0.01);
+    const moduleAngles = [Math.PI / 6, (5 * Math.PI) / 6, -Math.PI / 2];
+    const moduleHitCounts = moduleAngles.map((a) => {
+      const modRay = new THREE.Raycaster(
+        new THREE.Vector3(Math.cos(a) * 5.30, Math.sin(a) * 5.30, 5),
+        new THREE.Vector3(0, 0, -1)
+      );
+      return modRay.intersectObject(outerModsGroup, true).length;
+    });
+    for (const count of moduleHitCounts) {
+      expect(count).toBeGreaterThanOrEqual(3);
+    }
+
     // Verify DEFAULT_REACTOR_CAMERA retains slight perspective angle without excessive offset skew
     expect(DEFAULT_REACTOR_CAMERA.position[0]).toBeGreaterThan(1.0);
     expect(DEFAULT_REACTOR_CAMERA.position[0]).toBeLessThan(4.0);

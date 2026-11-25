@@ -561,14 +561,14 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         ? (1.1 + smoothBass * 0.9 + smoothMid * 0.6)
         : (1.0 + smoothBass * 0.85 + smoothMid * 0.55 + smoothTotal * 0.7 + manualPulseValue * 0.4);
       materials.singularityCoreEmissiveMat.emissiveIntensity =
-        (0.52 + currentVisuals.coreIntensity * 0.44) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
+        (0.68 + currentVisuals.coreIntensity * 0.52) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
 
       materials.singularityInnerWireMat.color.copy(activeColor);
-      materials.singularityInnerWireMat.opacity = Math.min(0.46, (0.24 + smoothTotal * 0.26 + smoothBass * 0.16) * stageCenter);
+      materials.singularityInnerWireMat.opacity = Math.min(0.62, (0.34 + smoothTotal * 0.28 + smoothBass * 0.18) * stageCenter);
 
-      materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.18);
+      materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.22);
       materials.singularityFacetedMat.emissive.copy(activeColor);
-      materials.singularityFacetedMat.emissiveIntensity = (0.16 + smoothTotal * 0.24) * stageCenter * bloomOffEmissiveBoost;
+      materials.singularityFacetedMat.emissiveIntensity = (0.20 + smoothTotal * 0.28) * stageCenter * bloomOffEmissiveBoost;
 
       // Stage 2: Waveguides, Channel Trenches, Plasma Vortex & Port Diodes
       // Emissive compensation (+0.08) when outer perimeter PointLights are culled in Eco/Standard tiers
@@ -711,7 +711,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         }
         if (isGlowActive) {
           materials.singularityCoreEmissiveMat.emissiveIntensity =
-            (0.52 + currentVisuals.coreIntensity * 0.44) * (0.92 + patternBoost * 0.65 + manualPulseValue * 0.28) * stageCenter * bloomOffEmissiveBoost;
+            (0.68 + currentVisuals.coreIntensity * 0.52) * (0.94 + patternBoost * 0.72 + manualPulseValue * 0.30) * stageCenter * bloomOffEmissiveBoost;
         } else {
           materials.singularityCoreEmissiveMat.emissiveIntensity = 0.0;
         }

@@ -190,9 +190,9 @@ export function createReactorPostFX(
   if (!activeCaps.isSoftwareGl) {
     try {
       bokehPass = new BokehPass(scene, camera, {
-        focus: 81.5,
-        aperture: 0.00018,
-        maxblur: 0.0045,
+        focus: 41.2,
+        aperture: 0.00012,
+        maxblur: 0.003,
       });
       bokehPass.enabled = false;
       composer.addPass(bokehPass);
@@ -293,7 +293,7 @@ export function createReactorPostFX(
     }
 
     if (bokehPass) {
-      bokehPass.enabled = false;
+      bokehPass.enabled = Boolean(activeConfig.dofEnabled) && !activeCaps.isSoftwareGl;
     }
 
     bloomPass.enabled = activeConfig.bloomEnabled;

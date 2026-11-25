@@ -400,64 +400,60 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
     // Balanced coordinates forming an inverted triangle matching the central chamber aperture
     const letters = [
-      { char: 'A', x: cx - 224 * scale, y: cy - 128 * scale },
-      { char: 'R', x: cx + 224 * scale, y: cy - 128 * scale },
-      { char: 'C', x: cx,               y: cy + 206 * scale },
+      { char: 'A', x: cx - 220 * scale, y: cy - 126 * scale },
+      { char: 'R', x: cx + 220 * scale, y: cy - 126 * scale },
+      { char: 'C', x: cx,               y: cy + 204 * scale },
     ];
 
-    // 1. Subtle dark obsidian triangular backing layer inside the central chamber
-    //    Prevents core plasma emission from washing out A.R.C. while preserving perimeter glow
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(cx - 385 * scale, cy - 245 * scale);
-    ctx.lineTo(cx + 385 * scale, cy - 245 * scale);
-    ctx.lineTo(cx, cy + 410 * scale);
-    ctx.closePath();
-    const shieldGrad = ctx.createRadialGradient(cx, cy - 20 * scale, 10 * scale, cx, cy - 20 * scale, 410 * scale);
-    shieldGrad.addColorStop(0, 'rgba(8, 10, 14, 0.88)');
-    shieldGrad.addColorStop(0.75, 'rgba(10, 12, 17, 0.80)');
-    shieldGrad.addColorStop(1.0, 'rgba(12, 15, 20, 0.35)');
-    ctx.fillStyle = shieldGrad;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(220, 226, 236, 0.22)';
-    ctx.lineWidth = 2.2 * scale;
-    ctx.stroke();
-    ctx.restore();
+    // 1. Unified Integrated Triangular Emblem Frame (open center so the emissive core remains visible)
+    //    Connects A - R - C with clean glyph-clearance gaps so the mark reads as one cohesive emblem
+    const drawSegmentWithGap = (x1: number, y1: number, x2: number, y2: number, gapRadius: number) => {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+      const startX = x1 + ux * gapRadius;
+      const startY = y1 + uy * gapRadius;
+      const endX = x2 - ux * gapRadius;
+      const endY = y2 - uy * gapRadius;
 
-    // 2. Clean triangular datum lines connecting A - R - C
-    ctx.strokeStyle = 'rgba(228, 234, 242, 0.20)';
-    ctx.lineWidth = 1.8 * scale;
-    ctx.beginPath();
-    ctx.moveTo(letters[0].x, letters[0].y);
-    ctx.lineTo(letters[1].x, letters[1].y);
-    ctx.lineTo(letters[2].x, letters[2].y);
-    ctx.closePath();
-    ctx.stroke();
-
-    // 3. Precision dark backing medallions + deterministic vector glyphs for A, R, C
-    const drawPrecisionGlyph = (char: string, gx: number, gy: number) => {
-      // Dark matte contrast disc behind each letter
+      // Subtle dark contrast backing along emblem frame segment
       ctx.beginPath();
-      ctx.arc(gx, gy, 88 * scale, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(7, 9, 13, 0.92)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(225, 232, 242, 0.26)';
-      ctx.lineWidth = 1.8 * scale;
+      ctx.strokeStyle = 'rgba(6, 8, 12, 0.72)';
+      ctx.lineWidth = 10 * scale;
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
       ctx.stroke();
 
-      ctx.save();
-      ctx.strokeStyle = '#f2f5fa';
-      ctx.fillStyle = '#f2f5fa';
-      ctx.lineCap = 'butt';
-      ctx.lineJoin = 'miter';
-      ctx.miterLimit = 6;
-      const sw = 21 * scale; // crisp structural stroke width
-      ctx.lineWidth = sw;
-      const h = 58 * scale; // half height of glyph
-      const w = 44 * scale; // half width of glyph
+      // Crisp metallic-white emblem connecting bar
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(232, 238, 246, 0.42)';
+      ctx.lineWidth = 2.6 * scale;
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    };
 
+    const gapR = 84 * scale;
+    drawSegmentWithGap(letters[0].x, letters[0].y, letters[1].x, letters[1].y, gapR);
+    drawSegmentWithGap(letters[1].x, letters[1].y, letters[2].x, letters[2].y, gapR);
+    drawSegmentWithGap(letters[2].x, letters[2].y, letters[0].x, letters[0].y, gapR);
+
+    // Subtle inner triangular datum hairline unifying the three vertices around the open core
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(232, 238, 246, 0.18)';
+    ctx.lineWidth = 1.4 * scale;
+    ctx.moveTo(cx - 118 * scale, cy - 66 * scale);
+    ctx.lineTo(cx + 118 * scale, cy - 66 * scale);
+    ctx.lineTo(cx, cy + 112 * scale);
+    ctx.closePath();
+    ctx.stroke();
+
+    // 2. Custom Geometric A, R, C Vector Glyphs with soft borderless contrast halo + dark contour stroke
+    const strokeGlyphPath = (char: string, gx: number, gy: number, h: number, w: number, sw: number, isContourPass: boolean) => {
+      ctx.lineWidth = isContourPass ? sw + 16 * scale : sw;
       if (char === 'A') {
-        // Crisp geometric 'A' with wide open apex and clear crossbar
         ctx.beginPath();
         ctx.moveTo(gx - w, gy + h);
         ctx.lineTo(gx, gy - h);
@@ -465,19 +461,17 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.lineWidth = sw * 0.85;
+        ctx.lineWidth = (isContourPass ? sw + 14 * scale : sw) * 0.85;
         ctx.moveTo(gx - w * 0.56, gy + h * 0.24);
         ctx.lineTo(gx + w * 0.56, gy + h * 0.24);
         ctx.stroke();
       } else if (char === 'R') {
-        // Precision engineered 'R' with unmistakable open upper bowl counter and distinct angled leg
         const leftX = gx - w * 0.88;
         const bowlRightX = gx + w * 0.42;
         const midY = gy + 2 * scale;
         const bowlRadius = (h + 2 * scale) * 0.5;
         const bowlCenterY = gy - h + bowlRadius;
 
-        // Vertical stem + upper bowl loop (leaving large, dark open counter inside)
         ctx.beginPath();
         ctx.moveTo(leftX, gy + h);
         ctx.lineTo(leftX, gy - h);
@@ -486,17 +480,43 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
         ctx.lineTo(leftX, midY);
         ctx.stroke();
 
-        // Diagonal kick leg of 'R' clearly separated from the vertical stem
         ctx.beginPath();
         ctx.moveTo(gx + w * 0.04, midY);
-        ctx.lineTo( bowlRightX + w * 0.46, gy + h);
+        ctx.lineTo(bowlRightX + w * 0.46, gy + h);
         ctx.stroke();
       } else if (char === 'C') {
-        // Crisp geometric 'C' with wide open right aperture
         ctx.beginPath();
         ctx.arc(gx + 4 * scale, gy, h * 0.94, 0.24 * Math.PI, 1.76 * Math.PI, false);
         ctx.stroke();
       }
+    };
+
+    const drawPrecisionGlyph = (char: string, gx: number, gy: number) => {
+      // Soft feathering radial shadow cushion (no hard disc edge or circular medallion outline)
+      const haloGrad = ctx.createRadialGradient(gx, gy, 12 * scale, gx, gy, 76 * scale);
+      haloGrad.addColorStop(0, 'rgba(6, 8, 12, 0.68)');
+      haloGrad.addColorStop(0.65, 'rgba(6, 8, 12, 0.42)');
+      haloGrad.addColorStop(1.0, 'rgba(6, 8, 12, 0.0)');
+      ctx.fillStyle = haloGrad;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 76 * scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.save();
+      ctx.lineCap = 'butt';
+      ctx.lineJoin = 'miter';
+      ctx.miterLimit = 6;
+      const sw = 21 * scale;
+      const h = 58 * scale;
+      const w = 44 * scale;
+
+      // Pass 1: Tight dark obsidian contrast contour directly behind glyph strokes
+      ctx.strokeStyle = 'rgba(6, 8, 12, 0.92)';
+      strokeGlyphPath(char, gx, gy, h, w, sw, true);
+
+      // Pass 2: Crisp high-contrast geometric glyph stroke
+      ctx.strokeStyle = '#f2f5fa';
+      strokeGlyphPath(char, gx, gy, h, w, sw, false);
       ctx.restore();
     };
 

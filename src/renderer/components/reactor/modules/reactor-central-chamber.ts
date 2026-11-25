@@ -253,27 +253,27 @@ export function buildCentralChamber(
 
   // LAYER 5: Deeply Recessed 3D Volumetric Emitter Core & Containment Cage
   const facetedCavityGeo = new THREE.OctahedronGeometry(0.46, 1);
-  facetedCavityGeo.scale(1.0, 1.0, 0.72);
+  facetedCavityGeo.scale(1.0, 1.0, 0.40);
   ensureUv2(facetedCavityGeo);
   const facetedCavity = new THREE.Mesh(facetedCavityGeo, materials.singularityFacetedMat);
   facetedCavity.name = "arc-core-faceted-cavity";
-  facetedCavity.position.z = -0.58;
+  facetedCavity.position.z = -0.82;
   facetedCavity.updateMatrix();
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.62, 0.22, 0.035, 0.035), materials.singularityCoreEmissiveMat);
+  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.64, 0.22, 0.035, 0.035), materials.singularityCoreEmissiveMat);
   triangularCoreMesh.name = "arc-triangular-core-mesh";
-  triangularCoreMesh.position.z = -0.46;
+  triangularCoreMesh.position.z = -0.44;
   group.add(triangularCoreMesh);
 
-  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.68, 0.52, 0.12, 0.016, 0.016), materials.singularityInnerWireMat);
-  innerTriWireMesh.name = "arc-inner-wire-triangle";
-  innerTriWireMesh.position.z = -0.28;
-  group.add(innerTriWireMesh);
+  // Recessed open-center dark ceramic framing bezel around the core (never occludes the emissive center)
+  addStatic(shell, createBeveledTriangleFrame(0.84, 0.58, 0.08, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.36);
 
-  // Subtle dark matte backing shield inside the central chamber so core emission frames the perimeter without overpowering A.R.C. lettering
-  addStatic(shell, createBeveledTriangleSolid(0.74, 0.045, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.15);
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.68, 0.50, 0.10, 0.016, 0.016), materials.singularityInnerWireMat);
+  innerTriWireMesh.name = "arc-inner-wire-triangle";
+  innerTriWireMesh.position.z = -0.24;
+  group.add(innerTriWireMesh);
 
   // LAYER 6: Recessed Armored Optical Protective Glass Viewport + 3 Retaining Clips
   const glassWindow = new THREE.Mesh(createBeveledTriangleSolid(1.66, 0.04, 0.018, 0.018), materials.opticGlass);
