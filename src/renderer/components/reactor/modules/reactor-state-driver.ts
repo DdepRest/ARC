@@ -592,7 +592,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         ? (1.05 + smoothBass * 0.78 + smoothMid * 0.50)
         : (0.96 + smoothBass * 0.72 + smoothMid * 0.46 + smoothTotal * 0.56 + manualPulseValue * 0.34);
       materials.singularityCoreEmissiveMat.emissiveIntensity =
-        (0.52 + currentVisuals.coreIntensity * 0.42) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
+        (0.44 + currentVisuals.coreIntensity * 0.36) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
 
       materials.singularityInnerWireMat.color.copy(activeColor);
       materials.singularityInnerWireMat.opacity = Math.min(0.34, (0.18 + smoothTotal * 0.16 + smoothBass * 0.10) * stageCenter);
@@ -726,7 +726,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         }
         if (isGlowActive) {
           materials.singularityCoreEmissiveMat.emissiveIntensity =
-            (0.52 + currentVisuals.coreIntensity * 0.42) * (0.90 + patternBoost * 0.60 + manualPulseValue * 0.25) * stageCenter * bloomOffEmissiveBoost;
+            (0.44 + currentVisuals.coreIntensity * 0.36) * (0.90 + patternBoost * 0.58 + manualPulseValue * 0.24) * stageCenter * bloomOffEmissiveBoost;
         } else {
           materials.singularityCoreEmissiveMat.emissiveIntensity = 0.0;
         }

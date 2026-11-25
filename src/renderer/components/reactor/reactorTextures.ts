@@ -398,15 +398,15 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
     ctx.clearRect(0, 0, size, size);
 
-    // Balanced coordinates forming an inverted triangle clear of the central core hotspot
+    // Strict equilateral triangular triad centered around the localized core (unified emblem geometry)
     const letters = [
-      { char: 'A', x: cx - 246 * scale, y: cy - 140 * scale },
-      { char: 'R', x: cx + 246 * scale, y: cy - 140 * scale },
-      { char: 'C', x: cx,               y: cy + 232 * scale },
+      { char: 'A', x: cx - 215 * scale, y: cy - 124 * scale },
+      { char: 'R', x: cx + 215 * scale, y: cy - 124 * scale },
+      { char: 'C', x: cx,               y: cy + 248 * scale },
     ];
 
     // 1. Unified Integrated Triangular Emblem Frame (open center so the emissive core remains visible)
-    //    Single clean structural bridge connecting A - R - C without redundant inner lines or HUD noise
+    //    Single clean structural bridge locking A - R - C into one cohesive emblem without opaque backing plates
     const drawSegmentWithGap = (x1: number, y1: number, x2: number, y2: number, gapRadius: number) => {
       const dx = x2 - x1;
       const dy = y2 - y1;
@@ -420,22 +420,22 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
       // Recessed dark anodized channel bed under connecting bar
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(6, 8, 12, 0.82)';
-      ctx.lineWidth = 9.0 * scale;
+      ctx.strokeStyle = 'rgba(6, 8, 12, 0.86)';
+      ctx.lineWidth = 9.5 * scale;
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
 
-      // Restrained satin titanium connecting bridge (integrated into chamber bezel, not bright white HUD)
+      // Machined satin titanium connecting bridge visually uniting A - R - C
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(194, 204, 218, 0.48)';
-      ctx.lineWidth = 3.0 * scale;
+      ctx.strokeStyle = 'rgba(206, 216, 228, 0.58)';
+      ctx.lineWidth = 3.8 * scale;
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
     };
 
-    const gapR = 98 * scale;
+    const gapR = 82 * scale;
     drawSegmentWithGap(letters[0].x, letters[0].y, letters[1].x, letters[1].y, gapR);
     drawSegmentWithGap(letters[1].x, letters[1].y, letters[2].x, letters[2].y, gapR);
     drawSegmentWithGap(letters[2].x, letters[2].y, letters[0].x, letters[0].y, gapR);

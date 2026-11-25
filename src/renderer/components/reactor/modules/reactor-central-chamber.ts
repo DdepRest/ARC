@@ -262,15 +262,15 @@ export function buildCentralChamber(
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.36, 0.20, 0.028, 0.028), materials.singularityCoreEmissiveMat);
+  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.31, 0.18, 0.024, 0.024), materials.singularityCoreEmissiveMat);
   triangularCoreMesh.name = "arc-triangular-core-mesh";
   triangularCoreMesh.position.z = -0.44;
   group.add(triangularCoreMesh);
 
-  // Recessed open-center dark ceramic framing bezel around the core (clean mechanical step separating core from A/R/C letters)
-  addStatic(shell, createBeveledTriangleFrame(0.88, 0.42, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.35);
+  // Recessed open-center dark ceramic framing bezel around the core (clean mechanical moat separating core from A/R/C letters)
+  addStatic(shell, createBeveledTriangleFrame(0.86, 0.38, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.36);
 
-  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.41, 0.33, 0.08, 0.012, 0.012), materials.singularityInnerWireMat);
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.36, 0.29, 0.07, 0.011, 0.011), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
   innerTriWireMesh.position.z = -0.26;
   group.add(innerTriWireMesh);

@@ -27,13 +27,13 @@ export function buildOuterMicroDetails(
   boltInst.name = 'arc-instanced-hex-bolts';
 
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
-  const boltOffsets = [-0.38, -0.18, 0.18, 0.38];
+  const boltOffsets = [-0.36, -0.16, 0.16, 0.36];
   let boltIdx = 0;
   for (const centerA of nacelleAngles) {
     for (const off of boltOffsets) {
       const a = centerA + off;
-      const r = 5.14;
-      dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, -0.04);
+      const r = 5.06;
+      dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, -0.09);
       dummy.rotation.set(0, 0, a);
       dummy.scale.setScalar(1.0);
       dummy.updateMatrix();
@@ -78,11 +78,11 @@ export function buildOuterMicroDetails(
   studInst.name = 'arc-instanced-strut-screws';
 
   let studIdx = 0;
-  const studRadii = [2.76, 4.24];
+  const studRadii = [2.62, 4.30];
   for (let s = 0; s < 6; s++) {
     const a = (Math.PI / 3) * s + Math.PI / 6;
     for (const r of studRadii) {
-      dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, -0.46);
+      dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, -0.44);
       dummy.rotation.set(0, 0, a);
       dummy.scale.setScalar(1.0);
       dummy.updateMatrix();

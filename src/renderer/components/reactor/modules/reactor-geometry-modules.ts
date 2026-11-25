@@ -37,22 +37,22 @@ export function buildAsymmetricOuterModules(
   // Shared tri-symmetric compact structural cradle & shroud geometries (balanced visual mass across all 3 bays)
   const cradleGeo = createBeveledPolygon(
     [
-      [-0.94, -0.42],
-      [0.94, -0.42],
-      [0.80, 0.40],
-      [0.46, 0.58],
-      [-0.46, 0.58],
-      [-0.80, 0.40],
+      [-0.88, -0.36],
+      [0.88, -0.36],
+      [0.76, 0.38],
+      [0.44, 0.54],
+      [-0.44, 0.54],
+      [-0.76, 0.38],
     ],
-    0.44,
-    0.042,
-    0.042
+    0.40,
+    0.038,
+    0.038
   );
-  const shroudGeo = createBeveledTrapezoid(1.36, 1.04, 0.60, 0.32, 0.032, 0.032);
-  const barrierGeo = createBeveledTrapezoid(1.46, 1.32, 0.15, 0.28, 0.02, 0.02);
-  const cheekGeo = createBeveledTrapezoid(0.13, 0.095, 0.80, 0.28, 0.016, 0.016);
-  const topLipGeo = createBeveledTrapezoid(0.98, 0.74, 0.20, 0.085, 0.016, 0.016);
-  const ventSlitGeo = new THREE.BoxGeometry(0.68, 0.030, 0.032);
+  const shroudGeo = createBeveledTrapezoid(1.32, 1.00, 0.56, 0.30, 0.03, 0.03);
+  const barrierGeo = createBeveledTrapezoid(1.40, 1.26, 0.14, 0.26, 0.018, 0.018);
+  const cheekGeo = createBeveledTrapezoid(0.12, 0.09, 0.76, 0.26, 0.015, 0.015);
+  const topLipGeo = createBeveledTrapezoid(0.94, 0.72, 0.19, 0.08, 0.015, 0.015);
+  const ventSlitGeo = new THREE.BoxGeometry(0.64, 0.028, 0.030);
 
   const bayConfigs: Array<{ angle: number; role: 'thermal' | 'cryo' | 'ventral' }> = [
     { angle: Math.PI / 6, role: 'thermal' },       // 30° Upper-Right
@@ -72,8 +72,8 @@ export function buildAsymmetricOuterModules(
 
   for (const cfg of bayConfigs) {
     const g = new THREE.Group();
-    // Recessed to z = -0.34 so the continuous 360° optical glass ring at z = +0.04 passes cleanly in front
-    g.position.set(Math.cos(cfg.angle) * 5.06, Math.sin(cfg.angle) * 5.06, -0.34);
+    // Recessed to r = 5.10, z = -0.38 so the continuous 360° optical glass ring at z = +0.04 stands cleanly distinct
+    g.position.set(Math.cos(cfg.angle) * 5.10, Math.sin(cfg.angle) * 5.10, -0.38);
     g.rotation.z = cfg.angle - Math.PI / 2; // local +Y points radially OUTWARD
 
     // 1. Unified Tri-Symmetric Obsidian Anodized Structural Cradle
