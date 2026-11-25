@@ -355,10 +355,10 @@ function buildBrushedTitaniumSet(size: number, aniso: number, trilinear: boolean
 
       const h = 0.5 + smoothStreak * 0.65 + longBrush * 0.28 + micro;
       height[idx] = Math.max(0, Math.min(1, h));
-      // Precision dark gunmetal titanium (distinct machined highlight without pale gray): linear 0.068..0.128
-      albedo[idx] = Math.max(0.068, Math.min(0.128, 0.096 + smoothStreak * 0.064 + longBrush * 0.028));
-      // Physical linear roughness 0.26..0.40 (controlled directional satin sheen)
-      rough[idx] = Math.max(0.26, Math.min(0.40, 0.33 - smoothStreak * 0.14 + Math.abs(longBrush) * 0.14));
+      // Satin Silver machined alloy for selected bevels & retention edges: linear 0.092..0.162
+      albedo[idx] = Math.max(0.092, Math.min(0.162, 0.124 + smoothStreak * 0.068 + longBrush * 0.028));
+      // Physical linear roughness 0.24..0.38 (controlled directional satin sheen)
+      rough[idx] = Math.max(0.24, Math.min(0.38, 0.30 - smoothStreak * 0.14 + Math.abs(longBrush) * 0.14));
       ao[idx] = Math.max(0.84, Math.min(1.0, 0.94 + smoothStreak * 0.1));
     }
   }
@@ -483,15 +483,15 @@ function buildCopperAlloySet(size: number, aniso: number, trilinear: boolean): P
       const idx = y * size + x;
       const micro = (lcg(seed) - 0.5) * 0.04;
       height[idx] = Math.max(0, Math.min(1, 0.5 + streak + micro));
-      // Controlled dark burnished industrial copper/bronze (warm depth without bright orange glare)
-      albedo[idx] = Math.max(0.22, Math.min(0.38, 0.29 + streak * 0.11));
+      // Controlled dark burnished industrial copper/bronze (restrained functional contact finish, never rusty)
+      albedo[idx] = Math.max(0.18, Math.min(0.32, 0.24 + streak * 0.10));
       // Physical roughness 0.28..0.44
       rough[idx] = Math.max(0.28, Math.min(0.44, 0.35 - streak * 0.14 + Math.abs(micro) * 0.32));
     }
   }
 
   return {
-    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.80, 0.39, 0.21), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
+    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.72, 0.42, 0.28), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
     normal: makeCanvasTexture(heightToNormalCanvas(height, size, 1.8), THREE.NoColorSpace, 2, 2, aniso, trilinear),
     roughness: makeCanvasTexture(scalarToLinearCanvas(rough, size), THREE.NoColorSpace, 2, 2, aniso, trilinear),
   };

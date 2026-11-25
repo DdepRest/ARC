@@ -182,6 +182,7 @@ const SHADOW_CASTER_NAMES = new Set<string>([
   'arc-merged-nacelles-ringFrameMat',
   'arc-merged-nacelles-darkCarbon',
   'arc-merged-nacelles-darkCeramic',
+  'arc-merged-nacelles-copperWinding',
   'arc-merged-outerMods-anodizedBlack',
   'arc-merged-outerMods-brushedTitanium',
   'arc-merged-outerMods-ringFrameMat',
@@ -223,6 +224,7 @@ const SHADOW_RECEIVER_ONLY_NAMES = new Set<string>([
   'arc-turbine-primary-blades',
   'arc-turbine-secondary-stator',
   'arc-turbine-rotor-hub',
+  'arc-turbine-secondary-carrier',
 ]);
 
 /**

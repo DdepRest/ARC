@@ -127,10 +127,13 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   let apertureInnerRim: THREE.Object3D | null = null;
   let triangularCoreMesh: THREE.Mesh | null = null;
   let triangularCoreBasic: THREE.Mesh | null = null;
+  let plasmaWhiteCoreMesh: THREE.Mesh | null = null;
+  let plasmaContainmentFieldMesh: THREE.Mesh | null = null;
   let innerTriWireMesh: THREE.Mesh | null = null;
   let hudLensMesh: THREE.Mesh | null = null;
   const conduitRunners: THREE.Mesh[] = [];
   const portDiodes: THREE.Mesh[] = [];
+  const bearingIndicators: THREE.Mesh[] = [];
   const innerEdgeTubes: THREE.Mesh[] = [];
   const outerClampLights: THREE.PointLight[] = [];
 
@@ -144,6 +147,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   const unlitFacetedColor = new THREE.Color(0x050508);
   const unlitGlassColor = new THREE.Color(0x0e0c12);
   const unlitBlack = new THREE.Color(0x000000);
+  const whiteHotBaseColor = new THREE.Color(0xfff4f2);
 
   const tempCenterColor = new THREE.Color();
   const tempTrenchColor = new THREE.Color();
@@ -171,6 +175,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     if (child.name === "arc-aperture-inner-rim") apertureInnerRim = child;
     if (child.name === "arc-triangular-core-mesh") triangularCoreMesh = child as THREE.Mesh;
     if (child.name === "arc-triangular-core-basic") triangularCoreBasic = child as THREE.Mesh;
+    if (child.name === "arc-plasma-white-core") plasmaWhiteCoreMesh = child as THREE.Mesh;
+    if (child.name === "arc-plasma-containment-field") plasmaContainmentFieldMesh = child as THREE.Mesh;
     if (child.name === "arc-inner-wire-triangle") innerTriWireMesh = child as THREE.Mesh;
     if (child.name === "arc-core-hud-lens") hudLensMesh = child as THREE.Mesh;
     if (child.name.startsWith("arc-conduit-runner-")) conduitRunners.push(child as THREE.Mesh);
@@ -181,6 +187,12 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     if (child.name.startsWith("arc-inner-port-diode-")) {
       const idx = parseInt(child.name.replace("arc-inner-port-diode-", ""), 10);
       portDiodes[idx] = child as THREE.Mesh;
+    }
+    if (child.name === "arc-bearing-indicators-ring") {
+      bearingIndicators[0] = child as THREE.Mesh;
+    } else if (child.name.startsWith("arc-bearing-indicator-")) {
+      const idx = parseInt(child.name.replace("arc-bearing-indicator-", ""), 10);
+      bearingIndicators[idx] = child as THREE.Mesh;
     }
     if (child.name.startsWith("arc-vertex-light-")) {
       const idx = parseInt(child.name.replace("arc-vertex-light-", ""), 10);
@@ -569,10 +581,20 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
       materials.singularityInnerWireMat.color.setHex(0x000000);
       materials.singularityInnerWireMat.opacity = 0.0;
+      materials.singularityPointMat.opacity = 0.0;
 
       materials.plasmaVortexMat.opacity = 0.0;
       materials.plasmaVortexMat.emissive.setHex(0x000000);
       materials.plasmaVortexMat.emissiveIntensity = 0.0;
+
+      for (let bIdx = 0; bIdx < 3; bIdx++) {
+        const bMat = bearingIndicators[bIdx]?.material;
+        if (bMat instanceof THREE.MeshStandardMaterial) {
+          bMat.color.copy(unlitTubeColor);
+          bMat.emissive.setHex(0x000000);
+          bMat.emissiveIntensity = 0.0;
+        }
+      }
 
       materials.energyWaveMat.opacity = 0.0;
       materials.energyArcMat.opacity = 0.0;
@@ -583,26 +605,32 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
       materials.outerGlassRingMat.color.copy(unlitGlassColor);
     } else {
-      // Stage 1: Central Singularity Core & Crystal Chamber
+      // Stage 1: Primary Volumetric Plasma Source (White-Hot Center + Saturated Crimson Envelope)
       const isSpeaking = state === 'speaking';
-      const isListening = state === 'listening';
       materials.singularityCoreEmissiveMat.color.copy(unlitBlack).lerp(activeColor, stageCenter);
       materials.singularityCoreEmissiveMat.emissive.copy(activeColor);
       const coreGlowMod = isSpeaking
-        ? (1.05 + smoothBass * 0.78 + smoothMid * 0.50)
-        : (0.96 + smoothBass * 0.72 + smoothMid * 0.46 + smoothTotal * 0.56 + manualPulseValue * 0.34);
+        ? (1.06 + smoothBass * 0.80 + smoothMid * 0.52)
+        : (0.98 + smoothBass * 0.74 + smoothMid * 0.48 + smoothTotal * 0.58 + manualPulseValue * 0.36);
       materials.singularityCoreEmissiveMat.emissiveIntensity =
-        (0.44 + currentVisuals.coreIntensity * 0.36) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
+        (0.56 + currentVisuals.coreIntensity * 0.44) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
+
+      // White-hot inner plasma core tint & controlled animated intensity
+      materials.singularityPointMat.color.copy(whiteHotBaseColor).lerp(activeColor, 0.24);
+      materials.singularityPointMat.opacity = Math.min(
+        0.96,
+        (0.76 + currentVisuals.coreIntensity * 0.14 + smoothBass * 0.10 + manualPulseValue * 0.08) * stageCenter
+      );
 
       materials.singularityInnerWireMat.color.copy(activeColor);
-      materials.singularityInnerWireMat.opacity = Math.min(0.34, (0.18 + smoothTotal * 0.16 + smoothBass * 0.10) * stageCenter);
+      materials.singularityInnerWireMat.opacity = Math.min(0.38, (0.20 + smoothTotal * 0.18 + smoothBass * 0.10) * stageCenter);
 
-      materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.16);
+      materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.18);
       materials.singularityFacetedMat.emissive.copy(activeColor);
-      materials.singularityFacetedMat.emissiveIntensity = (0.12 + smoothTotal * 0.18) * stageCenter * bloomOffEmissiveBoost;
+      materials.singularityFacetedMat.emissiveIntensity = (0.14 + smoothTotal * 0.20) * stageCenter * bloomOffEmissiveBoost;
 
-      // Stage 2: Waveguides, Channel Trenches, Plasma Vortex & Port Diodes (Tertiary visual hierarchy)
-      // Emissive compensation (+0.05) when outer perimeter PointLights are culled in Eco/Standard tiers
+      // Stage 2: Primary Energy Distribution Channels, Waveguides, Electromagnetic Containment Field & Port Diodes
+      // Emissive hierarchy: Primary Plasma > Primary Channels (~0.84) > Bearing/Tertiary Indicators (~0.62)
       const lightTier = gfx?.dynamicPointLights ?? "standard";
       const isFullPerimeterLights = diagFlags.overrideActive
         ? diagFlags.enablePerimeterPointLights
@@ -610,7 +638,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.05;
       materials.neonTubeMat.color.copy(tempTrenchColor);
       materials.neonTubeMat.emissive.copy(activeColor);
-      const baseTubeIntensity = (0.78 + perimeterLightComp + smoothTotal * 0.30 + smoothBass * 0.24 + manualPulseValue * 0.22) * stageTrench * bloomOffEmissiveBoost;
+      const baseTubeIntensity = (0.84 + perimeterLightComp + smoothTotal * 0.32 + smoothBass * 0.26 + manualPulseValue * 0.24) * stageTrench * bloomOffEmissiveBoost;
       materials.neonTubeMat.emissiveIntensity = baseTubeIntensity;
 
       // Idea 8: 3-Band Spatial Audio Mapping across the 3 inner triangle plasma tubes (bass, mid, treble)
@@ -620,8 +648,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         const mid = smoothMid || 0;
         const treble = smoothTreble || 0;
         const bandValues = use3Band ? [bass, mid, treble] : [smoothTotal, smoothTotal, smoothTotal];
-        const innerBaseIntensity = (0.82 + perimeterLightComp + smoothTotal * 0.32 + manualPulseValue * 0.24) * stageTrench * bloomOffEmissiveBoost;
-        const freqMultiplier = 0.32 * stageTrench * bloomOffEmissiveBoost;
+        const innerBaseIntensity = (0.88 + perimeterLightComp + smoothTotal * 0.34 + manualPulseValue * 0.24) * stageTrench * bloomOffEmissiveBoost;
+        const freqMultiplier = 0.34 * stageTrench * bloomOffEmissiveBoost;
         for (let idx = 0; idx < 3; idx++) {
           const tube = innerEdgeTubes[idx];
           if (tube?.material instanceof THREE.MeshStandardMaterial) {
@@ -636,12 +664,27 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
       materials.coreDiodeMat.color.copy(tempTrenchColor);
       materials.coreDiodeMat.emissive.copy(activeColor);
-      materials.coreDiodeMat.emissiveIntensity = (0.86 + perimeterLightComp + smoothBass * 0.36 + manualPulseValue * 0.24) * stageTrench * bloomOffEmissiveBoost;
+      materials.coreDiodeMat.emissiveIntensity = (0.72 + perimeterLightComp + smoothBass * 0.32 + manualPulseValue * 0.20) * stageTrench * bloomOffEmissiveBoost;
+
+      // Synchronized Bearing Status Indicators (tertiary emissive level phased with rotor azimuth & plasma activity)
+      const rotorAzimuth = geometry.internalTurbine.rotation.z;
+      for (let bIdx = 0; bIdx < 3; bIdx++) {
+        const bMat = bearingIndicators[bIdx]?.material;
+        if (bMat instanceof THREE.MeshStandardMaterial) {
+          const bearingPhase = 0.5 + 0.5 * Math.sin(rotorAzimuth * 3.0 + (bIdx * Math.PI * 2) / 3);
+          bMat.color.copy(tempTrenchColor);
+          bMat.emissive.copy(activeColor);
+          bMat.emissiveIntensity =
+            (0.50 + bearingPhase * 0.24 + smoothMid * 0.22 + currentVisuals.coreIntensity * 0.12) *
+            stageRings *
+            bloomOffEmissiveBoost;
+        }
+      }
 
       materials.plasmaVortexMat.color.copy(activeColor);
       materials.plasmaVortexMat.emissive.copy(activeColor);
-      materials.plasmaVortexMat.emissiveIntensity = (0.72 + smoothTotal * 0.48) * stageTrench * bloomOffEmissiveBoost;
-      materials.plasmaVortexMat.opacity = Math.min(0.68, (0.42 + smoothTotal * 0.18) * stageTrench);
+      materials.plasmaVortexMat.emissiveIntensity = (0.76 + smoothTotal * 0.48) * stageTrench * bloomOffEmissiveBoost;
+      materials.plasmaVortexMat.opacity = Math.min(0.62, (0.34 + smoothTotal * 0.20 + smoothBass * 0.10) * stageTrench);
 
       // Stage 3: Containment Rings, Energy Conduits & Wavefields
       materials.ringFrameMat.emissive.copy(activeColor);
@@ -726,9 +769,17 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         }
         if (isGlowActive) {
           materials.singularityCoreEmissiveMat.emissiveIntensity =
-            (0.44 + currentVisuals.coreIntensity * 0.36) * (0.90 + patternBoost * 0.58 + manualPulseValue * 0.24) * stageCenter * bloomOffEmissiveBoost;
+            (0.56 + currentVisuals.coreIntensity * 0.44) * (0.92 + patternBoost * 0.60 + manualPulseValue * 0.26) * stageCenter * bloomOffEmissiveBoost;
         } else {
           materials.singularityCoreEmissiveMat.emissiveIntensity = 0.0;
+        }
+        if (plasmaWhiteCoreMesh) {
+          const whiteScale = 1.0 + Math.sin(elapsedTime * 6.4) * 0.04 + smoothBass * 0.08 + manualPulseValue * 0.06;
+          plasmaWhiteCoreMesh.scale.setScalar(whiteScale);
+        }
+        if (plasmaContainmentFieldMesh) {
+          const fieldScale = 1.0 + Math.cos(elapsedTime * 4.2) * 0.03 + smoothTotal * 0.05;
+          plasmaContainmentFieldMesh.scale.setScalar(fieldScale);
         }
         if (innerTriWireMesh) {
           if (gfx?.sphericalHarmonics) {
@@ -1414,18 +1465,18 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     postfx.bloomPass.strength += (finalBloom - postfx.bloomPass.strength) * 0.2;
 
     // Update dynamic lights per tier:
-    // eco: coreLight only (soft) | standard: core + chamber + rim | full: core + chamber + rim + trenches
+    // eco: coreLight only (soft) | standard: core + chamber + rim + restrained trench channel lights | full: full dynamic point lights
     const activeLightTier = gfx?.dynamicPointLights ?? "standard";
     const isEcoLights = activeLightTier === "eco";
-    const isFullTrenchLights = diagFlags.overrideActive
+    const isTrenchLightsEnabled = diagFlags.overrideActive
       ? diagFlags.enablePerimeterPointLights
-      : activeLightTier === "full" || diagFlags.enablePerimeterPointLights;
+      : !isEcoLights || diagFlags.enablePerimeterPointLights;
 
     lighting.coreLight.visible = true;
     lighting.coreLight.color.copy(activeColor);
     const targetCoreLight = isEcoLights
-      ? Math.min(0.40, (0.24 + smoothTotal * 0.16) * stageCenter)
-      : Math.min(0.62, (0.34 + smoothTotal * 0.28) * stageCenter);
+      ? Math.min(0.42, (0.26 + smoothTotal * 0.16) * stageCenter)
+      : Math.min(0.76, (0.44 + smoothTotal * 0.30 + smoothBass * 0.14) * stageCenter);
     lighting.coreLight.intensity += (targetCoreLight - lighting.coreLight.intensity) * 0.2;
 
     if (lighting.innerChamberLight.visible !== !isEcoLights) lighting.innerChamberLight.visible = !isEcoLights;
@@ -1435,18 +1486,20 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       lighting.rimLight.color.copy(activeColor);
       lighting.innerChamberLight.color.copy(activeColor);
 
-      const targetChamberLight = Math.min(0.64, (0.38 + smoothMid * 0.28) * stageTrench);
-      const targetRimLight = Math.min(0.66, (0.38 + smoothBass * 0.28) * stageRings);
+      const targetChamberLight = Math.min(0.78, (0.46 + smoothMid * 0.30 + smoothBass * 0.14) * stageTrench);
+      const targetRimLight = Math.min(0.68, (0.40 + smoothBass * 0.28) * stageRings);
 
       lighting.innerChamberLight.intensity += (targetChamberLight - lighting.innerChamberLight.intensity) * 0.2;
       lighting.rimLight.intensity += (targetRimLight - lighting.rimLight.intensity) * 0.2;
     }
 
+    const trenchTierScale = activeLightTier === "full" ? 1.0 : 0.72;
     lighting.trenchLights.forEach((light) => {
-      if (light.visible !== isFullTrenchLights) light.visible = isFullTrenchLights;
-      if (isFullTrenchLights) {
+      if (light.visible !== isTrenchLightsEnabled) light.visible = isTrenchLightsEnabled;
+      if (isTrenchLightsEnabled) {
         light.color.copy(activeColor);
-        const targetTrenchLight = (0.32 + smoothTotal * 0.30 + smoothBass * 0.22) * stageTrench;
+        const targetTrenchLight =
+          (0.36 + smoothTotal * 0.32 + smoothBass * 0.24) * trenchTierScale * stageTrench;
         light.intensity += (targetTrenchLight - light.intensity) * 0.2;
       }
     });

@@ -126,26 +126,30 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
     const cx = size / 2;
     const cy = size / 2;
 
-    // Restrained high-energy plasma background with compact radial falloff (prevents wide hotspot bleed)
+    // White-hot inner plasma core transitioning cleanly to saturated crimson edges (compact falloff prevents logo washout)
     const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
     const r = (hexColor >> 16) & 255;
     const g = (hexColor >> 8) & 255;
     const b = hexColor & 255;
-    bgGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.56)`);
-    bgGrad.addColorStop(0.26, `rgba(${r}, ${g}, ${b}, 0.40)`);
-    bgGrad.addColorStop(0.56, `rgba(${r}, ${g}, ${b}, 0.16)`);
-    bgGrad.addColorStop(0.84, `rgba(${r}, ${g}, ${b}, 0.04)`);
+    const hotR = Math.min(255, r + 95);
+    const hotG = Math.min(255, g + 165);
+    const hotB = Math.min(255, b + 150);
+    bgGrad.addColorStop(0.0, `rgba(${hotR}, ${hotG}, ${hotB}, 0.92)`);
+    bgGrad.addColorStop(0.18, `rgba(${Math.min(255, r + 45)}, ${Math.min(255, g + 55)}, ${Math.min(255, b + 48)}, 0.78)`);
+    bgGrad.addColorStop(0.38, `rgba(${r}, ${g}, ${b}, 0.52)`);
+    bgGrad.addColorStop(0.66, `rgba(${r}, ${g}, ${b}, 0.22)`);
+    bgGrad.addColorStop(0.88, `rgba(${r}, ${g}, ${b}, 0.05)`);
     bgGrad.addColorStop(1.0, '#000000');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, size, size);
 
-    // Subtle turbulent plasma filaments
-    const hiR = Math.min(255, r + 55);
-    const hiG = Math.min(255, g + 35);
-    const hiB = Math.min(255, b + 35);
-    ctx.strokeStyle = `rgba(${hiR}, ${hiG}, ${hiB}, 0.24)`;
-    ctx.lineWidth = 1.25;
-    for (let rad = 16; rad < size * 0.45; rad += 12) {
+    // Subtle turbulent plasma containment filaments
+    const hiR = Math.min(255, r + 70);
+    const hiG = Math.min(255, g + 48);
+    const hiB = Math.min(255, b + 48);
+    ctx.strokeStyle = `rgba(${hiR}, ${hiG}, ${hiB}, 0.28)`;
+    ctx.lineWidth = 1.3;
+    for (let rad = 14; rad < size * 0.45; rad += 11) {
       ctx.beginPath();
       for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.15) {
         const noise = Math.sin(a * 6 + rad * 0.2) * 2.5 + Math.cos(a * 9) * 1.5;
@@ -159,11 +163,11 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
     }
 
     // Restrained 3-fold harmonic radial energy rays (12 rays)
-    ctx.strokeStyle = `rgba(${hiR}, ${hiG}, ${hiB}, 0.16)`;
+    ctx.strokeStyle = `rgba(${hiR}, ${hiG}, ${hiB}, 0.18)`;
     for (let i = 0; i < 12; i++) {
       const angle = ((Math.PI * 2) / 12) * i;
       ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(angle) * 14, cy + Math.sin(angle) * 14);
+      ctx.moveTo(cx + Math.cos(angle) * 12, cy + Math.sin(angle) * 12);
       ctx.lineTo(
         cx + Math.cos(angle) * (size * 0.45),
         cy + Math.sin(angle) * (size * 0.45)

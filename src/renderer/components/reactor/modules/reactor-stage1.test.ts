@@ -195,6 +195,15 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
       'arc-process-node-5',
       'arc-node-screen-0',
       'arc-node-led-5',
+      'arc-hybrid-glass-enclosure',
+      'arc-hybrid-glass-sectors',
+      'arc-deep-rear-housing',
+      'arc-turbine-rotor-hub',
+      'arc-turbine-rotor-indicators',
+      'arc-turbine-secondary-carrier',
+      'arc-bearing-indicators-ring',
+      'arc-plasma-white-core',
+      'arc-plasma-containment-field',
     ];
 
     for (const name of requiredNames) {

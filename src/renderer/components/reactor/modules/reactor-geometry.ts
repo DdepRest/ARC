@@ -7,6 +7,7 @@ import {
   buildFiberOpticsAndDataModules,
 } from "./reactor-geometry-sub";
 import { buildAsymmetricOuterModules } from "./reactor-geometry-modules";
+import { buildHybridEnclosureAndRearHousing } from "./reactor-geometry-enclosure";
 import { buildCoreDecorations } from "./reactor-geometry-core-decor";
 import {
   addOuterLightRunners,
@@ -55,7 +56,16 @@ export function buildReactorGeometry(
   outerEnvelope.name = "arc-outer-envelope";
   const ringRadius = 5.08;
 
+  const nacelleAnodized: THREE.Mesh[] = [];
+  const nacelleTitanium: THREE.Mesh[] = [];
+  const nacelleRingFrame: THREE.Mesh[] = [];
+  const nacelleCarbon: THREE.Mesh[] = [];
+  const nacelleCeramic: THREE.Mesh[] = [];
+
   // 1. Recessed Open Rear Structural Hub Collar (compactly bridges central chamber to radial spars & turbine)
+  const rearHubGroup = new THREE.Group();
+  rearHubGroup.name = "arc-rear-structural-hub";
+  outerEnvelope.add(rearHubGroup);
   const rearHubGeo = createChamferedRingLathe(
     [
       [1.82, -0.38],
@@ -69,13 +79,14 @@ export function buildReactorGeometry(
     64
   );
   const rearHub = new THREE.Mesh(rearHubGeo, materials.anodizedBlack);
-  rearHub.name = "arc-rear-structural-hub";
   rearHub.position.z = -0.98;
-  rearHub.updateMatrix();
-  rearHub.matrixAutoUpdate = false;
-  outerEnvelope.add(rearHub);
+  rearHubGroup.add(rearHub);
+  nacelleAnodized.push(rearHub);
 
   // 2. Continuous Recessed Dark-Gunmetal Structural Carrier Rail (mechanically unites optical ring, 3 nacelles & 3 outer nodes)
+  const carrierRailGroup = new THREE.Group();
+  carrierRailGroup.name = "arc-outer-carrier-rail";
+  outerEnvelope.add(carrierRailGroup);
   const carrierRailGeo = createChamferedRingLathe(
     [
       [4.92, -0.32],
@@ -89,17 +100,10 @@ export function buildReactorGeometry(
     96
   );
   const carrierRail = new THREE.Mesh(carrierRailGeo, materials.ringFrameMat);
-  carrierRail.name = "arc-outer-carrier-rail";
-  carrierRail.updateMatrix();
-  carrierRail.matrixAutoUpdate = false;
-  outerEnvelope.add(carrierRail);
+  carrierRailGroup.add(carrierRail);
+  nacelleRingFrame.push(carrierRail);
 
   // 3. Three Layered Segmented Containment Armor Carriers (centered at 90°, 210°, 330°; 52° outer arc + 28° raised stepped crown)
-  const nacelleAnodized: THREE.Mesh[] = [];
-  const nacelleTitanium: THREE.Mesh[] = [];
-  const nacelleRingFrame: THREE.Mesh[] = [];
-  const nacelleCarbon: THREE.Mesh[] = [];
-  const nacelleCeramic: THREE.Mesh[] = [];
 
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
   const halfArc = (26 * Math.PI) / 180; // 52° total arc per carrier segment — preserves crisp breathing room
@@ -227,13 +231,6 @@ export function buildReactorGeometry(
 
   addOuterLightRunners(outerEnvelope, materials, lightRunners, ringRadius, 10, 0.105, 0.04);
 
-  outerEnvelope.updateMatrixWorld(true);
-  mergeGeometryBatch(nacelleAnodized, materials.anodizedBlack, outerEnvelope, "arc-merged-nacelles-anodizedBlack");
-  mergeGeometryBatch(nacelleTitanium, materials.brushedTitanium, outerEnvelope, "arc-merged-nacelles-brushedTitanium");
-  mergeGeometryBatch(nacelleRingFrame, materials.ringFrameMat, outerEnvelope, "arc-merged-nacelles-ringFrameMat");
-  mergeGeometryBatch(nacelleCarbon, materials.darkCarbon, outerEnvelope, "arc-merged-nacelles-darkCarbon");
-  mergeGeometryBatch(nacelleCeramic, materials.darkCeramic, outerEnvelope, "arc-merged-nacelles-darkCeramic");
-
   // 6. Balanced Tri-Symmetric Outer Substations (mechanically interlocked with containment carrier rail)
   buildAsymmetricOuterModules(outerEnvelope, materials);
   buildOuterMicroDetails(outerEnvelope, materials, ringRadius);
@@ -280,7 +277,7 @@ export function buildReactorGeometry(
   internalTurbineSecondary.position.z = -0.62;
 
   const statorVaneGeo = createBeveledTrapezoid(0.17, 0.11, 0.72, 0.07, 0.012, 0.012);
-  const statorInst = new THREE.InstancedMesh(statorVaneGeo, materials.copperWinding, 12);
+  const statorInst = new THREE.InstancedMesh(statorVaneGeo, materials.ringFrameMat, 12);
   statorInst.name = "arc-turbine-secondary-stator";
   for (let i = 0; i < 12; i++) {
     const a = ((Math.PI * 2) / 12) * i;
@@ -293,6 +290,31 @@ export function buildReactorGeometry(
   statorInst.computeBoundingSphere();
   internalTurbineSecondary.add(statorInst);
   reactorGroup.add(internalTurbineSecondary);
+
+  // 7. Hybrid Optical Protective Glass Enclosure, Deep Mechanical Rear Housing & Rotor/Stator Bearing Integration
+  const nacelleCopper: THREE.Mesh[] = [];
+  buildHybridEnclosureAndRearHousing(
+    outerEnvelope,
+    internalTurbine,
+    internalTurbineSecondary,
+    materials,
+    {
+      anodized: nacelleAnodized,
+      titanium: nacelleTitanium,
+      ringFrame: nacelleRingFrame,
+      carbon: nacelleCarbon,
+      ceramic: nacelleCeramic,
+      copper: nacelleCopper,
+    }
+  );
+
+  outerEnvelope.updateMatrixWorld(true);
+  mergeGeometryBatch(nacelleAnodized, materials.anodizedBlack, outerEnvelope, "arc-merged-nacelles-anodizedBlack");
+  mergeGeometryBatch(nacelleTitanium, materials.brushedTitanium, outerEnvelope, "arc-merged-nacelles-brushedTitanium");
+  mergeGeometryBatch(nacelleRingFrame, materials.ringFrameMat, outerEnvelope, "arc-merged-nacelles-ringFrameMat");
+  mergeGeometryBatch(nacelleCarbon, materials.darkCarbon, outerEnvelope, "arc-merged-nacelles-darkCarbon");
+  mergeGeometryBatch(nacelleCeramic, materials.darkCeramic, outerEnvelope, "arc-merged-nacelles-darkCeramic");
+  mergeGeometryBatch(nacelleCopper, materials.copperWinding, outerEnvelope, "arc-merged-nacelles-copperWinding");
 
   // ==========================================
   // Refined Waveguide Trenches, Compact Containment Clamps & Anchored Process Nodes

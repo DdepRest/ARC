@@ -80,7 +80,7 @@ export function buildTrenches(
   ensureUv2(collarSlotGeo);
 
   const collarInst = new THREE.InstancedMesh(collarGeo, materials.ringFrameMat, 16);
-  const collarSlotInst = new THREE.InstancedMesh(collarSlotGeo, materials.copperWinding, 16);
+  const collarSlotInst = new THREE.InstancedMesh(collarSlotGeo, materials.ringFrameMat, 16);
   collarInst.name = "arc-instanced-collars";
   collarSlotInst.name = "arc-instanced-collar-slots";
   let collarIdx = 0;
@@ -139,7 +139,7 @@ export function buildTrenches(
       const endX = endSign * 2.38;
       addMesh(edgeGroup, endCouplerGeo, materials.anodizedBlack, trenchAnodizedBlack, endX, apothem, 0.06);
       addMesh(edgeGroup, endFlangeGeo, materials.ringFrameMat, trenchRingFrame, endSign * 2.58, apothem, 0.08);
-      addMesh(edgeGroup, endCopperRingGeo, materials.copperWinding, trenchCopper, endSign * 2.22, apothem, 0.24);
+      addMesh(edgeGroup, endCopperRingGeo, materials.brushedTitanium, trenchBrushedTitanium, endSign * 2.22, apothem, 0.24);
     }
 
     if (mod.role === "upper-bridge") {
@@ -259,9 +259,9 @@ export function buildTrenches(
       }
     }
 
-    // Restrained local red channel fill light (stays subtle and localized inside the recessed cavity)
-    const softGlowLight = new THREE.PointLight(materials.currentColor.getHex(), 0.16, 2.6, 2.2);
-    softGlowLight.position.set(0, apothem, 0.28);
+    // Localized red channel fill light illuminating nearby channel walls, bevels, connectors & glass edges
+    const softGlowLight = new THREE.PointLight(materials.currentColor.getHex(), 0.28, 3.4, 2.0);
+    softGlowLight.position.set(0, apothem, 0.24);
     edgeGroup.add(softGlowLight);
     lighting.trenchLights.push(softGlowLight);
 

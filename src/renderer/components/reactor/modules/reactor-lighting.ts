@@ -67,14 +67,13 @@ export function createReactorLighting(
   rimLight.castShadow = false;
   scene.add(rimLight);
 
-  // D. Local Core Dynamic Lights (compact coreLight keeps central hotspot localized; innerChamberLight gives
-  //    the central chamber subtle focal presence and grazes internal radial spars & ceramic steps)
-  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 4.0, 2.4);
-  coreLight.position.z = 0.28;
+  // D. Local Core & Chamber Dynamic Lights (primary plasma core glow + localized red illumination on chamber, channels & glass edges)
+  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 4.4, 2.2);
+  coreLight.position.z = 0.24;
   coreLight.castShadow = false;
 
-  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 5.4, 2.0);
-  innerChamberLight.position.z = -0.24;
+  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 6.2, 1.9);
+  innerChamberLight.position.z = -0.18;
   innerChamberLight.castShadow = false;
 
   const trenchLights: THREE.PointLight[] = [];

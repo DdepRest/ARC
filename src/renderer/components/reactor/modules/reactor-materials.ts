@@ -64,45 +64,44 @@ export function createReactorMaterials(
   const arcCenterLogoMap = createArcCenterLogoTexture(2048);
   const { plasmaMap: plasmaEnergyMap, glowMap: glowParticleMap } = getThemeTextures(initialTheme);
 
-  // 1. Anodized Titanium — Obsidian Black / Dark Graphite machined chassis metal with crisp bevel satin catch.
-  // Fallback scalar roughness (0.40) is promoted to 1.0 once roughnessMap binds (no double-multiply).
+  // 1. OBSIDIAN TITANIUM — Main structural housing; deep black with controlled satin reflections.
   const anodizedBlack = new THREE.MeshStandardMaterial({
-    color: 0x14171e,
-    metalness: 0.88,
-    roughness: 0.40,
+    color: 0x11141b,
+    metalness: 0.89,
+    roughness: 0.39,
     normalScale: new THREE.Vector2(0.60, 0.60),
     aoMapIntensity: 0.92,
-    envMapIntensity: 0.90,
+    envMapIntensity: 0.92,
   });
 
-  // 2. Brushed Titanium — controlled dark satin alloy for raised reinforcement rails & precision machined highlights
+  // 2. SATIN SILVER — Selected machined bevels, retention arch crests & precision edges (used sparingly)
   const brushedTitanium = new THREE.MeshPhysicalMaterial({
-    color: 0x484f5c,
-    metalness: 0.92,
-    roughness: 0.33,
-    anisotropy: 0.68,
+    color: 0x626b7a,
+    metalness: 0.93,
+    roughness: 0.28,
+    anisotropy: 0.72,
     anisotropyRotation: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.36,
-    normalScale: new THREE.Vector2(0.48, 0.48),
-    aoMapIntensity: 0.80,
-    envMapIntensity: 0.96,
+    clearcoat: 0.06,
+    clearcoatRoughness: 0.32,
+    normalScale: new THREE.Vector2(0.46, 0.46),
+    aoMapIntensity: 0.82,
+    envMapIntensity: 1.04,
   });
 
-  // 3. Dark Gunmetal — precision-machined structural connectors, carrier rail, and recessed channel borders
+  // 3. PRECISION GUNMETAL — Mechanical supports, bearing housings, retention frames & structural connectors (cool dark metallic)
   const ringFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x343b47,
-    metalness: 0.91,
-    roughness: 0.32,
+    color: 0x37404e,
+    metalness: 0.92,
+    roughness: 0.30,
     emissive: 0x000000,
     emissiveIntensity: 0.0,
     normalScale: new THREE.Vector2(0.45, 0.45),
-    envMapIntensity: 1.02,
+    envMapIntensity: 1.06,
   });
 
-  // 4. Carbon Composite — deep obsidian 3K 2x2 diagonal twill weave for recessed deck beds
+  // 4. CARBON COMPOSITE — Deep obsidian 3K 2x2 diagonal twill weave for recessed deck beds & service compartments
   const darkCarbon = new THREE.MeshPhysicalMaterial({
-    color: 0x0d1014,
+    color: 0x0c0f14,
     metalness: 0.12,
     roughness: 0.46,
     clearcoat: 0.22,
@@ -112,22 +111,22 @@ export function createReactorMaterials(
     envMapIntensity: 0.66,
   });
 
-  // 5. Graphite Ceramic — strictly matte non-reflective dielectric contrasting cleanly against dark satin metals
+  // 5. GRAPHITE CERAMIC — Internal insulation; matte, dark and non-reflective
   const darkCeramic = new THREE.MeshStandardMaterial({
-    color: 0x2c3037,
+    color: 0x292d34,
     metalness: 0.04,
-    roughness: 0.88,
+    roughness: 0.89,
     normalScale: new THREE.Vector2(0.48, 0.48),
-    envMapIntensity: 0.22,
+    envMapIntensity: 0.20,
   });
 
-  // 6. Burnished Copper — restrained functional accents limited to mechanical interfaces & busbars
+  // 6. COPPER — Strictly limited functional internal contacts, windings & grounding studs (cool dark bronze-copper, never rusty)
   const copperWinding = new THREE.MeshStandardMaterial({
-    color: 0x864a2d,
-    metalness: 0.92,
-    roughness: 0.32,
-    normalScale: new THREE.Vector2(0.42, 0.42),
-    envMapIntensity: 0.96,
+    color: 0x6c422c,
+    metalness: 0.91,
+    roughness: 0.34,
+    normalScale: new THREE.Vector2(0.40, 0.40),
+    envMapIntensity: 0.88,
   });
 
   const microMeshMat = new THREE.MeshStandardMaterial({
@@ -137,42 +136,43 @@ export function createReactorMaterials(
     wireframe: true,
   });
 
+  // Cool dark tempered titanium shroud (replaces warm brown tint so outer modules never appear oxidized)
   const heatTintedMetal = new THREE.MeshStandardMaterial({
-    color: 0x25201e, metalness: 0.88, roughness: 0.42, emissive: 0x000000,
-    normalScale: new THREE.Vector2(0.48, 0.48), envMapIntensity: 0.82,
+    color: 0x1e222b, metalness: 0.89, roughness: 0.38, emissive: 0x000000,
+    normalScale: new THREE.Vector2(0.48, 0.48), envMapIntensity: 0.86,
   });
 
-  // 7. Optical Protective Glass — dark smoked optical Fresnel lens; physical transmission strictly on HW GPUs
+  // 7. SMOKED OPTICAL GLASS — Protective hybrid enclosure & viewport; high transparency and controlled edge reflections
   const opticGlass = new THREE.MeshPhysicalMaterial({
-    color: 0x11141a, metalness: 0.02, roughness: 0.06, ior: 1.52, reflectivity: 0.85,
-    clearcoat: 1.0, clearcoatRoughness: 0.06, transmission: 0.0, thickness: 0.5,
-    transparent: true, opacity: 0.22, depthWrite: false, envMapIntensity: 1.05,
+    color: 0x0e1218, metalness: 0.02, roughness: 0.05, ior: 1.50, reflectivity: 0.82,
+    clearcoat: 1.0, clearcoatRoughness: 0.05, transmission: 0.0, thickness: 0.38,
+    transparent: true, opacity: 0.17, depthWrite: false, envMapIntensity: 1.02,
   });
   const outerGlassRingMat = new THREE.MeshPhysicalMaterial({
     color: 0x101319, metalness: 0.04, roughness: 0.07, ior: 1.52, clearcoat: 1.0,
-    clearcoatRoughness: 0.06, reflectivity: 0.85, transparent: true, opacity: 0.24,
-    depthWrite: false, blending: THREE.NormalBlending, envMapIntensity: 1.0,
+    clearcoatRoughness: 0.06, reflectivity: 0.85, transparent: true, opacity: 0.22,
+    depthWrite: false, blending: THREE.NormalBlending, envMapIntensity: 0.98,
   });
   const darkGlassOuter = new THREE.MeshStandardMaterial({
-    color: 0x0e1015, metalness: 0.65, roughness: 0.15, transparent: true, opacity: 0.22,
+    color: 0x0e1015, metalness: 0.65, roughness: 0.15, transparent: true, opacity: 0.20,
     depthWrite: false, blending: THREE.NormalBlending,
   });
   const darkGlassInner = new THREE.MeshStandardMaterial({
-    color: 0x0b0d12, metalness: 0.7, roughness: 0.16, transparent: true, opacity: 0.24,
+    color: 0x0b0d12, metalness: 0.7, roughness: 0.16, transparent: true, opacity: 0.22,
     depthWrite: false, blending: THREE.NormalBlending,
   });
 
-  // Core Cavity & Emissive Materials
+  // Core Cavity, White-Hot Plasma Source & Deep Crimson Energy Materials
   const singularityFacetedMat = new THREE.MeshStandardMaterial({
-    color: 0x2a2f3a, metalness: 0.9, roughness: 0.24, emissive: 0x000000, emissiveIntensity: 0.0,
+    color: 0x262c36, metalness: 0.9, roughness: 0.24, emissive: 0x000000, emissiveIntensity: 0.0,
     flatShading: true, transparent: false, envMapIntensity: 1.25,
   });
   const singularityCoreEmissiveMat = new THREE.MeshStandardMaterial({
-    color: 0x301418, map: plasmaEnergyMap, emissive: currentColor.getHex(), emissiveIntensity: 0.0,
-    roughness: 0.28, metalness: 0.45, transparent: true, opacity: 0.95,
+    color: 0x381218, map: plasmaEnergyMap, emissive: currentColor.getHex(), emissiveIntensity: 0.0,
+    roughness: 0.22, metalness: 0.42, transparent: true, opacity: 0.96,
   });
   const singularityInnerWireMat = new THREE.MeshBasicMaterial({
-    color: currentColor.getHex(), wireframe: true, transparent: true, opacity: 0.26,
+    color: currentColor.getHex(), wireframe: true, transparent: true, opacity: 0.28,
     blending: THREE.AdditiveBlending, depthWrite: false,
   });
   const plasmaVortexMat = new THREE.MeshStandardMaterial({
@@ -189,10 +189,13 @@ export function createReactorMaterials(
     blending: THREE.AdditiveBlending,
   });
 
+  // White-Hot Red Primary Plasma Inner Singularity Heart (transparent: true so center raycast hits triangularCoreMesh)
   const singularityPointMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: 0xfff3f0,
     transparent: true,
-    opacity: 0.9,
+    opacity: 0.94,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
   });
 
   const coronaMat = new THREE.MeshBasicMaterial({
@@ -210,19 +213,19 @@ export function createReactorMaterials(
   });
 
   const neonTubeMat = new THREE.MeshStandardMaterial({
-    color: 0x341116,
+    color: 0x380e14,
     emissive: 0x000000,
     emissiveIntensity: 0.0,
-    roughness: 0.2,
-    metalness: 0.12,
+    roughness: 0.18,
+    metalness: 0.14,
   });
 
   const coreDiodeMat = new THREE.MeshStandardMaterial({
-    color: 0x3a1218,
+    color: 0x3e1017,
     emissive: 0x000000,
     emissiveIntensity: 0.0,
-    roughness: 0.16,
-    metalness: 0.14,
+    roughness: 0.15,
+    metalness: 0.16,
   });
 
   const arcCenterLogoMat = new THREE.MeshBasicMaterial({
@@ -329,7 +332,7 @@ export function createReactorMaterials(
     const nextTransmission = allowTransmission ? 0.42 : 0.0;
     if (opticGlass.transmission !== nextTransmission) {
       opticGlass.transmission = nextTransmission;
-      opticGlass.opacity = allowTransmission ? 0.36 : 0.24;
+      opticGlass.opacity = allowTransmission ? 0.22 : 0.16;
       opticGlass.needsUpdate = true;
     }
 
