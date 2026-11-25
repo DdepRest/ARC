@@ -310,10 +310,10 @@ function buildAnodizedSet(
       }
 
       height[idx] = Math.max(0, Math.min(1, h));
-      // Obsidian Black / Dark Graphite anodized titanium: linear 0.014..0.032 (~sRGB #1F232A..#2E333C)
-      albedo[idx] = Math.max(0.014, Math.min(0.032, 0.020 + (h - 0.5) * 0.014));
-      // Physical linear roughness 0.34..0.48 (controlled satin bevel reflection, never uniform flat black)
-      rough[idx] = Math.max(0.34, Math.min(0.48, 0.40 + (rMod - 0.5) * 0.14));
+      // Obsidian Black / Dark Graphite anodized titanium: linear 0.013..0.030 (~sRGB #1E2229..#2C313A)
+      albedo[idx] = Math.max(0.013, Math.min(0.030, 0.019 + (h - 0.5) * 0.013));
+      // Physical linear roughness 0.36..0.50 (controlled satin bevel reflection, never overly glossy)
+      rough[idx] = Math.max(0.36, Math.min(0.50, 0.42 + (rMod - 0.5) * 0.14));
       ao[idx] = Math.max(0.76, Math.min(1.0, 0.86 + (cavityAo - 0.5) * 0.22));
     }
   }
@@ -453,10 +453,10 @@ function buildDarkCeramicSet(size: number, aniso: number, trilinear: boolean): P
       const pit = n1 > 0.955 ? -0.16 : (lcg(seed) - 0.5) * 0.06;
 
       height[idx] = Math.max(0, Math.min(1, 0.54 + macro * 0.14 + pit));
-      // Distinct matte warm-graphite ceramic: linear 0.028..0.048 (~sRGB #2D3036..#3A3D44)
-      albedo[idx] = Math.max(0.028, Math.min(0.048, 0.036 + macro * 0.008 + pit * 0.012));
-      // High matte roughness 0.80..0.94 (unmistakable non-reflective contrast next to satin obsidian & gunmetal)
-      rough[idx] = Math.max(0.80, Math.min(0.94, 0.87 - macro * 0.06 - pit * 0.14));
+      // Genuinely dark matte graphite ceramic for recessed cavities: linear 0.016..0.032 (~sRGB #21242A..#2E3138)
+      albedo[idx] = Math.max(0.016, Math.min(0.032, 0.022 + macro * 0.006 + pit * 0.010));
+      // High matte roughness 0.82..0.95 (unmistakable non-reflective depth contrast next to satin obsidian & gunmetal)
+      rough[idx] = Math.max(0.82, Math.min(0.95, 0.89 - macro * 0.05 - pit * 0.12));
     }
   }
 

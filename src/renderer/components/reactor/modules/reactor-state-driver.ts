@@ -135,6 +135,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   const portDiodes: THREE.Mesh[] = [];
   const bearingIndicators: THREE.Mesh[] = [];
   const innerEdgeTubes: THREE.Mesh[] = [];
+  let secondaryConduitIndicatorMesh: THREE.Mesh | null = null;
   const outerClampLights: THREE.PointLight[] = [];
 
   let primaryRingGroup: THREE.Group | null = null;
@@ -193,6 +194,9 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     } else if (child.name.startsWith("arc-bearing-indicator-")) {
       const idx = parseInt(child.name.replace("arc-bearing-indicator-", ""), 10);
       bearingIndicators[idx] = child as THREE.Mesh;
+    }
+    if (child.name === "arc-merged-trenches-secondaryIndicator") {
+      secondaryConduitIndicatorMesh = child as THREE.Mesh;
     }
     if (child.name.startsWith("arc-vertex-light-")) {
       const idx = parseInt(child.name.replace("arc-vertex-light-", ""), 10);
@@ -595,6 +599,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
           bMat.emissiveIntensity = 0.0;
         }
       }
+      if (secondaryConduitIndicatorMesh?.material instanceof THREE.MeshStandardMaterial) {
+        secondaryConduitIndicatorMesh.material.color.copy(unlitTubeColor);
+        secondaryConduitIndicatorMesh.material.emissive.setHex(0x000000);
+        secondaryConduitIndicatorMesh.material.emissiveIntensity = 0.0;
+      }
 
       materials.energyWaveMat.opacity = 0.0;
       materials.energyArcMat.opacity = 0.0;
@@ -638,8 +647,15 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.05;
       materials.neonTubeMat.color.copy(tempTrenchColor);
       materials.neonTubeMat.emissive.copy(activeColor);
-      const baseTubeIntensity = (0.84 + perimeterLightComp + smoothTotal * 0.32 + smoothBass * 0.26 + manualPulseValue * 0.24) * stageTrench * bloomOffEmissiveBoost;
+      const baseTubeIntensity = (0.82 + perimeterLightComp + smoothTotal * 0.30 + smoothBass * 0.24 + manualPulseValue * 0.22) * stageTrench * bloomOffEmissiveBoost;
       materials.neonTubeMat.emissiveIntensity = baseTubeIntensity;
+
+      // Secondary segmented conduit indicator channel: noticeably less luminous (~48% of primary conductor)
+      if (secondaryConduitIndicatorMesh?.material instanceof THREE.MeshStandardMaterial) {
+        secondaryConduitIndicatorMesh.material.color.copy(tempTrenchColor);
+        secondaryConduitIndicatorMesh.material.emissive.copy(activeColor);
+        secondaryConduitIndicatorMesh.material.emissiveIntensity = baseTubeIntensity * 0.48;
+      }
 
       // Idea 8: 3-Band Spatial Audio Mapping across the 3 inner triangle plasma tubes (bass, mid, treble)
       try {

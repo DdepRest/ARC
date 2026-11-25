@@ -16,12 +16,14 @@ export function buildCornerClamps(
   // Precision-machined vertex couplings bridging the upper power bridge, diagonal conduits, and outer substations
   const clampDist = 4.46;
 
-  const baseBlockGeo = createBeveledTrapezoid(1.10, 0.88, 0.70, 0.42, 0.036, 0.036);
+  const baseBlockGeo = createBeveledTrapezoid(1.12, 0.90, 0.72, 0.42, 0.036, 0.036);
+  const recessedMountPlateGeo = createBeveledTrapezoid(1.24, 1.02, 0.84, 0.14, 0.022, 0.022);
+  const sideCollarGeo = createBeveledTrapezoid(0.34, 0.26, 0.56, 0.34, 0.020, 0.020);
   const yokeGeo = createBeveledTrapezoid(1.02, 0.84, 0.12, 0.44, 0.022, 0.022);
-  const outerBridgeBracketGeo = createBeveledTrapezoid(0.68, 0.56, 0.36, 0.24, 0.02, 0.02);
+  const outerBridgeBracketGeo = createBeveledTrapezoid(0.72, 0.58, 0.44, 0.26, 0.020, 0.020);
   const ceramicCradleGeo = createBeveledTrapezoid(0.76, 0.64, 0.48, 0.075, 0.016, 0.016);
   const carbonCapGeo = createBeveledTrapezoid(0.62, 0.52, 0.36, 0.065, 0.014, 0.014);
-  const copperPinGeo = new THREE.CylinderGeometry(0.028, 0.028, 0.14, 12);
+  const copperPinGeo = new THREE.CylinderGeometry(0.026, 0.026, 0.14, 12);
   copperPinGeo.rotateX(Math.PI / 2);
   ensureUv2(copperPinGeo);
   const slitGeo = new THREE.BoxGeometry(0.28, 0.020, 0.024);
@@ -54,19 +56,33 @@ export function buildCornerClamps(
     dummyClamp.position.copy(clampGroup.position);
     dummyClamp.rotation.set(0, 0, clampGroup.rotation.z);
 
-    // 1. Sleek Beveled Obsidian Vertex Bridge Block
+    // 1. Recessed Graphite-Ceramic Mounting Plate & Beveled Obsidian Vertex Bridge Block
+    const mountPlate = new THREE.Mesh(recessedMountPlateGeo, materials.darkCeramic);
+    mountPlate.position.set(0, -0.02, -0.18);
+    clampGroup.add(mountPlate);
+    clampDarkCeramic.push(mountPlate);
+
     const blockMesh = new THREE.Mesh(baseBlockGeo, materials.anodizedBlack);
     blockMesh.position.z = 0.0;
     clampGroup.add(blockMesh);
     clampAnodizedBlack.push(blockMesh);
 
-    // 2. Machined Dark-Gunmetal Rear Coupling Bracket bridging clamp cleanly into outer substation & ring carrier
+    // 2. Twin Angled Machined Connector Collars receiving the meeting ends of the upper power bridge & diagonal conduits
+    for (const side of [-1, 1]) {
+      const collar = new THREE.Mesh(sideCollarGeo, materials.ringFrameMat);
+      collar.position.set(side * 0.56, 0.14, 0.04);
+      collar.rotation.z = side * (Math.PI / 6);
+      clampGroup.add(collar);
+      clampRingFrame.push(collar);
+    }
+
+    // 3. Machined Dark-Gunmetal Rear Coupling Bracket bridging clamp cleanly into outer substation & circular carrier rail
     const bridgeBracket = new THREE.Mesh(outerBridgeBracketGeo, materials.ringFrameMat);
-    bridgeBracket.position.set(0, -0.34, -0.22);
+    bridgeBracket.position.set(0, -0.36, -0.20);
     clampGroup.add(bridgeBracket);
     clampRingFrame.push(bridgeBracket);
 
-    // 3. Twin Slim Wrap-Around Brushed-Titanium Caliper Yokes locking adjacent bridge/conduit ends
+    // 4. Twin Slim Wrap-Around Brushed-Titanium Caliper Yokes locking adjacent bridge/conduit ends
     for (let side = -1; side <= 1; side += 2) {
       const yokeMesh = new THREE.Mesh(yokeGeo, materials.brushedTitanium);
       yokeMesh.position.set(0, side * 0.35, 0.03);
@@ -74,7 +90,7 @@ export function buildCornerClamps(
       clampBrushedTitanium.push(yokeMesh);
     }
 
-    // 4. Elevated Matte Dark Ceramic HV Isolator Deck + Obsidian Carbon Cap
+    // 5. Elevated Matte Dark Ceramic HV Isolator Deck + Obsidian Carbon Cap
     const ceramicPad = new THREE.Mesh(ceramicCradleGeo, materials.darkCeramic);
     ceramicPad.position.z = 0.24;
     clampGroup.add(ceramicPad);

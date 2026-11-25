@@ -157,8 +157,9 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
     expect(result.internalTurbine.children.length).toBeGreaterThanOrEqual(2);
     expect(result.internalTurbineSecondary.children.length).toBeGreaterThanOrEqual(1);
 
-    // Verify solid circular rear disc is completely removed (open-frame exoskeleton)
+    // Verify solid circular rear disc and later outer obstructing glass sector sheets are removed
     expect(scene.getObjectByName('arc-bulkhead-deck-carbon')).toBeUndefined();
+    expect(scene.getObjectByName('arc-hybrid-glass-sectors')).toBeUndefined();
 
     // State-driver critical named contracts + Stage I.1 open-frame industrial modules
     const requiredNames = [
@@ -171,11 +172,14 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
       'arc-triangular-core-mesh',
       'arc-inner-wire-triangle',
       'arc-chamber-optic-glass',
+      'arc-outer-transparent-glass-ring',
       'arc-central-letters-logo',
       'arc-rear-structural-hub',
       'arc-merged-nacelles-anodizedBlack',
       'arc-asymmetric-outer-modules',
       'arc-merged-outerMods-heatTintedMetal',
+      'arc-merged-trenches-neonTubeMat',
+      'arc-merged-trenches-secondaryIndicator',
       'arc-inner-plasma-tube-0',
       'arc-inner-plasma-tube-1',
       'arc-inner-plasma-tube-2',
@@ -196,7 +200,6 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
       'arc-node-screen-0',
       'arc-node-led-5',
       'arc-hybrid-glass-enclosure',
-      'arc-hybrid-glass-sectors',
       'arc-deep-rear-housing',
       'arc-turbine-rotor-hub',
       'arc-turbine-rotor-indicators',

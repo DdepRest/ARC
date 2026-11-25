@@ -36,47 +36,52 @@ export function buildTrenches(
 ): void {
   const trenchLength = 6.50;
 
-  // Shared primary casing & recessed cavity geometries (reused across modules)
-  const innerWallGeo = createBeveledTrapezoid(trenchLength - 0.96, trenchLength - 1.38, 0.30, 0.44, 0.036, 0.036);
-  const outerWallGeo = createBeveledTrapezoid(trenchLength - 0.36, trenchLength - 0.84, 0.32, 0.44, 0.036, 0.036);
+  // Shared primary load-bearing titanium housing & recessed cavity geometries
+  const innerWallGeo = createBeveledTrapezoid(trenchLength - 0.96, trenchLength - 1.38, 0.30, 0.42, 0.036, 0.036);
+  const outerWallGeo = createBeveledTrapezoid(trenchLength - 0.36, trenchLength - 0.84, 0.32, 0.42, 0.036, 0.036);
   const floorGeo = createBeveledTrapezoid(trenchLength - 0.50, trenchLength - 0.84, 0.74, 0.18, 0.018, 0.018);
-  const channelBorderGeo = createBeveledTrapezoid(trenchLength - 1.46, trenchLength - 1.64, 0.042, 0.06, 0.008, 0.008);
-  const endCouplerGeo = createBeveledTrapezoid(0.56, 0.42, 0.94, 0.42, 0.03, 0.03);
-  const endFlangeGeo = createBeveledTrapezoid(0.22, 0.18, 0.84, 0.46, 0.016, 0.016);
-  const endCopperRingGeo = createBeveledTrapezoid(0.10, 0.10, 0.52, 0.10, 0.01, 0.01);
-  const capGeo = createBeveledHexagon(0.11, 0.18, 0.016, 0.016);
+  const channelBorderGeo = createBeveledTrapezoid(trenchLength - 1.46, trenchLength - 1.64, 0.038, 0.06, 0.008, 0.008);
 
-  // Upper Armored Power Bridge dedicated layered geometries
-  const bridgeOuterStepGeo = createBeveledTrapezoid(trenchLength - 1.05, trenchLength - 1.48, 0.14, 0.16, 0.018, 0.018);
-  const bridgeCeramicBedGeo = createBeveledTrapezoid(trenchLength - 1.18, trenchLength - 1.32, 0.22, 0.14, 0.015, 0.015);
-  const bridgeSpineBaseGeo = createBeveledTrapezoid(2.38, 1.98, 0.42, 0.24, 0.028, 0.028);
-  const bridgeArmorPlateGeo = createBeveledTrapezoid(0.84, 0.66, 0.50, 0.15, 0.022, 0.022);
-  const bridgeSpineKeystoneGeo = createBeveledTrapezoid(0.42, 0.34, 0.56, 0.16, 0.018, 0.018);
-  const bridgeSpineCrestGeo = createBeveledTrapezoid(1.66, 1.36, 0.14, 0.09, 0.014, 0.014);
-  const bridgeCopperBusGeo = createBeveledTrapezoid(0.28, 0.24, 0.34, 0.06, 0.01, 0.01);
-  const bridgeRetainerSpanGeo = createBeveledTrapezoid(0.26, 0.20, 1.06, 0.14, 0.018, 0.018);
-  const bridgeRetainerTrimGeo = createBeveledTrapezoid(0.11, 0.085, 0.90, 0.055, 0.01, 0.01);
-  const bridgeRetainerLegGeo = createBeveledTrapezoid(0.18, 0.14, 0.16, 0.38, 0.014, 0.014);
+  // Layered mechanical end connectors integrated into the existing corner clamps + subtle copper contacts
+  const endCouplerGeo = createBeveledTrapezoid(0.56, 0.42, 0.94, 0.40, 0.03, 0.03);
+  const endFlangeGeo = createBeveledTrapezoid(0.22, 0.18, 0.84, 0.44, 0.016, 0.016);
+  const endConnectorCapGeo = createBeveledTrapezoid(0.16, 0.12, 0.64, 0.12, 0.012, 0.012);
+  const endCopperContactGeo = createBeveledTrapezoid(0.085, 0.07, 0.24, 0.055, 0.008, 0.008);
+  const capGeo = createBeveledHexagon(0.105, 0.16, 0.015, 0.015);
 
-  // Diagonal Armored Energy Conduit dedicated layered geometries (shared symmetrically by left & right)
-  const conduitDeckGeo = createBeveledTrapezoid(trenchLength - 1.24, trenchLength - 1.46, 0.20, 0.18, 0.016, 0.016);
-  const conduitInnerRailGeo = createBeveledTrapezoid(trenchLength - 1.34, trenchLength - 1.62, 0.095, 0.10, 0.016, 0.016);
-  const conduitOuterRailGeo = createBeveledTrapezoid(trenchLength - 0.78, trenchLength - 1.12, 0.095, 0.10, 0.016, 0.016);
-  const conduitShoulderGeo = createBeveledTrapezoid(0.32, 0.24, 0.22, 0.14, 0.016, 0.016);
-  const conduitClampSpanGeo = createBeveledTrapezoid(0.24, 0.18, 1.04, 0.14, 0.018, 0.018);
-  const conduitClampTrimGeo = createBeveledTrapezoid(0.10, 0.075, 0.88, 0.055, 0.01, 0.01);
-  const conduitSegBarGeo = new THREE.CylinderGeometry(0.044, 0.044, 1.02, 14);
+  // Upper Armored Power Bridge — 5 Functional Elements (reusable createBeveledTrapezoid shapes, controlled height)
+  const bridgeOuterStepGeo = createBeveledTrapezoid(trenchLength - 1.06, trenchLength - 1.48, 0.13, 0.14, 0.016, 0.016);
+  const bridgeSideArmorGeo = createBeveledTrapezoid(1.56, 1.32, 0.16, 0.14, 0.018, 0.018);
+  const bridgeCeramicBedGeo = createBeveledTrapezoid(trenchLength - 1.18, trenchLength - 1.34, 0.52, 0.12, 0.014, 0.014);
+  const bridgeSpineBaseGeo = createBeveledTrapezoid(2.86, 2.48, 0.26, 0.16, 0.022, 0.022);
+  const bridgeInnerDistributionBedGeo = createBeveledTrapezoid(2.58, 2.28, 0.11, 0.09, 0.012, 0.012);
+  const bridgeSpineWallGeo = createBeveledTrapezoid(2.52, 2.20, 0.068, 0.13, 0.014, 0.014);
+  const bridgeSpineBevelLipGeo = createBeveledTrapezoid(2.36, 2.06, 0.046, 0.048, 0.010, 0.010);
+  const bridgeChannelWallGeo = createBeveledTrapezoid(trenchLength - 1.54, trenchLength - 1.72, 0.034, 0.08, 0.008, 0.008);
+  const bridgeRetainerSpanGeo = createBeveledTrapezoid(0.18, 0.14, 1.04, 0.09, 0.014, 0.014);
+  const bridgeRetainerTrimGeo = createBeveledTrapezoid(0.085, 0.065, 0.88, 0.042, 0.008, 0.008);
+  const bridgeRetainerLegGeo = createBeveledTrapezoid(0.16, 0.12, 0.14, 0.34, 0.012, 0.012);
+
+  // Diagonal Armored Energy Conduits — Symmetrical reusable layered geometries
+  const conduitDeckGeo = createBeveledTrapezoid(trenchLength - 1.22, trenchLength - 1.44, 0.48, 0.14, 0.015, 0.015);
+  const conduitCenterDividerGeo = createBeveledTrapezoid(trenchLength - 1.52, trenchLength - 1.70, 0.040, 0.075, 0.008, 0.008);
+  const conduitRailBedGeo = createBeveledTrapezoid(trenchLength - 1.12, trenchLength - 1.42, 0.13, 0.09, 0.012, 0.012);
+  const conduitInnerRailGeo = createBeveledTrapezoid(trenchLength - 1.32, trenchLength - 1.60, 0.098, 0.10, 0.016, 0.016);
+  const conduitOuterRailGeo = createBeveledTrapezoid(trenchLength - 0.78, trenchLength - 1.12, 0.098, 0.10, 0.016, 0.016);
+  const conduitShoulderGeo = createBeveledTrapezoid(0.32, 0.24, 0.20, 0.13, 0.015, 0.015);
+  const conduitClampSpanGeo = createBeveledTrapezoid(0.19, 0.15, 1.02, 0.10, 0.015, 0.015);
+  const conduitClampTrimGeo = createBeveledTrapezoid(0.085, 0.065, 0.86, 0.044, 0.008, 0.008);
+  // Secondary segmented indicator channel: noticeably thinner (r = 0.024 vs primary r = 0.050)
+  const conduitSegBarGeo = new THREE.CylinderGeometry(0.024, 0.024, 0.92, 12);
   ensureUv2(conduitSegBarGeo);
-  const conduitSegSleeveGeo = createBeveledTrapezoid(0.22, 0.18, 0.24, 0.18, 0.014, 0.014);
-  const conduitCopperStrapGeo = createBeveledTrapezoid(0.22, 0.18, 0.18, 0.06, 0.01, 0.01);
-  const conduitBaffleRibGeo = createBeveledTrapezoid(0.24, 0.20, 0.16, 0.08, 0.01, 0.01);
+  const conduitSegSleeveGeo = createBeveledTrapezoid(0.18, 0.14, 0.14, 0.12, 0.012, 0.012);
 
-  // Continuous recessed plasma waveguide tube & instanced collars (4 per continuous channel: 2 on bridge + 1 each diagonal = 16)
-  const continuousTubeGeo = new THREE.CylinderGeometry(0.048, 0.048, trenchLength - 1.92, 18);
+  // Primary continuous recessed red energy conductor (r = 0.050) & instanced collars (16 total)
+  const continuousTubeGeo = new THREE.CylinderGeometry(0.050, 0.050, trenchLength - 1.92, 18);
   ensureUv2(continuousTubeGeo);
-  const collarGeo = new THREE.CylinderGeometry(0.096, 0.100, 0.11, 16);
+  const collarGeo = new THREE.CylinderGeometry(0.094, 0.098, 0.105, 16);
   ensureUv2(collarGeo);
-  const collarSlotGeo = new THREE.TorusGeometry(0.100, 0.013, 10, 18);
+  const collarSlotGeo = new THREE.TorusGeometry(0.098, 0.012, 10, 18);
   ensureUv2(collarSlotGeo);
 
   const collarInst = new THREE.InstancedMesh(collarGeo, materials.ringFrameMat, 16);
@@ -93,6 +98,7 @@ export function buildTrenches(
   const trenchDarkCarbon: THREE.Mesh[] = [];
   const trenchDarkCeramic: THREE.Mesh[] = [];
   const trenchNeonTube: THREE.Mesh[] = [];
+  const trenchSecondaryIndicator: THREE.Mesh[] = [];
   const trenchBrushedTitanium: THREE.Mesh[] = [];
   const trenchRingFrame: THREE.Mesh[] = [];
   const trenchCopper: THREE.Mesh[] = [];
@@ -125,44 +131,57 @@ export function buildTrenches(
     dummyEdge.position.set(0, 0, 0);
     dummyEdge.rotation.set(0, 0, mod.edgeAngle);
 
-    // 1. Primary Load-Bearing Tapered Armor Casing & Deep Recessed Cavity Floor (all 3 modules)
+    // 1. Primary Load-Bearing Tapered Titanium Housing & Recessed Structural Floor (shared across all 3 modules)
     addMesh(edgeGroup, innerWallGeo, materials.anodizedBlack, trenchAnodizedBlack, 0, apothem - 0.39, 0.06);
     addMesh(edgeGroup, outerWallGeo, materials.anodizedBlack, trenchAnodizedBlack, 0, apothem + 0.40, 0.06);
     addMesh(edgeGroup, floorGeo, materials.darkCarbon, trenchDarkCarbon, 0, apothem, -0.17);
 
-    // Recessed thin dark-gunmetal channel borders framing the internal cavity walls
-    addMesh(edgeGroup, channelBorderGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem - 0.25, 0.14);
-    addMesh(edgeGroup, channelBorderGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem + 0.25, 0.14);
+    // Thin dark-gunmetal outer channel borders framing the internal cavity walls
+    addMesh(edgeGroup, channelBorderGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem - 0.26, 0.13);
+    addMesh(edgeGroup, channelBorderGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem + 0.26, 0.13);
 
-    // Machined mechanical end connection housings transitioning into the corner clamps
+    // Layered mechanical end connectors integrated into the corner clamps + subtle copper contacts at functional connection points
     for (const endSign of [-1, 1]) {
-      const endX = endSign * 2.38;
-      addMesh(edgeGroup, endCouplerGeo, materials.anodizedBlack, trenchAnodizedBlack, endX, apothem, 0.06);
+      addMesh(edgeGroup, endCouplerGeo, materials.anodizedBlack, trenchAnodizedBlack, endSign * 2.38, apothem, 0.06);
       addMesh(edgeGroup, endFlangeGeo, materials.ringFrameMat, trenchRingFrame, endSign * 2.58, apothem, 0.08);
-      addMesh(edgeGroup, endCopperRingGeo, materials.brushedTitanium, trenchBrushedTitanium, endSign * 2.22, apothem, 0.24);
+      addMesh(edgeGroup, endConnectorCapGeo, materials.brushedTitanium, trenchBrushedTitanium, endSign * 2.28, apothem, 0.23);
+      addMesh(edgeGroup, endCopperContactGeo, materials.copperWinding, trenchCopper, endSign * 2.18, apothem, 0.21);
     }
 
     if (mod.role === "upper-bridge") {
-      // ==========================================
-      // UPPER MODULE — 3-LAYER ARMORED POWER BRIDGE
-      // ==========================================
-      // A. Primary body stepped machined outer shoulders & recessed matte ceramic cavity bed
-      addMesh(edgeGroup, bridgeOuterStepGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem + 0.42, 0.26);
-      addMesh(edgeGroup, bridgeOuterStepGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem - 0.40, 0.24);
+      // =========================================================================
+      // UPPER MODULE — FIVE-ELEMENT STEPPED ARMORED POWER BRIDGE
+      // 1. Primary load-bearing titanium housing (above)
+      // 2. Raised central stepped spine (controlled height, beveled titanium edges)
+      // 3. Deep graphite distribution channel recessed inside the spine
+      // 4. Two recessed red energy conductors with dark channel walls
+      // 5. Symmetrical side armor and three thin retaining bridges
+      // =========================================================================
+      // Recessed matte graphite ceramic channel bed + dark inner channel walls
       addMesh(edgeGroup, bridgeCeramicBedGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem, -0.04);
+      addMesh(edgeGroup, bridgeChannelWallGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem - 0.13, 0.11);
+      addMesh(edgeGroup, bridgeChannelWallGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem + 0.13, 0.11);
 
-      // B. Central Armored Spine: raised stepped ridge + 2 symmetrical beveled armor plates + machined crest
-      addMesh(edgeGroup, bridgeSpineBaseGeo, materials.anodizedBlack, trenchAnodizedBlack, 0, apothem, 0.16);
+      // Raised central stepped titanium spine + deeply recessed inner graphite distribution channel
+      addMesh(edgeGroup, bridgeSpineBaseGeo, materials.anodizedBlack, trenchAnodizedBlack, 0, apothem, 0.14);
+      addMesh(edgeGroup, bridgeInnerDistributionBedGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem, 0.18);
       for (const side of [-1, 1]) {
-        addMesh(edgeGroup, bridgeArmorPlateGeo, materials.anodizedBlack, trenchAnodizedBlack, side * 0.64, apothem, 0.28);
+        const wallY = apothem + side * 0.086;
+        addMesh(edgeGroup, bridgeSpineWallGeo, materials.anodizedBlack, trenchAnodizedBlack, 0, wallY, 0.22);
+        addMesh(edgeGroup, bridgeSpineBevelLipGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, wallY, 0.285);
       }
-      addMesh(edgeGroup, bridgeSpineKeystoneGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem, 0.30);
-      addMesh(edgeGroup, bridgeSpineCrestGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem, 0.37);
-      addMesh(edgeGroup, bridgeCopperBusGeo, materials.copperWinding, trenchCopper, 0, apothem, 0.39);
 
-      // C. Two deeply recessed horizontal red energy channels with collars & 3 structural retainers
+      // Symmetrical side armor housings + gunmetal stepped shoulders
+      addMesh(edgeGroup, bridgeOuterStepGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem + 0.42, 0.24);
+      addMesh(edgeGroup, bridgeOuterStepGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem - 0.40, 0.22);
+      for (const sideX of [-1.06, 1.06]) {
+        addMesh(edgeGroup, bridgeSideArmorGeo, materials.anodizedBlack, trenchAnodizedBlack, sideX, apothem + 0.39, 0.20);
+        addMesh(edgeGroup, bridgeSideArmorGeo, materials.anodizedBlack, trenchAnodizedBlack, sideX, apothem - 0.38, 0.19);
+      }
+
+      // Two internal recessed red energy conductors with collars & machined end caps
       for (let t = -1; t <= 1; t += 2) {
-        const chY = apothem + t * 0.18;
+        const chY = apothem + t * 0.20;
         addMesh(edgeGroup, continuousTubeGeo, materials.neonTubeMat, trenchNeonTube, 0, chY, 0.07, Math.PI / 2);
 
         for (let c = 0; c < 4; c++) {
@@ -183,37 +202,46 @@ export function buildTrenches(
         addMesh(edgeGroup, capGeo, materials.ringFrameMat, trenchRingFrame, -capX, chY, 0.07, 0, Math.PI / 2);
       }
 
-      // 3 Structural Retainers segmenting the upper bridge channels (center keystone clamp + 2 flank bridge retainers)
-      for (const rx of [-1.66, 0, 1.66]) {
-        const spanZ = rx === 0 ? 0.33 : 0.31;
+      // Three thin precision-machined retaining bridges spanning the channels and stepped spine
+      for (const rx of [-1.64, 0, 1.64]) {
+        const spanZ = rx === 0 ? 0.29 : 0.27;
         addMesh(edgeGroup, bridgeRetainerSpanGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem, spanZ);
-        addMesh(edgeGroup, bridgeRetainerTrimGeo, materials.ringFrameMat, trenchRingFrame, rx, apothem, spanZ + 0.085);
+        addMesh(edgeGroup, bridgeRetainerTrimGeo, materials.ringFrameMat, trenchRingFrame, rx, apothem, spanZ + 0.055);
         for (const side of [-1, 1]) {
-          addMesh(edgeGroup, bridgeRetainerLegGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem + side * 0.45, 0.15);
+          addMesh(edgeGroup, bridgeRetainerLegGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem + side * 0.44, 0.14);
         }
       }
     } else {
-      // ==========================================
-      // DIAGONAL MODULES — LAYERED ARMORED ENERGY CONDUITS (Equal Mass & Proportions)
-      // ==========================================
-      // 1. Matte dark graphite ceramic central deck surface
-      addMesh(edgeGroup, conduitDeckGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem, 0.04);
+      // =========================================================================
+      // DIAGONAL CONDUITS — SYMMETRICAL CONSTRUCTION (210° & 330° Identical Geometry & Weight)
+      // - Tapered primary armored housing
+      // - Two raised graphite/titanium side rails
+      // - Recessed central graphite surface + thin metallic channel divider
+      // - Visually dominant primary continuous red conductor
+      // - Noticeably thinner & less luminous secondary segmented indicator channel
+      // - Reinforced mechanical end connectors & twin retaining clamps
+      // =========================================================================
+      // Recessed central matte graphite ceramic bed + central metallic channel border
+      addMesh(edgeGroup, conduitDeckGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem, -0.02);
+      addMesh(edgeGroup, conduitCenterDividerGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem + 0.02, 0.11);
 
-      // 2. Two raised machined titanium/gunmetal side reinforcement rails + casing transition shoulders
-      addMesh(edgeGroup, conduitInnerRailGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem - 0.40, 0.30);
-      addMesh(edgeGroup, conduitOuterRailGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem + 0.41, 0.30);
-      for (const sx of [-1.45, 1.45]) {
+      // Two raised graphite/titanium side rails & reinforced casing transition shoulders
+      addMesh(edgeGroup, conduitRailBedGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem - 0.39, 0.19);
+      addMesh(edgeGroup, conduitRailBedGeo, materials.darkCeramic, trenchDarkCeramic, 0, apothem + 0.40, 0.19);
+      addMesh(edgeGroup, conduitInnerRailGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem - 0.40, 0.28);
+      addMesh(edgeGroup, conduitOuterRailGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem + 0.41, 0.28);
+      for (const sx of [-1.46, 1.46]) {
         for (const side of [-1, 1]) {
-          addMesh(edgeGroup, conduitShoulderGeo, materials.ringFrameMat, trenchRingFrame, sx, apothem + side * 0.42, 0.18);
+          addMesh(edgeGroup, conduitShoulderGeo, materials.ringFrameMat, trenchRingFrame, sx, apothem + side * 0.42, 0.17);
         }
       }
 
-      // 3A. Inner Recessed Channel: Primary continuous red energy line + 4 precision collars
-      const primaryY = apothem - 0.18;
-      addMesh(edgeGroup, continuousTubeGeo, materials.neonTubeMat, trenchNeonTube, 0, primaryY, 0.07, Math.PI / 2);
+      // Primary continuous red conductor (visually dominant, r = 0.050) + 4 instanced collars & machined end caps
+      const primaryY = apothem - 0.15;
+      addMesh(edgeGroup, continuousTubeGeo, materials.neonTubeMat, trenchNeonTube, 0, primaryY, 0.08, Math.PI / 2);
       for (let c = 0; c < 4; c++) {
         const xPos = -1.65 + c * 1.10;
-        dummyPart.position.set(xPos, primaryY, 0.07);
+        dummyPart.position.set(xPos, primaryY, 0.08);
         dummyPart.rotation.set(0, 0, Math.PI / 2);
         dummyEdge.updateMatrixWorld(true);
         collarInst.setMatrixAt(collarIdx, dummyPart.matrixWorld);
@@ -224,44 +252,31 @@ export function buildTrenches(
         collarIdx++;
       }
       const capX = (trenchLength - 1.92) / 2;
-      addMesh(edgeGroup, capGeo, materials.ringFrameMat, trenchRingFrame, capX, primaryY, 0.07, 0, Math.PI / 2);
-      addMesh(edgeGroup, capGeo, materials.ringFrameMat, trenchRingFrame, -capX, primaryY, 0.07, 0, Math.PI / 2);
+      addMesh(edgeGroup, capGeo, materials.ringFrameMat, trenchRingFrame, capX, primaryY, 0.08, 0, Math.PI / 2);
+      addMesh(edgeGroup, capGeo, materials.ringFrameMat, trenchRingFrame, -capX, primaryY, 0.08, 0, Math.PI / 2);
 
-      // 3B. Outer Recessed Channel: Secondary segmented indicator channel (3 armored recessed optical bars)
-      const secondaryY = apothem + 0.18;
+      // Secondary thin segmented indicator channel (r = 0.024, noticeably thinner and less luminous)
+      const secondaryY = apothem + 0.17;
       for (const segX of [-1.32, 0, 1.32]) {
-        addMesh(edgeGroup, conduitSegBarGeo, materials.neonTubeMat, trenchNeonTube, segX, secondaryY, 0.07, Math.PI / 2);
+        addMesh(edgeGroup, conduitSegBarGeo, materials.coreDiodeMat, trenchSecondaryIndicator, segX, secondaryY, 0.06, Math.PI / 2);
       }
       for (const divX of [-0.66, 0.66]) {
-        addMesh(edgeGroup, conduitSegSleeveGeo, materials.ringFrameMat, trenchRingFrame, divX, secondaryY, 0.11);
+        addMesh(edgeGroup, conduitSegSleeveGeo, materials.ringFrameMat, trenchRingFrame, divX, secondaryY, 0.09);
       }
 
-      // Twin structural conduit clamps tying side rails cleanly across both recessed channels
+      // Twin precision retaining clamps tying the raised side rails across both recessed channels
       for (const rx of [-1.64, 1.64]) {
-        addMesh(edgeGroup, conduitClampSpanGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem, 0.32);
-        addMesh(edgeGroup, conduitClampTrimGeo, materials.brushedTitanium, trenchBrushedTitanium, rx, apothem, 0.40);
+        addMesh(edgeGroup, conduitClampSpanGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem, 0.28);
+        addMesh(edgeGroup, conduitClampTrimGeo, materials.ringFrameMat, trenchRingFrame, rx, apothem, 0.34);
         for (const side of [-1, 1]) {
-          addMesh(edgeGroup, bridgeRetainerLegGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem + side * 0.44, 0.16);
-        }
-      }
-
-      // 4. Subtle Functional Deck Differentiation (identical footprint & visual weight on left vs right)
-      if (mod.role === "left-conduit") {
-        // Left conduit (210°): twin burnished copper phase-coupling straps on central ceramic deck
-        for (const cx of [-0.52, 0.52]) {
-          addMesh(edgeGroup, conduitCopperStrapGeo, materials.copperWinding, trenchCopper, cx, apothem, 0.15);
-        }
-      } else {
-        // Right conduit (330°): twin dark-gunmetal thermal baffle ribs in identical central deck pocket
-        for (const cx of [-0.52, 0.52]) {
-          addMesh(edgeGroup, conduitBaffleRibGeo, materials.ringFrameMat, trenchRingFrame, cx, apothem, 0.15);
+          addMesh(edgeGroup, bridgeRetainerLegGeo, materials.anodizedBlack, trenchAnodizedBlack, rx, apothem + side * 0.44, 0.14);
         }
       }
     }
 
-    // Localized red channel fill light illuminating nearby channel walls, bevels, connectors & glass edges
-    const softGlowLight = new THREE.PointLight(materials.currentColor.getHex(), 0.28, 3.4, 2.0);
-    softGlowLight.position.set(0, apothem, 0.24);
+    // Localized red channel fill light illuminating nearby channel walls, bevels & connectors
+    const softGlowLight = new THREE.PointLight(materials.currentColor.getHex(), 0.26, 3.3, 2.0);
+    softGlowLight.position.set(0, apothem, 0.22);
     edgeGroup.add(softGlowLight);
     lighting.trenchLights.push(softGlowLight);
 
@@ -274,6 +289,8 @@ export function buildTrenches(
   mergeGeometryBatch(trenchDarkCarbon, materials.darkCarbon, reactorGroup, "arc-merged-trenches-darkCarbon");
   mergeGeometryBatch(trenchDarkCeramic, materials.darkCeramic, reactorGroup, "arc-merged-trenches-darkCeramic");
   mergeGeometryBatch(trenchNeonTube, materials.neonTubeMat, reactorGroup, "arc-merged-trenches-neonTubeMat");
+  const secondaryIndicatorMat = materials.neonTubeMat.clone();
+  mergeGeometryBatch(trenchSecondaryIndicator, secondaryIndicatorMat, reactorGroup, "arc-merged-trenches-secondaryIndicator");
   mergeGeometryBatch(trenchBrushedTitanium, materials.brushedTitanium, reactorGroup, "arc-merged-trenches-brushedTitanium");
   mergeGeometryBatch(trenchRingFrame, materials.ringFrameMat, reactorGroup, "arc-merged-trenches-ringFrameMat");
   mergeGeometryBatch(trenchCopper, materials.copperWinding, reactorGroup, "arc-merged-trenches-copperWinding");

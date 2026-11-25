@@ -84,6 +84,11 @@ export function buildCentralChamber(
   innerChassisGroup.add(crownBezelMesh);
   chamberRingFrame.push(crownBezelMesh);
 
+  const innerBevelRim = new THREE.Mesh(createBeveledTriangleFrame(2.28, 1.92, 0.055, 0.018, 0.018), materials.brushedTitanium);
+  innerBevelRim.position.z = 0.365;
+  innerChassisGroup.add(innerBevelRim);
+  chamberTitanium.push(innerBevelRim);
+
   // =========================================================================
   // LAYER 2: 3 Edge Waveguide Channels, Riser Stanchions & Clamping Yokes
   // =========================================================================
@@ -244,15 +249,15 @@ export function buildCentralChamber(
 
   // A1. Primary Plasma Source — Saturated Crimson Volumetric Outer Plasma Envelope (`arc-triangular-core-mesh`)
   const triangularCoreMesh = new THREE.Mesh(
-    createBeveledTriangleSolid(0.31, 0.22, 0.028, 0.028),
+    createBeveledTriangleSolid(0.285, 0.22, 0.026, 0.026),
     materials.singularityCoreEmissiveMat
   );
   triangularCoreMesh.name = "arc-triangular-core-mesh";
   triangularCoreMesh.position.z = -0.46;
   group.add(triangularCoreMesh);
 
-  // A2. White-Hot Compact Plasma Singularity Heart (`arc-plasma-white-core`, transparent so center raycast hits triangularCoreMesh)
-  const whiteCoreGeo = createBeveledTriangleSolid(0.145, 0.12, 0.016, 0.016);
+  // A2. White-Hot Compact Plasma Singularity Heart (`arc-plasma-white-core`, compact radius prevents hotspot overlap on A/R/C)
+  const whiteCoreGeo = createBeveledTriangleSolid(0.125, 0.11, 0.015, 0.015);
   const whiteHotCoreMesh = new THREE.Mesh(whiteCoreGeo, materials.singularityPointMat);
   whiteHotCoreMesh.name = "arc-plasma-white-core";
   whiteHotCoreMesh.position.z = -0.37;
@@ -260,9 +265,8 @@ export function buildCentralChamber(
   group.add(whiteHotCoreMesh);
 
   // B. Electromagnetic Containment Field — Semi-transparent layered triangular energy loop (`arc-plasma-containment-field`)
-  //    plus precision inner containment wireframe (`arc-inner-wire-triangle`)
   const containmentFieldMesh = new THREE.Mesh(
-    createBeveledTriangleFrame(0.48, 0.36, 0.05, 0.01, 0.01),
+    createBeveledTriangleFrame(0.46, 0.35, 0.05, 0.01, 0.01),
     materials.plasmaVortexMat
   );
   containmentFieldMesh.name = "arc-plasma-containment-field";
@@ -363,10 +367,11 @@ export function buildCentralChamber(
     runnersGroup.add(runnerMesh);
     runners.push(runnerMesh);
 
-    // Primary Radial Energy Distribution Channel extending from central chamber edge (r=1.18) directly into primary module (r=2.24) at 90°, 210°, 330°
+    // Primary Radial Energy Distribution Channel & dual connector collars linking central chamber (r=1.34) to primary module (r=2.14)
     const feedA = angles[i] + Math.PI / 3;
     const rFeed = 1.72;
     addStatic(conduitsGroup, feederHousingGeo, materials.anodizedBlack, chamberAnodized, Math.cos(feedA) * rFeed, Math.sin(feedA) * rFeed, -0.04, feedA - Math.PI / 2);
+    addStatic(conduitsGroup, feederFlangeGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(feedA) * 1.36, Math.sin(feedA) * 1.36, 0.02, feedA - Math.PI / 2);
     addStatic(conduitsGroup, feederFlangeGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(feedA) * 2.12, Math.sin(feedA) * 2.12, 0.04, feedA - Math.PI / 2);
     addStatic(conduitsGroup, feederCoreGeo, materials.neonTubeMat, chamberNeon, Math.cos(feedA) * rFeed, Math.sin(feedA) * rFeed, 0.08, feedA - Math.PI / 2);
   }

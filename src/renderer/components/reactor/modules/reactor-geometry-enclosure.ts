@@ -60,52 +60,43 @@ export function buildHybridEnclosureAndRearHousing(
   };
 
   // =========================================================================
-  // 1. HYBRID TRANSPARENT PROTECTIVE ENCLOSURE (FRONT: z = +0.34 .. +0.50)
+  // 1. OUTER METALLIC RETENTION ARCHES & PERIMETER CONTAINMENT FRAMING (FRONT: z = +0.34 .. +0.50)
+  //    (Outer 74° glass sector sheets selectively removed so the upper power bridge
+  //     and diagonal armored conduits remain 100% unobstructed; original central chamber
+  //     optical glass viewport and outer 360° glass accelerator ring are preserved.)
   // =========================================================================
   const glassEnclosureGroup = new THREE.Group();
   glassEnclosureGroup.name = 'arc-hybrid-glass-enclosure';
 
-  const glassSectorMeshes: THREE.Mesh[] = [];
-  const sectorHalfSpan = (37 * Math.PI) / 180; // 74° per optical sector
+  const sectorHalfSpan = (37 * Math.PI) / 180; // 74° per retention arch sector
   const sealHalfSpan = sectorHalfSpan + 0.015;
 
   const outerMountFootGeo = createBeveledTrapezoid(0.46, 0.34, 0.32, 0.24, 0.02, 0.02);
   const outerMountClampGeo = createBeveledTrapezoid(0.32, 0.24, 0.22, 0.14, 0.014, 0.014);
   const innerWindowLugGeo = createBeveledTrapezoid(0.30, 0.22, 0.20, 0.12, 0.012, 0.012);
-  const radialSealStrutGeo = createBeveledTrapezoid(0.09, 0.07, 2.38, 0.055, 0.01, 0.01);
 
   for (let i = 0; i < 3; i++) {
     const centerA = TRI_AXIS_ANGLES[i];
     const a0 = centerA - sectorHalfSpan;
     const a1 = centerA + sectorHalfSpan;
 
-    // A. Smoked Optical Glass Protective Sector Panel (r = 2.48..4.86, z = +0.47; central window clear)
-    const glassSector = new THREE.Mesh(
-      createBeveledArcSector(2.48, 4.86, a0, a1, 0.032, 0.012, 0.012, 24),
-      materials.opticGlass
-    );
-    glassSector.position.z = 0.47;
-    glassEnclosureGroup.add(glassSector);
-    glassSectorMeshes.push(glassSector);
-
-    // B1. Precision-machined Outer Metallic Retention Arch + Satin Bevel Crest (r = 4.76..5.00)
+    // A1. Precision-machined Outer Metallic Retention Arch + Satin Bevel Crest (r = 4.76..5.00)
     const outerArchGeo = createBeveledArcSector(4.76, 5.00, centerA - sealHalfSpan, centerA + sealHalfSpan, 0.09, 0.018, 0.018, 24);
     addPart(glassEnclosureGroup, outerArchGeo, materials.ringFrameMat, gunmetalBatch, 0, 0, 0.45);
 
     const outerBevelGeo = createBeveledArcSector(4.84, 4.96, a0 + 0.04, a1 - 0.04, 0.045, 0.012, 0.012, 20);
     addPart(glassEnclosureGroup, outerBevelGeo, materials.brushedTitanium, titaniumBatch, 0, 0, 0.50);
 
-    // B2. Thin Inner Optical Window Perimeter Seal Framing the Central Chamber (r = 2.40..2.53)
-    const innerSealGeo = createBeveledArcSector(2.40, 2.53, a0 - 0.01, a1 + 0.01, 0.055, 0.012, 0.012, 20);
-    addPart(glassEnclosureGroup, innerSealGeo, materials.ringFrameMat, gunmetalBatch, 0, 0, 0.45);
+    // A2. Thin Inner Window Perimeter Seal Framing the Central Chamber (r = 2.40..2.52)
+    const innerSealGeo = createBeveledArcSector(2.40, 2.52, a0 - 0.01, a1 + 0.01, 0.052, 0.012, 0.012, 20);
+    addPart(glassEnclosureGroup, innerSealGeo, materials.ringFrameMat, gunmetalBatch, 0, 0, 0.43);
 
-    // B3. Twin Lateral Perimeter Seals & Mechanical Mounting Interfaces at Sector Ends
+    // A3. Mechanical Mounting Brackets & Retention Clamps at Arch Ends
     for (const side of [-1, 1]) {
       const edgeA = centerA + side * sectorHalfSpan;
       const cosE = Math.cos(edgeA);
       const sinE = Math.sin(edgeA);
       const rotE = edgeA + Math.PI / 2;
-      addPart(glassEnclosureGroup, radialSealStrutGeo, materials.ringFrameMat, gunmetalBatch, cosE * 3.67, sinE * 3.67, 0.46, rotE);
       addPart(glassEnclosureGroup, outerMountFootGeo, materials.anodizedBlack, anodizedBatch, cosE * 4.94, sinE * 4.94, 0.34, rotE);
       addPart(glassEnclosureGroup, outerMountClampGeo, materials.brushedTitanium, titaniumBatch, cosE * 4.92, sinE * 4.92, 0.48, rotE);
     }
@@ -114,12 +105,9 @@ export function buildHybridEnclosureAndRearHousing(
     const sinC = Math.sin(centerA);
     const rotC = centerA + Math.PI / 2;
     addPart(glassEnclosureGroup, outerMountClampGeo, materials.brushedTitanium, titaniumBatch, cosC * 4.96, sinC * 4.96, 0.49, rotC);
-    addPart(glassEnclosureGroup, innerWindowLugGeo, materials.brushedTitanium, titaniumBatch, cosC * 2.44, sinC * 2.44, 0.47, rotC);
+    addPart(glassEnclosureGroup, innerWindowLugGeo, materials.brushedTitanium, titaniumBatch, cosC * 2.44, sinC * 2.44, 0.45, rotC);
   }
 
-  glassEnclosureGroup.updateMatrixWorld(true);
-  const mergedGlassSectors = mergeGeometryBatch(glassSectorMeshes, materials.opticGlass, glassEnclosureGroup, 'arc-hybrid-glass-sectors');
-  if (mergedGlassSectors) mergedGlassSectors.renderOrder = 5;
   outerEnvelope.add(glassEnclosureGroup);
 
   // =========================================================================
