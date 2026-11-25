@@ -262,17 +262,17 @@ export function buildCentralChamber(
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.48, 0.20, 0.030, 0.030), materials.singularityCoreEmissiveMat);
+  const triangularCoreMesh = new THREE.Mesh(createBeveledTriangleSolid(0.36, 0.20, 0.028, 0.028), materials.singularityCoreEmissiveMat);
   triangularCoreMesh.name = "arc-triangular-core-mesh";
   triangularCoreMesh.position.z = -0.44;
   group.add(triangularCoreMesh);
 
   // Recessed open-center dark ceramic framing bezel around the core (clean mechanical step separating core from A/R/C letters)
-  addStatic(shell, createBeveledTriangleFrame(0.88, 0.48, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.35);
+  addStatic(shell, createBeveledTriangleFrame(0.88, 0.42, 0.09, 0.018, 0.018), materials.darkCeramic, chamberCeramic, 0, 0, -0.35);
 
-  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.52, 0.42, 0.08, 0.012, 0.012), materials.singularityInnerWireMat);
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.41, 0.33, 0.08, 0.012, 0.012), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
-  innerTriWireMesh.position.z = -0.25;
+  innerTriWireMesh.position.z = -0.26;
   group.add(innerTriWireMesh);
 
   // LAYER 6: Recessed Armored Optical Protective Glass Viewport + 3 Retaining Clips
@@ -294,7 +294,7 @@ export function buildCentralChamber(
   const lettersGroup = new THREE.Group();
   lettersGroup.name = "arc-central-letters-logo";
   lettersGroup.position.set(0, 0.0, 0.38);
-  const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.08, 2.08), materials.arcCenterLogoMat);
+  const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.14, 2.14), materials.arcCenterLogoMat);
   hudMesh.name = "arc-central-hud-mesh";
   hudMesh.renderOrder = 6;
   lettersGroup.add(hudMesh);

@@ -61,19 +61,20 @@ export function createReactorLighting(
   topSpot.castShadow = false;
   scene.add(topSpot);
 
-  // C. Controlled Back-Rim Light separating outer silhouette from deep black space
-  const rimLight = new THREE.PointLight(initialColorHex, 0.0, 18.0, 2.1);
-  rimLight.position.set(0, 0, -4.8);
+  // C. Controlled Back-Rim Light separating outer silhouette and internal turbine layers from deep black space
+  const rimLight = new THREE.PointLight(initialColorHex, 0.0, 16.0, 2.0);
+  rimLight.position.set(0, 0, -4.2);
   rimLight.castShadow = false;
   scene.add(rimLight);
 
-  // D. Local Core Dynamic Lights (tight radius so red energy stays focused in the chamber and never washes out chassis)
-  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 6.2, 2.3);
-  coreLight.position.z = 0.36;
+  // D. Local Core Dynamic Lights (compact coreLight radius prevents central hotspot from overlapping A/R/C letters;
+  //    innerChamberLight softly grazes internal radial spars, ceramic chord braces, and turbine blades for 3D depth)
+  const coreLight = new THREE.PointLight(initialColorHex, 0.0, 4.2, 2.4);
+  coreLight.position.z = 0.28;
   coreLight.castShadow = false;
 
-  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 4.8, 2.2);
-  innerChamberLight.position.z = -0.18;
+  const innerChamberLight = new THREE.PointLight(initialColorHex, 0.0, 5.6, 2.0);
+  innerChamberLight.position.z = -0.26;
   innerChamberLight.castShadow = false;
 
   const trenchLights: THREE.PointLight[] = [];

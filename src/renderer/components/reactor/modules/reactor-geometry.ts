@@ -140,102 +140,104 @@ export function buildReactorGeometry(
   outerEnvelope.name = "arc-outer-envelope";
   const ringRadius = 5.08;
 
-  // 1. Recessed Open Rear Structural Hub Collar (open center, crisp industrial profile)
+  // 1. Recessed Open Rear Structural Hub Collar (bridges central chamber to radial spars & turbine)
   const rearHubGeo = createChamferedRingLathe(
     [
-      [1.82, -1.16],
-      [2.44, -1.16],
-      [2.52, -1.02],
-      [2.44, -0.84],
-      [1.90, -0.84],
-      [1.82, -0.98],
-      [1.82, -1.16],
+      [1.72, -1.26],
+      [2.60, -1.26],
+      [2.68, -0.96],
+      [2.58, -0.58],
+      [1.82, -0.58],
+      [1.72, -0.84],
+      [1.72, -1.26],
     ],
     64
   );
   const rearHub = new THREE.Mesh(rearHubGeo, materials.anodizedBlack);
   rearHub.name = "arc-rear-structural-hub";
+  rearHub.position.z = -0.92;
   rearHub.updateMatrix();
   rearHub.matrixAutoUpdate = false;
   outerEnvelope.add(rearHub);
 
-  // 2. Three Sleek Segmented Containment Nacelles (centered at 90°, 210°, 330°; 58° arcs)
-  // Balanced radial & angular span so the upper horizontal and two lower diagonal sections share identical visual weight
+  // 2. Three Sleek Segmented Containment Nacelles (centered at 90°, 210°, 330°; 68° arcs)
+  // Extended arc and inward depth lock the upper horizontal module and two lower diagonal modules into the corner clamps
   const nacelleAnodized: THREE.Mesh[] = [];
   const nacelleTitanium: THREE.Mesh[] = [];
   const nacelleCarbon: THREE.Mesh[] = [];
   const nacelleCeramic: THREE.Mesh[] = [];
 
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
-  const halfArc = (29 * Math.PI) / 180; // 58° total arc per nacelle
+  const halfArc = (34 * Math.PI) / 180; // 68° total arc per nacelle — connects seamlessly toward 30°/150°/270° clamps
 
   for (const centerA of nacelleAngles) {
     const a0 = centerA - halfArc;
     const a1 = centerA + halfArc;
 
-    // Primary obsidian anodized armor hull (recessed below z = -0.10 to form optical channel bed)
+    // Primary obsidian anodized armor hull (bridges inward to r = 4.46 to eliminate empty gap above trenches)
     const hull = new THREE.Mesh(
-      createBeveledArcSector(4.68, 5.50, a0, a1, 0.60, 0.052, 0.052, 22),
+      createBeveledArcSector(4.46, 5.50, a0, a1, 0.62, 0.052, 0.052, 24),
       materials.anodizedBlack
     );
-    hull.position.z = -0.46;
+    hull.position.z = -0.40;
     outerEnvelope.add(hull);
     nacelleAnodized.push(hull);
 
     // Restrained slim dark-gunmetal outer perimeter trim rail (accent, not pale gray slab)
     const bumper = new THREE.Mesh(
-      createBeveledArcSector(5.42, 5.56, a0 + 0.04, a1 - 0.04, 0.20, 0.028, 0.028, 20),
+      createBeveledArcSector(5.42, 5.56, a0 + 0.04, a1 - 0.04, 0.20, 0.028, 0.028, 22),
       materials.brushedTitanium
     );
-    bumper.position.z = -0.20;
+    bumper.position.z = -0.18;
     outerEnvelope.add(bumper);
     nacelleTitanium.push(bumper);
 
     // Recessed obsidian carbon-composite channel bed beneath the continuous optical ring
     const serviceDeck = new THREE.Mesh(
-      createBeveledArcSector(4.80, 5.34, a0 + 0.05, a1 - 0.05, 0.10, 0.018, 0.018, 18),
+      createBeveledArcSector(4.62, 5.34, a0 + 0.04, a1 - 0.04, 0.11, 0.018, 0.018, 20),
       materials.darkCarbon
     );
-    serviceDeck.position.z = -0.12;
+    serviceDeck.position.z = -0.10;
     outerEnvelope.add(serviceDeck);
     nacelleCarbon.push(serviceDeck);
 
-    // Matte dark ceramic inner thermal isolation liner facing the open turbine bays
+    // Matte dark ceramic inner thermal isolation liner bridging toward the transverse chord braces
     const thermalLiner = new THREE.Mesh(
-      createBeveledArcSector(4.54, 4.70, a0 + 0.03, a1 - 0.03, 0.42, 0.024, 0.024, 18),
+      createBeveledArcSector(4.28, 4.52, a0 + 0.03, a1 - 0.03, 0.44, 0.024, 0.024, 20),
       materials.darkCeramic
     );
-    thermalLiner.position.z = -0.44;
+    thermalLiner.position.z = -0.38;
     outerEnvelope.add(thermalLiner);
     nacelleCeramic.push(thermalLiner);
   }
 
-  // 3. Slim Open-Frame Radial Load-Bearing I-Beam Spars & Transverse Cross-Braces
-  const sparBodyGeo = createBeveledTrapezoid(0.38, 0.28, 2.48, 0.38, 0.035, 0.035);
-  const sparFlangeGeo = createBeveledTrapezoid(0.12, 0.08, 2.34, 0.08, 0.014, 0.014);
-  const braceGeo = createBeveledTrapezoid(2.22, 2.04, 0.20, 0.20, 0.022, 0.022);
+  // 3. Elevated Radial Load-Bearing I-Beam Spars & Transverse Chord Cross-Braces
+  // Physically connects the central chamber barrel (r = 1.98), waveguide trenches (r = 2.58), and outer nacelles (r = 4.46)
+  const sparBodyGeo = createBeveledTrapezoid(0.46, 0.34, 2.76, 0.42, 0.036, 0.036);
+  const sparFlangeGeo = createBeveledTrapezoid(0.16, 0.11, 2.58, 0.09, 0.015, 0.015);
+  const braceGeo = createBeveledTrapezoid(3.42, 3.08, 0.38, 0.28, 0.028, 0.028);
 
   for (let i = 0; i < 6; i++) {
     const a = (Math.PI / 3) * i + Math.PI / 6;
-    const rMid = 3.54;
+    const rMid = 3.36;
     const sparBody = new THREE.Mesh(sparBodyGeo, materials.anodizedBlack);
-    sparBody.position.set(Math.cos(a) * rMid, Math.sin(a) * rMid, -0.74);
+    sparBody.position.set(Math.cos(a) * rMid, Math.sin(a) * rMid, -0.48);
     sparBody.rotation.z = a + Math.PI / 2;
     outerEnvelope.add(sparBody);
     nacelleAnodized.push(sparBody);
 
     const sparFlange = new THREE.Mesh(sparFlangeGeo, materials.ringFrameMat);
-    sparFlange.position.set(Math.cos(a) * rMid, Math.sin(a) * rMid, -0.52);
+    sparFlange.position.set(Math.cos(a) * rMid, Math.sin(a) * rMid, -0.26);
     sparFlange.rotation.z = a + Math.PI / 2;
     outerEnvelope.add(sparFlange);
     nacelleTitanium.push(sparFlange);
   }
 
-  // 3 slim transverse chord cross-braces tying adjacent spars behind the trenches
+  // 3 structural transverse chord cross-braces bridging the space between trenches (r = 3.00) and nacelles (r = 4.28)
   for (let i = 0; i < 3; i++) {
     const a = ((Math.PI * 2) / 3) * i;
     const brace = new THREE.Mesh(braceGeo, materials.darkCeramic);
-    brace.position.set(Math.cos(a + Math.PI / 2) * 3.74, Math.sin(a + Math.PI / 2) * 3.74, -0.90);
+    brace.position.set(Math.cos(a + Math.PI / 2) * 3.66, Math.sin(a + Math.PI / 2) * 3.66, -0.42);
     brace.rotation.z = a;
     outerEnvelope.add(brace);
     nacelleCeramic.push(brace);
@@ -278,20 +280,20 @@ export function buildReactorGeometry(
   reactorGroup.add(outerEnvelope);
 
   // ==========================================
-  // Deep Open-Bay Counter-Rotating Mechanical Turbine Assembly (Dark Graphite Profile)
+  // Deep Open-Bay Counter-Rotating Mechanical Turbine Assembly (Cohesive Internal Depth)
   // ==========================================
   const internalTurbine = new THREE.Group();
   internalTurbine.name = "arc-turbine-primary";
-  internalTurbine.position.z = -0.88;
+  internalTurbine.position.z = -0.62;
 
-  const bladeGeo = createBeveledTrapezoid(0.26, 0.14, 1.02, 0.08, 0.015, 0.015);
+  const bladeGeo = createBeveledTrapezoid(0.28, 0.16, 1.22, 0.09, 0.016, 0.016);
   const bladeInst = new THREE.InstancedMesh(bladeGeo, materials.anodizedBlack, 18);
   bladeInst.name = "arc-turbine-primary-blades";
   const dummyBlade = new THREE.Object3D();
   for (let i = 0; i < 18; i++) {
     const a = ((Math.PI * 2) / 18) * i;
-    dummyBlade.position.set(Math.cos(a) * 3.04, Math.sin(a) * 3.04, 0);
-    dummyBlade.rotation.set(0.38, 0, a + Math.PI / 2);
+    dummyBlade.position.set(Math.cos(a) * 3.14, Math.sin(a) * 3.14, 0);
+    dummyBlade.rotation.set(0.36, 0, a + Math.PI / 2);
     dummyBlade.updateMatrix();
     bladeInst.setMatrixAt(i, dummyBlade.matrix);
   }
@@ -301,10 +303,10 @@ export function buildReactorGeometry(
 
   const rotorHubGeo = createChamferedRingLathe(
     [
-      [2.32, -0.11],
-      [2.38, 0.11],
-      [2.54, 0.11],
-      [2.60, -0.11],
+      [2.18, -0.12],
+      [2.26, 0.12],
+      [2.54, 0.12],
+      [2.62, -0.12],
     ],
     48
   );
@@ -315,14 +317,14 @@ export function buildReactorGeometry(
 
   const internalTurbineSecondary = new THREE.Group();
   internalTurbineSecondary.name = "arc-turbine-secondary";
-  internalTurbineSecondary.position.z = -0.68;
+  internalTurbineSecondary.position.z = -0.48;
 
-  const statorVaneGeo = createBeveledTrapezoid(0.18, 0.12, 0.60, 0.07, 0.012, 0.012);
+  const statorVaneGeo = createBeveledTrapezoid(0.20, 0.13, 0.80, 0.08, 0.012, 0.012);
   const statorInst = new THREE.InstancedMesh(statorVaneGeo, materials.copperWinding, 12);
   statorInst.name = "arc-turbine-secondary-stator";
   for (let i = 0; i < 12; i++) {
     const a = ((Math.PI * 2) / 12) * i;
-    dummyBlade.position.set(Math.cos(a) * 2.34, Math.sin(a) * 2.34, 0);
+    dummyBlade.position.set(Math.cos(a) * 2.38, Math.sin(a) * 2.38, 0);
     dummyBlade.rotation.set(-0.34, 0, a + Math.PI / 2);
     dummyBlade.updateMatrix();
     statorInst.setMatrixAt(i, dummyBlade.matrix);

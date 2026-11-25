@@ -16,13 +16,13 @@ export function buildTrenches(
 ): void {
   const trenchLength = 6.50;
 
-  // Sleek beveled obsidian waveguide walls with balanced inward corner taper (no horizontal overhang past clamps)
-  const innerWallGeo = createBeveledTrapezoid(trenchLength - 1.05, trenchLength - 1.48, 0.34, 0.46, 0.04, 0.04);
-  const outerWallGeo = createBeveledTrapezoid(trenchLength - 0.56, trenchLength - 1.02, 0.32, 0.44, 0.038, 0.038);
-  const innerRailGeo = createBeveledTrapezoid(trenchLength - 1.40, trenchLength - 1.66, 0.064, 0.048, 0.014, 0.014);
-  const outerRailGeo = createBeveledTrapezoid(trenchLength - 0.92, trenchLength - 1.24, 0.064, 0.048, 0.014, 0.014);
-  const floorGeo = createBeveledTrapezoid(trenchLength - 0.68, trenchLength - 0.98, 0.74, 0.18, 0.02, 0.02);
-  const ceramicBedGeo = createBeveledTrapezoid(trenchLength - 1.22, trenchLength - 1.32, 0.13, 0.12, 0.015, 0.015);
+  // Sleek beveled obsidian waveguide walls locking flush into the 3 corner clamps (no horizontal overhang)
+  const innerWallGeo = createBeveledTrapezoid(trenchLength - 0.88, trenchLength - 1.28, 0.36, 0.48, 0.04, 0.04);
+  const outerWallGeo = createBeveledTrapezoid(trenchLength - 0.28, trenchLength - 0.72, 0.36, 0.48, 0.04, 0.04);
+  const innerRailGeo = createBeveledTrapezoid(trenchLength - 1.24, trenchLength - 1.52, 0.066, 0.05, 0.014, 0.014);
+  const outerRailGeo = createBeveledTrapezoid(trenchLength - 0.64, trenchLength - 0.96, 0.066, 0.05, 0.014, 0.014);
+  const floorGeo = createBeveledTrapezoid(trenchLength - 0.44, trenchLength - 0.76, 0.78, 0.20, 0.02, 0.02);
+  const ceramicBedGeo = createBeveledTrapezoid(trenchLength - 1.12, trenchLength - 1.24, 0.14, 0.13, 0.015, 0.015);
   const tubeGeo = new THREE.CylinderGeometry(0.054, 0.054, trenchLength - 1.85, 18);
   ensureUv2(tubeGeo);
   const collarGeo = new THREE.CylinderGeometry(0.108, 0.112, 0.12, 16);
@@ -30,9 +30,9 @@ export function buildTrenches(
   const collarSlotGeo = new THREE.TorusGeometry(0.112, 0.014, 10, 18);
   ensureUv2(collarSlotGeo);
   const capGeo = createBeveledHexagon(0.12, 0.20, 0.018, 0.018);
-  const gantrySpanGeo = createBeveledTrapezoid(0.24, 0.18, 1.12, 0.15, 0.022, 0.022);
-  const gantryLegGeo = createBeveledTrapezoid(0.20, 0.16, 0.16, 0.38, 0.016, 0.016);
-  const gantryCapGeo = createBeveledTrapezoid(0.10, 0.075, 0.96, 0.065, 0.012, 0.012);
+  const gantrySpanGeo = createBeveledTrapezoid(0.28, 0.21, 1.34, 0.16, 0.022, 0.022);
+  const gantryLegGeo = createBeveledTrapezoid(0.22, 0.18, 0.20, 0.42, 0.016, 0.016);
+  const gantryCapGeo = createBeveledTrapezoid(0.12, 0.088, 1.14, 0.07, 0.012, 0.012);
 
   const collarInst = new THREE.InstancedMesh(collarGeo, materials.ringFrameMat, 24);
   const collarSlotInst = new THREE.InstancedMesh(collarSlotGeo, materials.copperWinding, 24);
@@ -132,7 +132,7 @@ export function buildTrenches(
     edgeGroup.add(softGlowLight);
     lighting.trenchLights.push(softGlowLight);
 
-    // Symmetric Twin Overhead Gantry Bridges locking neatly onto walls
+    // Symmetric Twin Overhead Gantry Bridges connecting chamber side walls across trenches to outer chord braces
     for (let x = -1; x <= 1; x += 2) {
       const span = new THREE.Mesh(gantrySpanGeo, materials.anodizedBlack);
       span.position.set(x * 1.65, apothem, 0.38);
@@ -146,7 +146,7 @@ export function buildTrenches(
 
       for (let side = -1; side <= 1; side += 2) {
         const leg = new THREE.Mesh(gantryLegGeo, materials.anodizedBlack);
-        leg.position.set(x * 1.65, apothem + side * 0.48, 0.17);
+        leg.position.set(x * 1.65, apothem + side * 0.56, 0.17);
         edgeGroup.add(leg);
         trenchAnodizedBlack.push(leg);
       }
@@ -179,13 +179,13 @@ export function buildCornerClamps(
   _apothem: number
 ): void {
   // Positioned strictly at the 3 true triangle vertices (-90°, 30°, 150°) at r = 4.46
-  // anchoring the 3 trench corners and radial power bridges without colliding with the 3 outer nacelles
+  // Physically interlocks the upper horizontal module (90°) and the two lower diagonal modules (210°, 330°)
   const clampDist = 4.46;
 
-  const baseBlockGeo = createBeveledTrapezoid(1.04, 0.82, 0.68, 0.42, 0.04, 0.04);
-  const yokeGeo = createBeveledTrapezoid(0.98, 0.84, 0.14, 0.46, 0.025, 0.025);
-  const ceramicCradleGeo = createBeveledTrapezoid(0.78, 0.66, 0.50, 0.08, 0.018, 0.018);
-  const carbonCapGeo = createBeveledTrapezoid(0.64, 0.54, 0.40, 0.07, 0.016, 0.016);
+  const baseBlockGeo = createBeveledTrapezoid(1.22, 0.96, 0.78, 0.44, 0.04, 0.04);
+  const yokeGeo = createBeveledTrapezoid(1.14, 0.96, 0.15, 0.48, 0.025, 0.025);
+  const ceramicCradleGeo = createBeveledTrapezoid(0.86, 0.72, 0.54, 0.08, 0.018, 0.018);
+  const carbonCapGeo = createBeveledTrapezoid(0.70, 0.58, 0.42, 0.07, 0.016, 0.016);
   const copperPinGeo = new THREE.CylinderGeometry(0.028, 0.028, 0.14, 12);
   copperPinGeo.rotateX(Math.PI / 2);
   ensureUv2(copperPinGeo);
@@ -224,10 +224,10 @@ export function buildCornerClamps(
     clampGroup.add(blockMesh);
     clampAnodizedBlack.push(blockMesh);
 
-    // 2. Twin Slim Wrap-Around Dark-Titanium Caliper Yokes
+    // 2. Twin Slim Wrap-Around Dark-Titanium Caliper Yokes locking adjacent trenches & nacelles
     for (let side = -1; side <= 1; side += 2) {
       const yokeMesh = new THREE.Mesh(yokeGeo, materials.brushedTitanium);
-      yokeMesh.position.set(0, side * 0.36, 0.04);
+      yokeMesh.position.set(0, side * 0.40, 0.04);
       clampGroup.add(yokeMesh);
       clampBrushedTitanium.push(yokeMesh);
     }

@@ -203,22 +203,53 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     });
   });
 
-  // Set initial position and scale right away
-  const initCoreCenter = getCoreCenter();
-  const initCoreScale = getCoreScale();
-  if (initCoreCenter && typeof window !== "undefined") {
-    const winW = Math.max(window.innerWidth, 1);
-    const winH = Math.max(window.innerHeight, 1);
-    const normX = initCoreCenter.x > 1.5 ? initCoreCenter.x / winW : initCoreCenter.x;
-    const normY = initCoreCenter.y > 1.5 ? initCoreCenter.y / winH : initCoreCenter.y;
-    const vHalfHeight = 81.5 * Math.tan((6.0 * Math.PI) / 180.0);
-    const aspect = camera ? camera.aspect : winW / winH;
+  // Viewport-aware reactor scale helper: increases displayed reactor scale by ~10% (8-12% target)
+  // when viewport dimensions allow, while enforcing safe clearance from bottom dock, top bar, and side UI.
+  const REACTOR_OUTER_RADIUS = 5.62;
+  const computeViewportTransform = (
+    centerProp: { x: number; y: number } | undefined,
+    scaleProp: number | undefined
+  ): { x: number; y: number; scale: number } => {
+    const baseScale = scaleProp !== undefined ? scaleProp : 1.0;
+    if (typeof window === "undefined") {
+      return { x: 0, y: 0, scale: baseScale * 1.10 };
+    }
+    const winW = Math.max(window.innerWidth || 1280, 1);
+    const winH = Math.max(window.innerHeight || 800, 1);
+    const camZ = camera ? Math.max(20, camera.position.z) : 41.2;
+    const halfFovRad = (((camera ? camera.fov : 24) * 0.5) * Math.PI) / 180.0;
+    const vHalfHeight = camZ * Math.tan(halfFovRad);
+    const aspect = camera && camera.aspect > 0 ? camera.aspect : winW / winH;
     const vHalfWidth = vHalfHeight * aspect;
-    geometry.reactorGroup.position.x = (normX - 0.5) * 2.0 * vHalfWidth;
-    geometry.reactorGroup.position.y = -(normY - 0.5) * 2.0 * vHalfHeight;
-  }
-  const initScl = initCoreScale !== undefined ? initCoreScale : 1.0;
-  geometry.reactorGroup.scale.set(initScl, initScl, initScl);
+
+    let targetX = 0;
+    let targetY = 0;
+    if (centerProp) {
+      const normX = centerProp.x > 1.5 ? centerProp.x / winW : centerProp.x;
+      const normY = centerProp.y > 1.5 ? centerProp.y / winH : centerProp.y;
+      targetX = (normX - 0.5) * 2.0 * vHalfWidth;
+      targetY = -(normY - 0.5) * 2.0 * vHalfHeight;
+    }
+
+    // Apply +10% scale boost when viewport allows; clamp strictly so reactor never clips or overlaps UI
+    const desiredScale = baseScale * 1.10;
+    const yBottomSafe = -vHalfHeight * 0.75; // Safe distance above bottom dock bar
+    const yTopSafe = vHalfHeight * 0.84;     // Safe distance below top header bar
+    const xSideSafe = vHalfWidth * 0.74;     // Safe distance inside side panels
+    const maxScaleBottom = (targetY - yBottomSafe) / REACTOR_OUTER_RADIUS;
+    const maxScaleTop = (yTopSafe - targetY) / REACTOR_OUTER_RADIUS;
+    const maxScaleSide = Math.max(0.85, (xSideSafe - Math.abs(targetX)) / REACTOR_OUTER_RADIUS);
+    const maxAllowedScale = Math.min(maxScaleBottom, maxScaleTop, maxScaleSide);
+    const safeScale = Math.max(baseScale * 0.90, Math.min(desiredScale, maxAllowedScale));
+
+    return { x: targetX, y: targetY, scale: safeScale };
+  };
+
+  // Set initial position and viewport-safe scale right away
+  const initTransform = computeViewportTransform(getCoreCenter(), getCoreScale());
+  geometry.reactorGroup.position.x = initTransform.x;
+  geometry.reactorGroup.position.y = initTransform.y;
+  geometry.reactorGroup.scale.setScalar(initTransform.scale);
 
   let fpsFrameCount = 0;
   let fpsTime = performance.now();
@@ -630,11 +661,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.criticalWhite.emissiveIntensity = 0.68 * stageOuter * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
     }
 
-    // Synchronize central triangular A.R.C. emblem (machined satin titanium-silver integrated into viewport bezel)
+    // Synchronize central triangular A.R.C. emblem (crisp satin titanium-silver contrast without glowing glare)
     if (materials.arcCenterLogoMat) {
-      materials.arcCenterLogoMat.color.setHex(0xd6dce6);
+      materials.arcCenterLogoMat.color.setHex(0xe2e7f0);
       materials.arcCenterLogoMat.opacity = isGlowActive
-        ? Math.min(0.94, (0.78 + stageCenter * 0.15 + smoothBass * 0.01) * stageCenter)
+        ? Math.min(0.96, (0.82 + stageCenter * 0.13 + smoothBass * 0.01) * stageCenter)
         : 0.0;
     }
 
@@ -649,27 +680,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.plasmaEnergyMap.offset.y = (elapsedTime * 0.08 * currentVisuals.ringSpeed) % 1.0;
     }
 
-    // 4. Transform & Reactor Root Smoothing
-    const coreCenter = getCoreCenter();
-    const coreScale = getCoreScale();
-    let targetX3d = 0;
-    let targetY3d = 0;
-
-    if (coreCenter && typeof window !== "undefined") {
-      const winW = Math.max(window.innerWidth, 1);
-      const winH = Math.max(window.innerHeight, 1);
-      const normX = coreCenter.x > 1.5 ? coreCenter.x / winW : coreCenter.x;
-      const normY = coreCenter.y > 1.5 ? coreCenter.y / winH : coreCenter.y;
-
-      const vHalfHeight = 81.5 * Math.tan((6.0 * Math.PI) / 180.0);
-      const aspect = camera ? camera.aspect : winW / winH;
-      const vHalfWidth = vHalfHeight * aspect;
-
-      targetX3d = (normX - 0.5) * 2.0 * vHalfWidth;
-      targetY3d = -(normY - 0.5) * 2.0 * vHalfHeight;
-    }
-
-    const scl = coreScale !== undefined ? coreScale : 1.0;
+    // 4. Transform & Reactor Root Smoothing (with +10% viewport-safe responsive scaling)
+    const vpTransform = computeViewportTransform(getCoreCenter(), getCoreScale());
+    const targetX3d = vpTransform.x;
+    const targetY3d = vpTransform.y;
+    const scl = vpTransform.scale;
 
     geometry.reactorGroup.position.x += (targetX3d - geometry.reactorGroup.position.x) * 4.0 * delta;
     geometry.reactorGroup.position.y += (targetY3d - geometry.reactorGroup.position.y) * 4.0 * delta;
@@ -1409,8 +1424,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     lighting.coreLight.visible = true;
     lighting.coreLight.color.copy(activeColor);
     const targetCoreLight = isEcoLights
-      ? Math.min(0.44, (0.26 + smoothTotal * 0.18) * stageCenter)
-      : Math.min(0.72, (0.38 + smoothTotal * 0.32) * stageCenter);
+      ? Math.min(0.40, (0.24 + smoothTotal * 0.16) * stageCenter)
+      : Math.min(0.62, (0.34 + smoothTotal * 0.28) * stageCenter);
     lighting.coreLight.intensity += (targetCoreLight - lighting.coreLight.intensity) * 0.2;
 
     if (lighting.innerChamberLight.visible !== !isEcoLights) lighting.innerChamberLight.visible = !isEcoLights;
@@ -1420,8 +1435,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       lighting.rimLight.color.copy(activeColor);
       lighting.innerChamberLight.color.copy(activeColor);
 
-      const targetChamberLight = Math.min(0.56, (0.32 + smoothMid * 0.28) * stageTrench);
-      const targetRimLight = Math.min(0.62, (0.36 + smoothBass * 0.28) * stageRings);
+      const targetChamberLight = Math.min(0.64, (0.38 + smoothMid * 0.28) * stageTrench);
+      const targetRimLight = Math.min(0.66, (0.38 + smoothBass * 0.28) * stageRings);
 
       lighting.innerChamberLight.intensity += (targetChamberLight - lighting.innerChamberLight.intensity) * 0.2;
       lighting.rimLight.intensity += (targetRimLight - lighting.rimLight.intensity) * 0.2;

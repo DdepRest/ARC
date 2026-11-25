@@ -65,39 +65,39 @@ export function createReactorMaterials(
   const { plasmaMap: plasmaEnergyMap, glowMap: glowParticleMap } = getThemeTextures(initialTheme);
 
   // 1. Anodized Titanium — Obsidian Black / Dark Graphite machined chassis metal.
-  // Fallback scalar roughness (0.42) is promoted to 1.0 once roughnessMap binds (no double-multiply).
+  // Fallback scalar roughness (0.43) is promoted to 1.0 once roughnessMap binds (no double-multiply).
   const anodizedBlack = new THREE.MeshStandardMaterial({
-    color: 0x15181e,
-    metalness: 0.86,
-    roughness: 0.42,
+    color: 0x13161c,
+    metalness: 0.88,
+    roughness: 0.43,
     normalScale: new THREE.Vector2(0.58, 0.58),
-    aoMapIntensity: 0.88,
-    envMapIntensity: 0.85,
+    aoMapIntensity: 0.90,
+    envMapIntensity: 0.84,
   });
 
   // 2. Brushed Titanium — restrained dark gunmetal satin alloy for fine chamfers & precision collars
   const brushedTitanium = new THREE.MeshPhysicalMaterial({
-    color: 0x3e444e,
+    color: 0x414752,
     metalness: 0.92,
-    roughness: 0.34,
+    roughness: 0.35,
     anisotropy: 0.65,
     anisotropyRotation: 0.0,
     clearcoat: 0.04,
     clearcoatRoughness: 0.38,
     normalScale: new THREE.Vector2(0.45, 0.45),
     aoMapIntensity: 0.78,
-    envMapIntensity: 0.90,
+    envMapIntensity: 0.88,
   });
 
-  // 3. Structural Ring Trim — dark machined gunmetal steel
+  // 3. Internal Mechanical Surfaces & Structural Ring Trim — machined gunmetal steel (distinct from obsidian chassis)
   const ringFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x20252d,
-    metalness: 0.88,
-    roughness: 0.36,
+    color: 0x2c323c,
+    metalness: 0.90,
+    roughness: 0.34,
     emissive: 0x000000,
     emissiveIntensity: 0.0,
-    normalScale: new THREE.Vector2(0.38, 0.38),
-    envMapIntensity: 0.88,
+    normalScale: new THREE.Vector2(0.42, 0.42),
+    envMapIntensity: 0.92,
   });
 
   // 4. Carbon Composite — deep obsidian 3K 2x2 diagonal twill weave with controlled satin resin coat
@@ -112,13 +112,13 @@ export function createReactorMaterials(
     envMapIntensity: 0.66,
   });
 
-  // 5. Technical Ceramic — matte dark graphite dielectric contrasting cleanly against satin metals
+  // 5. Technical Ceramic — matte graphite-slate dielectric contrasting cleanly against dark metals
   const darkCeramic = new THREE.MeshStandardMaterial({
-    color: 0x191d23,
-    metalness: 0.05,
-    roughness: 0.78,
-    normalScale: new THREE.Vector2(0.42, 0.42),
-    envMapIntensity: 0.30,
+    color: 0x282b31,
+    metalness: 0.04,
+    roughness: 0.84,
+    normalScale: new THREE.Vector2(0.46, 0.46),
+    envMapIntensity: 0.24,
   });
 
   // 6. Copper Alloy — rich dark burnished industrial copper/bronze accents
@@ -227,9 +227,9 @@ export function createReactorMaterials(
 
   const arcCenterLogoMat = new THREE.MeshBasicMaterial({
     map: arcCenterLogoMap,
-    color: 0xdce0e8,
+    color: 0xe2e7f0,
     transparent: true,
-    opacity: 0.94,
+    opacity: 0.95,
     blending: THREE.NormalBlending,
     side: THREE.DoubleSide,
     depthWrite: false,
@@ -313,11 +313,11 @@ export function createReactorMaterials(
     }
 
     const envScale = Math.max(50, Math.min(150, config.envMapIntensity)) / 100;
-    anodizedBlack.envMapIntensity = 0.85 * envScale;
-    brushedTitanium.envMapIntensity = 0.90 * envScale;
-    ringFrameMat.envMapIntensity = 0.88 * envScale;
+    anodizedBlack.envMapIntensity = 0.84 * envScale;
+    brushedTitanium.envMapIntensity = 0.88 * envScale;
+    ringFrameMat.envMapIntensity = 0.92 * envScale;
     darkCarbon.envMapIntensity = 0.66 * envScale;
-    darkCeramic.envMapIntensity = 0.30 * envScale;
+    darkCeramic.envMapIntensity = 0.24 * envScale;
     copperWinding.envMapIntensity = 0.92 * envScale;
     heatTintedMetal.envMapIntensity = 0.82 * envScale;
     opticGlass.envMapIntensity = 0.98 * envScale;
