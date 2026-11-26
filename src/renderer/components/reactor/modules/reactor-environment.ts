@@ -11,9 +11,9 @@ export interface ReactorStudioEnvironment {
  * Builds an offline procedural studio softbox environment scene designed
  * specifically for dark brushed titanium, anodized black metal, and smoked optical glass.
  */
-function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
+export function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x040508);
+  envScene.background = new THREE.Color(0x030406);
 
   const isHigh = quality === 'high';
   const isEco = quality === 'eco';
@@ -40,16 +40,19 @@ function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
   addPanel(13, 4.6, 0xf8f9fb, 1.55, [-2.8, 11.8, 6.4]);
 
   // 2. Left grazing studio strip (reveals 210° diagonal armor planes & chamfers)
-  addPanel(4.4, 12.5, 0xe0e4ec, 1.24, [-12.8, -2.8, 7.0]);
+  addPanel(4.4, 12.5, 0xe0e4ec, 1.28, [-12.8, -2.8, 7.0]);
 
   // 3. Right grazing studio strip (reveals 330° diagonal armor planes & dark copper contacts)
-  addPanel(4.2, 11.5, 0xebe6e0, 1.12, [12.8, -2.8, 6.6]);
+  addPanel(4.2, 11.5, 0xebe6e0, 1.14, [12.8, -2.8, 6.6]);
 
   // 4. Restrained obsidian ventral bounce panel (prevents underside crush while keeping deep shadows)
-  addPanel(13, 4.5, 0x484e58, 0.68, [0, -12.0, 5.5]);
+  addPanel(13, 4.5, 0x4c525e, 0.72, [0, -12.0, 5.5]);
 
-  // 5. Asymmetric oblique-frontal grazing ribbon (>75% of frontal hemisphere remains 0x040508 black)
-  addPanel(13, 1.55, 0xe6ebf2, 0.68, [-3.2, 6.8, 13.8]);
+  // 5a. Asymmetric upper-left frontal softbox (creates satin gradient across +Z obsidian armor)
+  addPanel(7.6, 3.8, 0xdbe1ea, 0.62, [-5.2, 4.4, 17.2]);
+
+  // 5b. Restrained lower-right frontal fill counter-ribbon (preserves deep asymmetric falloff)
+  addPanel(5.4, 2.0, 0xdad6d0, 0.26, [7.2, -6.2, 15.8]);
 
   if (!isEco) {
     // 6. Upper-right neutral rim bar for smoked glass Fresnel & dark bevel edge separation

@@ -150,7 +150,7 @@ export function buildHybridEnclosureAndRearHousing(
     const sinA = Math.sin(a);
     const rotA = a + Math.PI / 2;
     addPart(rearHousingGroup, mainRadialBeamGeo, materials.anodizedBlack, anodizedBatch, cosA * 3.66, sinA * 3.66, -1.04, rotA);
-    addPart(rearHousingGroup, radialWebInsertGeo, materials.anodizedBlack, anodizedBatch, cosA * 3.66, sinA * 3.66, -0.89, rotA);
+    addPart(rearHousingGroup, radialWebInsertGeo, materials.ringFrameMat, gunmetalBatch, cosA * 3.66, sinA * 3.66, -0.89, rotA);
 
     // Internal Service Compartments recessed between radial supports (r = 3.76..4.42, 38° arc)
     const compCenterA = a + Math.PI / 3;

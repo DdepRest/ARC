@@ -23,6 +23,22 @@ interface DecodedDataMap {
   width: number;
   height: number;
   data: Uint8ClampedArray;
+  mean: [number, number, number];
+}
+
+function computeDecodedChannelMeans(data: Uint8ClampedArray): [number, number, number] {
+  const pixelCount = data.length >>> 2;
+  if (pixelCount === 0) return [0.5, 0.5, 0.5];
+  let s0 = 0;
+  let s1 = 0;
+  let s2 = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    s0 += data[i];
+    s1 += data[i + 1];
+    s2 += data[i + 2];
+  }
+  const denom = pixelCount * 255;
+  return [s0 / denom, s1 / denom, s2 / denom];
 }
 
 const HYBRID_ASSET_URLS = {
@@ -107,6 +123,7 @@ function loadLocalDataPng(key: keyof typeof HYBRID_ASSET_URLS): Promise<DecodedD
           width: c.width,
           height: c.height,
           data: imgData.data,
+          mean: computeDecodedChannelMeans(imgData.data),
         };
         decodedAssetCache.set(key, decoded);
         resolve(decoded);
@@ -286,6 +303,10 @@ function buildAnodizedSet(
   const albedo = new Float32Array(total);
   const ao = new Float32Array(total);
 
+  const m0 = hybridMap ? hybridMap.mean[0] : 0.5;
+  const m1 = hybridMap ? hybridMap.mean[1] : 0.5;
+  const m2 = hybridMap ? hybridMap.mean[2] : 0.5;
+
   for (let y = 0; y < size; y++) {
     const v = y / size;
     for (let x = 0; x < size; x++) {
@@ -296,10 +317,10 @@ function buildAnodizedSet(
       let rMod: number;
       let cavityAo: number;
       if (hybridMap) {
-        // Compress hybrid PNG variance into ultra-smooth low-texture range (0.5 +/- 0.19)
-        h = 0.5 + (sampleDecodedChannel(hybridMap, u, v, 0) - 0.5) * 0.38;
-        rMod = 0.5 + (sampleDecodedChannel(hybridMap, u, v, 1) - 0.5) * 0.55;
-        cavityAo = sampleDecodedChannel(hybridMap, u, v, 2);
+        // Mean-centered hybrid PNG variance in ultra-smooth low-texture range
+        h = 0.5 + (sampleDecodedChannel(hybridMap, u, v, 0) - m0) * 0.38;
+        rMod = 0.5 + (sampleDecodedChannel(hybridMap, u, v, 1) - m1) * 0.55;
+        cavityAo = 0.90 + (sampleDecodedChannel(hybridMap, u, v, 2) - m2) * 0.50;
       } else {
         const n1 = tileableValueNoise(u * 8, v * 8, 8, 17);
         const n2 = tileableValueNoise(u * 24, v * 24, 24, 53);
@@ -310,10 +331,10 @@ function buildAnodizedSet(
       }
 
       height[idx] = Math.max(0, Math.min(1, h));
-      // Aerospace Obsidian Titanium: linear 0.030..0.044 (avg ~0.0365, F0 ~0.037 — deep black with readable grazing sheen)
-      albedo[idx] = Math.max(0.030, Math.min(0.044, 0.0365 + (h - 0.5) * 0.018));
-      // Smooth satin anodized roughness 0.30..0.38 (avg ~0.34) for controlled frontal & bevel sheen
-      rough[idx] = Math.max(0.30, Math.min(0.38, 0.34 + (rMod - 0.5) * 0.08));
+      // Aerospace Obsidian Titanium: linear 0.034..0.048 (center 0.0405 — deep black with controlled satin sheen)
+      albedo[idx] = Math.max(0.034, Math.min(0.048, 0.0405 + (h - 0.5) * 0.018));
+      // Smooth satin anodized roughness 0.34..0.42 (avg ~0.380) for controlled frontal & bevel sheen
+      rough[idx] = Math.max(0.34, Math.min(0.42, 0.38 + (rMod - 0.5) * 0.08));
       ao[idx] = Math.max(0.82, Math.min(1.0, 0.90 + (cavityAo - 0.5) * 0.14));
     }
   }
@@ -355,9 +376,9 @@ function buildBrushedTitaniumSet(size: number, aniso: number, trilinear: boolean
 
       const h = 0.5 + smoothStreak * 0.42 + longBrush * 0.16 + fineBrush * 0.07;
       height[idx] = Math.max(0, Math.min(1, h));
-      // Selective machined titanium: linear 0.115..0.165 (avg ~0.138, 35% darker than bright aluminum)
-      albedo[idx] = Math.max(0.115, Math.min(0.165, 0.138 + smoothStreak * 0.036 + longBrush * 0.020 + fineBrush * 0.009));
-      // Crisp satin linear roughness 0.22..0.32 (avg ~0.26)
+      // Selective machined titanium: linear 0.125..0.175 (center 0.148)
+      albedo[idx] = Math.max(0.125, Math.min(0.175, 0.148 + smoothStreak * 0.036 + longBrush * 0.020 + fineBrush * 0.009));
+      // Crisp satin linear roughness 0.22..0.32 (post-clamp quantized mean ~0.274)
       rough[idx] = Math.max(0.22, Math.min(0.32, 0.26 - smoothStreak * 0.09 + Math.abs(longBrush) * 0.08));
       ao[idx] = Math.max(0.88, Math.min(1.0, 0.94 + smoothStreak * 0.08));
     }
@@ -387,6 +408,10 @@ function buildCarbonTwillSet(
   const ao = new Float32Array(total);
   const cell = Math.max(4, size >> 5);
 
+  const m0 = hybridMap ? hybridMap.mean[0] : 0.5;
+  const m1 = hybridMap ? hybridMap.mean[1] : 0.5;
+  const m2 = hybridMap ? hybridMap.mean[2] : 0.5;
+
   for (let y = 0; y < size; y++) {
     const v = y / size;
     const cy = Math.floor(y / cell);
@@ -401,9 +426,9 @@ function buildCarbonTwillSet(
       let warpFactor: number;
       let rVal: number;
       if (hybridMap) {
-        h = sampleDecodedChannel(hybridMap, u, v, 0);
-        warpFactor = sampleDecodedChannel(hybridMap, u, v, 1);
-        rVal = sampleDecodedChannel(hybridMap, u, v, 2);
+        h = Math.max(0, Math.min(1, 0.6029 + (sampleDecodedChannel(hybridMap, u, v, 0) - m0)));
+        warpFactor = Math.max(0, Math.min(1, 0.5250 + (sampleDecodedChannel(hybridMap, u, v, 1) - m1)));
+        rVal = Math.max(0, Math.min(1, 0.4512 + (sampleDecodedChannel(hybridMap, u, v, 2) - m2)));
       } else {
         const twillPhase = (cx + cy) & 3;
         const isWarp = twillPhase < 2;
@@ -417,9 +442,9 @@ function buildCarbonTwillSet(
       }
 
       height[idx] = h;
-      // Deep obsidian carbon composite: linear 0.009..0.019 (avg ~0.0135)
-      albedo[idx] = Math.max(0.009, Math.min(0.019, 0.0092 + h * 0.0064 + warpFactor * 0.0028));
-      // Controlled resin-over-weave roughness: 0.38..0.54 (avg ~0.46)
+      // Deep obsidian carbon composite: linear 0.011..0.021
+      albedo[idx] = Math.max(0.011, Math.min(0.021, 0.0108 + h * 0.0056 + warpFactor * 0.0027));
+      // Controlled resin-over-weave roughness: 0.38..0.54 (post-clamp quantized mean ~0.452)
       rough[idx] = Math.max(0.38, Math.min(0.54, 0.38 + rVal * 0.16));
       ao[idx] = Math.max(0.74, Math.min(1.0, 0.76 + h * 0.24));
     }
@@ -451,10 +476,10 @@ function buildDarkCeramicSet(size: number, aniso: number, trilinear: boolean): P
       const fine = tileableValueNoise(u * 48, v * 48, 48, 113) - 0.5;
 
       height[idx] = Math.max(0, Math.min(1, 0.50 + macro * 0.13 + fine * 0.08));
-      // Deep matte obsidian ceramic: linear 0.017..0.027 (avg ~0.0215)
-      albedo[idx] = Math.max(0.017, Math.min(0.027, 0.0215 + macro * 0.005 + fine * 0.003));
-      // High matte roughness 0.84..0.94 (avg ~0.89)
-      rough[idx] = Math.max(0.84, Math.min(0.94, 0.89 - macro * 0.04 - fine * 0.03));
+      // Deep matte obsidian ceramic: linear 0.021..0.031 (center 0.0255)
+      albedo[idx] = Math.max(0.021, Math.min(0.031, 0.0255 + macro * 0.005 + fine * 0.003));
+      // High matte roughness 0.83..0.93 (avg ~0.880)
+      rough[idx] = Math.max(0.83, Math.min(0.93, 0.88 - macro * 0.04 - fine * 0.03));
     }
   }
 
@@ -483,9 +508,9 @@ function buildCopperAlloySet(size: number, aniso: number, trilinear: boolean): P
       const idx = y * size + x;
       const micro = (tileableValueNoise(u * 16, v * 64, 64, 59) - 0.5) * 0.05;
       height[idx] = Math.max(0, Math.min(1, 0.5 + streak + micro));
-      // Smoked dark bronze-copper: scalar 0.18..0.26 * tint (0.78, 0.48, 0.32), luma ~0.117
-      albedo[idx] = Math.max(0.18, Math.min(0.26, 0.22 + streak * 0.07 + micro * 0.045));
-      // Smooth contact roughness 0.26..0.36 (avg ~0.31)
+      // Smoked dark bronze-copper: scalar 0.20..0.28 * tint (0.78, 0.48, 0.32), luma ~0.128
+      albedo[idx] = Math.max(0.20, Math.min(0.28, 0.24 + streak * 0.07 + micro * 0.045));
+      // Smooth contact roughness 0.26..0.36 (post-clamp quantized mean ~0.311)
       rough[idx] = Math.max(0.26, Math.min(0.36, 0.31 - streak * 0.09 + Math.abs(micro) * 0.14));
     }
   }

@@ -59,11 +59,11 @@ export function buildCornerClamps(
     clampGroup.add(blockMesh);
     clampAnodizedBlack.push(blockMesh);
 
-    // 2. Recessed Obsidian Rear Coupling Bracket bridging clamp cleanly into outer substation & carrier rail
-    const bridgeBracket = new THREE.Mesh(outerBridgeBracketGeo, materials.anodizedBlack);
+    // 2. Recessed Dark Gunmetal Rear Coupling Bracket bridging clamp cleanly into outer substation & carrier rail
+    const bridgeBracket = new THREE.Mesh(outerBridgeBracketGeo, materials.ringFrameMat);
     bridgeBracket.position.set(0, -0.34, -0.22);
     clampGroup.add(bridgeBracket);
-    clampAnodizedBlack.push(bridgeBracket);
+    clampRingFrame.push(bridgeBracket);
 
     // 3. Twin Slim Wrap-Around Gunmetal Caliper Yokes locking adjacent bridge/conduit ends
     for (let side = -1; side <= 1; side += 2) {
