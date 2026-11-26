@@ -25,24 +25,24 @@ export interface ReactorLighting {
  */
 export const STUDIO_LIGHT_PRESETS = {
   hemi: {
-    skyColor: 0xc8ced8,
-    groundColor: 0x06070a,
-    intensity: { eco: 0.24, standard: 0.26, shadowed: 0.28 },
+    skyColor: 0xd4dae4,
+    groundColor: 0x11141a,
+    intensity: { eco: 0.34, standard: 0.38, shadowed: 0.40 },
   },
   key: {
-    color: 0xfaf8f5,
-    position: [-14.5, 16.0, 10.5] as const,
-    intensity: { eco: 1.55, standard: 1.72, shadowed: 1.84 },
+    color: 0xfdfaf5,
+    position: [-13.5, 15.2, 13.5] as const,
+    intensity: { eco: 1.68, standard: 1.88, shadowed: 1.98 },
   },
   fill: {
-    color: 0xd0d5de,
-    position: [15.5, -13.0, 9.5] as const,
-    intensity: { eco: 0.46, standard: 0.54, contact: 0.50, shadowed: 0.56 },
+    color: 0xd6dbe4,
+    position: [14.5, -12.0, 12.5] as const,
+    intensity: { eco: 0.62, standard: 0.70, contact: 0.66, shadowed: 0.74 },
   },
   topSpot: {
-    color: 0xf0f2f6,
-    position: [1.5, 18.5, 6.8] as const,
-    intensity: { eco: 0.36, standard: 0.52, shadowed: 0.56 },
+    color: 0xf4f6fa,
+    position: [1.4, 17.5, 9.2] as const,
+    intensity: { eco: 0.42, standard: 0.60, shadowed: 0.64 },
   },
 } as const;
 

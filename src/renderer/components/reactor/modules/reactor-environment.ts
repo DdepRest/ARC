@@ -13,7 +13,7 @@ export interface ReactorStudioEnvironment {
  */
 function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x020305);
+  envScene.background = new THREE.Color(0x040508);
 
   const isHigh = quality === 'high';
   const isEco = quality === 'eco';
@@ -36,32 +36,32 @@ function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
     envScene.add(mesh);
   };
 
-  // 1. Overhead grazing architectural strip (reveals upper bevels without washing flat +Z faces)
-  addPanel(12, 3.8, 0xf7f8fa, 1.35, [-3.0, 12.2, 5.2]);
+  // 1. Overhead grazing architectural strip (sculpts upper bridge & bevels without washing flat +Z faces)
+  addPanel(13, 4.6, 0xf8f9fb, 1.55, [-2.8, 11.8, 6.4]);
 
-  // 2. Left grazing studio strip (sculpts 210° diagonal armor chamfers)
-  addPanel(3.6, 12, 0xdce0e8, 1.08, [-13.5, -2.5, 5.5]);
+  // 2. Left grazing studio strip (reveals 210° diagonal armor planes & chamfers)
+  addPanel(4.4, 12.5, 0xe0e4ec, 1.24, [-12.8, -2.8, 7.0]);
 
-  // 3. Right grazing studio strip (sculpts 330° diagonal armor chamfers & dark copper contacts)
-  addPanel(3.4, 11, 0xe6e4e2, 0.96, [13.5, -2.5, 5.0]);
+  // 3. Right grazing studio strip (reveals 330° diagonal armor planes & dark copper contacts)
+  addPanel(4.2, 11.5, 0xebe6e0, 1.12, [12.8, -2.8, 6.6]);
 
-  // 4. Deep obsidian ventral bounce panel (preserves dark lower shadow floor)
-  addPanel(12, 4.0, 0x363a42, 0.55, [0, -12.5, 4.8]);
+  // 4. Restrained obsidian ventral bounce panel (prevents underside crush while keeping deep shadows)
+  addPanel(13, 4.5, 0x484e58, 0.68, [0, -12.0, 5.5]);
 
-  // 5. Narrow oblique upper-left razor ribbon (catches 45° chamfers & central optical glass bevel/sheen)
-  addPanel(12, 0.95, 0xeef2f8, 0.95, [-4.8, 9.2, 11.5]);
+  // 5. Asymmetric oblique-frontal grazing ribbon (>75% of frontal hemisphere remains 0x040508 black)
+  addPanel(13, 1.55, 0xe6ebf2, 0.68, [-3.2, 6.8, 13.8]);
 
   if (!isEco) {
     // 6. Upper-right neutral rim bar for smoked glass Fresnel & dark bevel edge separation
-    addPanel(11, 1.4, 0xf2f4f8, isHigh ? 1.85 : 1.38, [6.5, 7.5, -9.5]);
+    addPanel(11, 1.45, 0xf4f6fa, isHigh ? 2.05 : 1.52, [6.5, 7.5, -9.5]);
 
     // 7. Back-left rim bar separating obsidian outer silhouette from deep black space
-    addPanel(2.2, 11, 0xdce0e8, isHigh ? 1.55 : 1.08, [-10.5, -2.5, -9.0]);
+    addPanel(2.3, 11, 0xe2e6ee, isHigh ? 1.72 : 1.18, [-10.5, -2.5, -9.0]);
   }
 
   if (isHigh) {
     // 8. High-tier precision razor specular strip overhead for sharp obsidian chamfer glints
-    addPanel(14, 0.55, 0xffffff, 1.85, [0, 13.5, 1.8]);
+    addPanel(14.5, 0.65, 0xffffff, 2.00, [0, 13.2, 2.2]);
   }
 
   return envScene;

@@ -120,12 +120,12 @@ function measureLinearScalarMapStats(tex: THREE.CanvasTexture): {
   return { min, max, mean: sum / pixelCount };
 }
 
-describe('ARC-053 — Obsidian Black Restoration, Optical Glass & Lighting Calibration', () => {
+describe('ARC-054 — Controlled Obsidian Contrast, Structural Depth & Optical Glass', () => {
   beforeEach(() => {
     ensureCanvas2dBufferMock();
   });
 
-  it('1. validates decoded linear albedo range and monotonic 5-tier obsidian reflectance ordering', () => {
+  it('1. validates decoded linear albedo range, F0 floor, and monotonic 6-level obsidian reflectance ordering', () => {
     const registry = new ReactorTextureRegistry();
     const bundle = registry.getBootstrapBundle(4, true);
     const mats = createReactorMaterials('crimson');
@@ -136,45 +136,59 @@ describe('ARC-053 — Obsidian Black Restoration, Optical Glass & Lighting Calib
     const titaniumAlbedo = measureDecodedLinearAlbedoStats(bundle.brushedTitanium.albedo);
     const copperAlbedo = measureDecodedLinearAlbedoStats(bundle.copper.albedo);
 
-    // ARC-053 deep obsidian linear bounds (with +/- 0.003 tolerance for 8-bit sRGB quantization)
-    expect(carbonAlbedo.min).toBeGreaterThanOrEqual(0.004);
-    expect(carbonAlbedo.max).toBeLessThanOrEqual(0.017);
-    expect(carbonAlbedo.mean).toBeGreaterThanOrEqual(0.007);
-    expect(carbonAlbedo.mean).toBeLessThanOrEqual(0.013);
+    // ARC-054 controlled obsidian linear bounds (allowing +/- 0.003 for 8-bit sRGB quantization)
+    expect(carbonAlbedo.min).toBeGreaterThanOrEqual(0.007);
+    expect(carbonAlbedo.max).toBeLessThanOrEqual(0.022);
+    expect(carbonAlbedo.mean).toBeGreaterThanOrEqual(0.010);
+    expect(carbonAlbedo.mean).toBeLessThanOrEqual(0.017);
 
-    expect(ceramicAlbedo.min).toBeGreaterThanOrEqual(0.009);
-    expect(ceramicAlbedo.max).toBeLessThanOrEqual(0.022);
-    expect(ceramicAlbedo.mean).toBeGreaterThanOrEqual(0.012);
-    expect(ceramicAlbedo.mean).toBeLessThanOrEqual(0.018);
+    expect(ceramicAlbedo.min).toBeGreaterThanOrEqual(0.014);
+    expect(ceramicAlbedo.max).toBeLessThanOrEqual(0.030);
+    expect(ceramicAlbedo.mean).toBeGreaterThanOrEqual(0.018);
+    expect(ceramicAlbedo.mean).toBeLessThanOrEqual(0.025);
 
-    expect(anodizedAlbedo.min).toBeGreaterThanOrEqual(0.016);
-    expect(anodizedAlbedo.max).toBeLessThanOrEqual(0.032);
-    expect(anodizedAlbedo.mean).toBeGreaterThanOrEqual(0.020);
-    expect(anodizedAlbedo.mean).toBeLessThanOrEqual(0.027);
+    expect(anodizedAlbedo.min).toBeGreaterThanOrEqual(0.027);
+    expect(anodizedAlbedo.max).toBeLessThanOrEqual(0.048);
+    expect(anodizedAlbedo.mean).toBeGreaterThanOrEqual(0.032);
+    expect(anodizedAlbedo.mean).toBeLessThanOrEqual(0.041);
 
-    // Dark Gunmetal (ringFrameMat, 0x303642) linear luma ~0.0366
+    // Physical anodized specular floor F0 = mix(0.04, albedo, metalness) >= 0.035 (avoids silhouette collapse)
+    const anodizedF0 = 0.04 * (1 - mats.anodizedBlack.metalness) + anodizedAlbedo.mean * mats.anodizedBlack.metalness;
+    expect(anodizedF0).toBeGreaterThanOrEqual(0.035);
+
+    // Tempered shroud (heatTintedMetal, 0x363d4b) linear luma ~0.0463
+    const shroudLinearLuma =
+      0.2126 * mats.heatTintedMetal.color.r +
+      0.7152 * mats.heatTintedMetal.color.g +
+      0.0722 * mats.heatTintedMetal.color.b;
+    expect(shroudLinearLuma).toBeGreaterThanOrEqual(0.042);
+    expect(shroudLinearLuma).toBeLessThanOrEqual(0.052);
+
+    // Dark Gunmetal (ringFrameMat, 0x464f5e) linear luma ~0.0770 (>2.0x over Obsidian Titanium, 42% darker than ARC-052)
     const gunmetalLinearLuma =
       0.2126 * mats.ringFrameMat.color.r +
       0.7152 * mats.ringFrameMat.color.g +
       0.0722 * mats.ringFrameMat.color.b;
-    expect(gunmetalLinearLuma).toBeGreaterThanOrEqual(0.032);
-    expect(gunmetalLinearLuma).toBeLessThanOrEqual(0.042);
+    expect(gunmetalLinearLuma).toBeGreaterThanOrEqual(0.070);
+    expect(gunmetalLinearLuma).toBeLessThanOrEqual(0.085);
+    expect(gunmetalLinearLuma / anodizedAlbedo.mean).toBeGreaterThanOrEqual(1.9);
 
-    // Selective Brushed Titanium linear 0.072..0.112 (avg ~0.090)
-    expect(titaniumAlbedo.min).toBeGreaterThanOrEqual(0.068);
-    expect(titaniumAlbedo.max).toBeLessThanOrEqual(0.116);
-    expect(titaniumAlbedo.mean).toBeGreaterThanOrEqual(0.082);
-    expect(titaniumAlbedo.mean).toBeLessThanOrEqual(0.098);
+    // Selective Brushed Titanium linear 0.115..0.165 (avg ~0.138)
+    expect(titaniumAlbedo.min).toBeGreaterThanOrEqual(0.110);
+    expect(titaniumAlbedo.max).toBeLessThanOrEqual(0.170);
+    expect(titaniumAlbedo.mean).toBeGreaterThanOrEqual(0.128);
+    expect(titaniumAlbedo.mean).toBeLessThanOrEqual(0.148);
 
-    // Smoked Copper luma ~0.088 (restrained dark bronze, never bright orange)
-    expect(copperAlbedo.mean).toBeGreaterThanOrEqual(0.075);
-    expect(copperAlbedo.mean).toBeLessThanOrEqual(0.102);
+    // Smoked Copper luma ~0.117 (rare functional bronze-copper)
+    expect(copperAlbedo.mean).toBeGreaterThanOrEqual(0.102);
+    expect(copperAlbedo.mean).toBeLessThanOrEqual(0.132);
 
     // Strict monotonic reflectance hierarchy:
-    // carbon < ceramic < anodized < ringFrameMat (dark gunmetal) < brushedTitanium
+    // carbon < ceramic < anodized < heatTintedMetal < ringFrameMat (dark gunmetal) < brushedTitanium
     expect(carbonAlbedo.mean).toBeLessThan(ceramicAlbedo.mean);
     expect(ceramicAlbedo.mean).toBeLessThan(anodizedAlbedo.mean);
-    expect(anodizedAlbedo.mean).toBeLessThan(gunmetalLinearLuma);
+    expect(anodizedAlbedo.mean).toBeLessThan(shroudLinearLuma);
+    expect(shroudLinearLuma).toBeLessThan(gunmetalLinearLuma);
     expect(gunmetalLinearLuma).toBeLessThan(titaniumAlbedo.mean);
 
     mats.dispose();
@@ -228,25 +242,25 @@ describe('ARC-053 — Obsidian Black Restoration, Optical Glass & Lighting Calib
       expect(mat.roughness).toBe(1.0);
     }
 
-    // ringFrameMat shares bundle.anodized.normal & bundle.anodized.roughness (0.28..0.36 smooth satin)
+    // ringFrameMat shares bundle.anodized.normal & bundle.anodized.roughness (0.30..0.38 smooth satin)
     expect(mats.ringFrameMat.normalMap).toBe(bundle.anodized.normal);
     expect(mats.ringFrameMat.roughnessMap).toBe(bundle.anodized.roughness);
     expect(mats.ringFrameMat.normalMap).not.toBe(bundle.brushedTitanium.normal);
     expect(mats.ringFrameMat.roughnessMap).not.toBe(bundle.brushedTitanium.roughness);
     expect(mats.ringFrameMat.map).toBeNull();
-    expect(mats.ringFrameMat.color.getHex()).toBe(0x303642);
+    expect(mats.ringFrameMat.color.getHex()).toBe(0x464f5e);
 
-    // Verify ARC-053 linear roughness ranges in the maps
+    // Verify ARC-054 linear roughness ranges in the maps
     const anodizedRough = measureLinearScalarMapStats(bundle.anodized.roughness);
     const titaniumRough = measureLinearScalarMapStats(bundle.brushedTitanium.roughness);
     const ceramicRough = measureLinearScalarMapStats(bundle.ceramic.roughness);
 
-    expect(anodizedRough.min).toBeGreaterThanOrEqual(0.27);
-    expect(anodizedRough.max).toBeLessThanOrEqual(0.37);
+    expect(anodizedRough.min).toBeGreaterThanOrEqual(0.29);
+    expect(anodizedRough.max).toBeLessThanOrEqual(0.39);
     expect(titaniumRough.min).toBeGreaterThanOrEqual(0.21);
     expect(titaniumRough.max).toBeLessThanOrEqual(0.33);
-    expect(ceramicRough.min).toBeGreaterThanOrEqual(0.85);
-    expect(ceramicRough.max).toBeLessThanOrEqual(0.97);
+    expect(ceramicRough.min).toBeGreaterThanOrEqual(0.83);
+    expect(ceramicRough.max).toBeLessThanOrEqual(0.95);
 
     mats.dispose();
     registry.disposeAll();
@@ -258,7 +272,7 @@ describe('ARC-053 — Obsidian Black Restoration, Optical Glass & Lighting Calib
     const mats = createReactorMaterials('crimson', bundle);
     expect(bundle.tier).toBe(256);
 
-    // Verify opticGlass ARC-053 physical contract (premultiplied Fresnel + diagonal sheen, zero transmission pass)
+    // Verify opticGlass physical contract remains intact (premultiplied Fresnel + diagonal sheen, zero transmission pass)
     expect(mats.opticGlass.transmission).toBe(0);
     expect(mats.opticGlass.premultipliedAlpha).toBe(true);
     expect(mats.opticGlass.depthWrite).toBe(false);
@@ -302,7 +316,7 @@ describe('ARC-053 — Obsidian Black Restoration, Optical Glass & Lighting Calib
     // Verify createReactorLighting() constructor matches STUDIO_LIGHT_PRESETS.standard
     const scene = new THREE.Scene();
     const lighting = createReactorLighting(scene, 0xff2222);
-    expect(lighting.hemiLight.groundColor.getHex()).toBe(0x06070a);
+    expect(lighting.hemiLight.groundColor.getHex()).toBe(0x11141a);
     expect(lighting.hemiLight.intensity).toBe(STUDIO_LIGHT_PRESETS.hemi.intensity.standard);
     expect(lighting.keyLight.intensity).toBe(STUDIO_LIGHT_PRESETS.key.intensity.standard);
     expect(lighting.fillLight.intensity).toBe(STUDIO_LIGHT_PRESETS.fill.intensity.standard);

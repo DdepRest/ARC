@@ -28,7 +28,7 @@ export function buildCornerClamps(
   const pistonGeo = new THREE.CylinderGeometry(0.040, 0.044, 0.74, 12);
   ensureUv2(pistonGeo);
 
-  const pistonInst = new THREE.InstancedMesh(pistonGeo, materials.anodizedBlack, 6);
+  const pistonInst = new THREE.InstancedMesh(pistonGeo, materials.ringFrameMat, 6);
   pistonInst.name = "arc-instanced-pistons";
   let pistonIdx = 0;
 

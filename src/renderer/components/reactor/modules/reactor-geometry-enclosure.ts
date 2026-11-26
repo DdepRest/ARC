@@ -85,20 +85,20 @@ export function buildHybridEnclosureAndRearHousing(
     const outerBevelGeo = createBeveledArcSector(4.86, 4.94, a0 + 0.05, a1 - 0.05, 0.036, 0.010, 0.010, 20);
     addPart(glassEnclosureGroup, outerBevelGeo, materials.brushedTitanium, titaniumBatch, 0, 0, 0.49);
 
-    // A2. Mechanical Mounting Brackets & Retention Clamps at Arch Ends (obsidian titanium so Level 3 never competes)
+    // A2. Mechanical Mounting Brackets & Retention Clamps at Arch Ends (dark gunmetal clamp anchors over obsidian feet)
     for (const side of [-1, 1]) {
       const edgeA = centerA + side * sectorHalfSpan;
       const cosE = Math.cos(edgeA);
       const sinE = Math.sin(edgeA);
       const rotE = edgeA + Math.PI / 2;
       addPart(glassEnclosureGroup, outerMountFootGeo, materials.anodizedBlack, anodizedBatch, cosE * 4.94, sinE * 4.94, 0.34, rotE);
-      addPart(glassEnclosureGroup, outerMountClampGeo, materials.anodizedBlack, anodizedBatch, cosE * 4.92, sinE * 4.92, 0.47, rotE);
+      addPart(glassEnclosureGroup, outerMountClampGeo, materials.ringFrameMat, gunmetalBatch, cosE * 4.92, sinE * 4.92, 0.47, rotE);
     }
 
     const cosC = Math.cos(centerA);
     const sinC = Math.sin(centerA);
     const rotC = centerA + Math.PI / 2;
-    addPart(glassEnclosureGroup, outerMountClampGeo, materials.anodizedBlack, anodizedBatch, cosC * 4.96, sinC * 4.96, 0.48, rotC);
+    addPart(glassEnclosureGroup, outerMountClampGeo, materials.ringFrameMat, gunmetalBatch, cosC * 4.96, sinC * 4.96, 0.48, rotC);
   }
 
   outerEnvelope.add(glassEnclosureGroup);
