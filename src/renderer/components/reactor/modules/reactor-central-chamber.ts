@@ -65,38 +65,28 @@ export function buildCentralChamber(
   const chamberCopper: THREE.Mesh[] = [];
   const chamberNeon: THREE.Mesh[] = [];
 
-  // LAYER 1: Two-Tier Stepped Outer Armor Frame & Precision Gunmetal Crown Bezel
+  // LAYER 1: One Dominant Outer Triangular Titanium Armor Frame + Precision Gunmetal Crown Bezel
   const innerChassisGroup = new THREE.Group();
   innerChassisGroup.name = "arc-inner-triangle-chassis";
 
-  const mainBarrelMesh = new THREE.Mesh(createBeveledTriangleFrame(2.64, 1.56, 0.88, 0.068, 0.068), materials.anodizedBlack);
-  mainBarrelMesh.position.z = -0.34;
+  const mainBarrelMesh = new THREE.Mesh(createBeveledTriangleFrame(2.62, 1.66, 0.96, 0.064, 0.064), materials.anodizedBlack);
+  mainBarrelMesh.position.z = -0.24;
   innerChassisGroup.add(mainBarrelMesh);
   chamberAnodized.push(mainBarrelMesh);
 
-  const upperArmorTier = new THREE.Mesh(createBeveledTriangleFrame(2.50, 1.80, 0.18, 0.036, 0.036), materials.anodizedBlack);
-  upperArmorTier.position.z = 0.18;
-  innerChassisGroup.add(upperArmorTier);
-  chamberAnodized.push(upperArmorTier);
-
-  const crownBezelMesh = new THREE.Mesh(createBeveledTriangleFrame(2.38, 1.88, 0.11, 0.026, 0.026), materials.ringFrameMat);
-  crownBezelMesh.position.z = 0.34;
+  const crownBezelMesh = new THREE.Mesh(createBeveledTriangleFrame(2.38, 1.88, 0.10, 0.024, 0.024), materials.ringFrameMat);
+  crownBezelMesh.position.z = 0.31;
   innerChassisGroup.add(crownBezelMesh);
   chamberRingFrame.push(crownBezelMesh);
-
-  const innerBevelRim = new THREE.Mesh(createBeveledTriangleFrame(2.28, 1.92, 0.055, 0.018, 0.018), materials.brushedTitanium);
-  innerBevelRim.position.z = 0.365;
-  innerChassisGroup.add(innerBevelRim);
-  chamberTitanium.push(innerBevelRim);
 
   // =========================================================================
   // LAYER 2: 3 Edge Waveguide Channels, Riser Stanchions & Clamping Yokes
   // =========================================================================
   const trenchL = SIDE_LEN - 0.56;
   const floorGeo = createBeveledTrapezoid(trenchL, trenchL - 0.14, 0.42, 0.14, 0.018, 0.018);
-  const yokeGeo = createBeveledTrapezoid(0.28, 0.20, 0.62, 0.24, 0.03, 0.03);
+  const yokeGeo = createBeveledTrapezoid(0.26, 0.19, 0.60, 0.22, 0.026, 0.026);
   const stanchionGeo = createBeveledTrapezoid(0.22, 0.18, 0.34, 0.36, 0.02, 0.02);
-  const strapGeo = createBeveledTrapezoid(0.09, 0.09, 0.48, 0.06, 0.012, 0.012);
+  const strapGeo = createBeveledTrapezoid(0.068, 0.068, 0.36, 0.045, 0.010, 0.010);
 
   for (let i = 0; i < 3; i++) {
     const edgeGroup = new THREE.Group();
@@ -117,7 +107,7 @@ export function buildCentralChamber(
     tubeMesh.name = `arc-inner-plasma-tube-${i}`;
     edgeGroup.add(tubeMesh);
 
-    // 2 Heavy Clamping Yokes + Riser Stanchions + Copper Bus Straps per edge
+    // 2 Clamping Yokes (gunmetal) + Riser Stanchions + Subtle Copper Contacts per edge
     for (let r = -1; r <= 1; r += 2) {
       const xPos = r * (trenchL * 0.27);
       const stanchion = new THREE.Mesh(stanchionGeo, materials.darkCeramic);
@@ -125,13 +115,13 @@ export function buildCentralChamber(
       edgeGroup.add(stanchion);
       chamberCeramic.push(stanchion);
 
-      const yoke = new THREE.Mesh(yokeGeo, materials.brushedTitanium);
-      yoke.position.set(xPos, APOTHEM_INNER, 0.38);
+      const yoke = new THREE.Mesh(yokeGeo, materials.ringFrameMat);
+      yoke.position.set(xPos, APOTHEM_INNER, 0.36);
       edgeGroup.add(yoke);
-      chamberTitanium.push(yoke);
+      chamberRingFrame.push(yoke);
 
       const strap = new THREE.Mesh(strapGeo, materials.copperWinding);
-      strap.position.set(xPos, APOTHEM_INNER, 0.51);
+      strap.position.set(xPos, APOTHEM_INNER, 0.48);
       edgeGroup.add(strap);
       chamberCopper.push(strap);
     }
@@ -163,10 +153,10 @@ export function buildCentralChamber(
     cornerGroup.add(ceramicCollar);
     chamberCeramic.push(ceramicCollar);
 
-    const capMesh = new THREE.Mesh(hexCapGeo, materials.brushedTitanium);
+    const capMesh = new THREE.Mesh(hexCapGeo, materials.ringFrameMat);
     capMesh.position.z = 0.25;
     cornerGroup.add(capMesh);
-    chamberTitanium.push(capMesh);
+    chamberRingFrame.push(capMesh);
 
     const copperRing = new THREE.Mesh(hexCopperRingGeo, materials.copperWinding);
     copperRing.position.z = 0.34;
@@ -208,16 +198,14 @@ export function buildCentralChamber(
   addStatic(shell, createBeveledTriangleSolid(1.12, 0.14, 0.025, 0.025), materials.darkCeramic, chamberCeramic, 0, 0, -0.96);
   addStatic(shell, createBeveledTriangleFrame(0.96, 0.76, 0.18, 0.024, 0.024), materials.copperWinding, chamberCopper, 0, 0, -0.78);
 
-  const guideRailGeo = createBeveledTrapezoid(0.14, 0.10, 0.62, 0.16, 0.015, 0.015);
-  const cavityRibGeo = createBeveledTrapezoid(0.24, 0.16, 0.34, 0.12, 0.014, 0.014);
+  const guideRailGeo = createBeveledTrapezoid(0.13, 0.095, 0.58, 0.14, 0.014, 0.014);
   for (let i = 0; i < 3; i++) {
     const a = angles[i] + Math.PI / 3;
-    addStatic(shell, guideRailGeo, materials.brushedTitanium, chamberTitanium, Math.cos(a) * 0.96, Math.sin(a) * 0.96, -0.06, a + Math.PI / 2);
-    addStatic(shell, cavityRibGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(a) * 1.30, Math.sin(a) * 1.30, -0.24, a + Math.PI / 2);
+    addStatic(shell, guideRailGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(a) * 0.96, Math.sin(a) * 0.96, -0.08, a + Math.PI / 2);
   }
 
   // LAYER 4: True 3D 6-Blade Mechanical Aperture Iris (`arc-aperture-inner-rim`)
-  const apertureInnerRim = new THREE.Mesh(createBeveledTriangleFrame(1.06, 0.78, 0.14, 0.03, 0.03), materials.brushedTitanium);
+  const apertureInnerRim = new THREE.Mesh(createBeveledTriangleFrame(1.06, 0.78, 0.14, 0.03, 0.03), materials.ringFrameMat);
   apertureInnerRim.name = "arc-aperture-inner-rim";
   apertureInnerRim.position.z = 0.02;
 
@@ -230,7 +218,7 @@ export function buildCentralChamber(
   apertureInnerRim.updateMatrixWorld(true);
   mergeGeometryBatch(irisBladeMeshes, materials.anodizedBlack, apertureInnerRim, "arc-iris-shutter-blades");
 
-  const irisCopperActuator = new THREE.Mesh(createBeveledTriangleFrame(0.84, 0.72, 0.09, 0.016, 0.016), materials.copperWinding);
+  const irisCopperActuator = new THREE.Mesh(createBeveledTriangleFrame(0.84, 0.72, 0.08, 0.014, 0.014), materials.copperWinding);
   irisCopperActuator.position.z = -0.06;
   apertureInnerRim.add(irisCopperActuator);
   group.add(apertureInnerRim);
@@ -274,12 +262,11 @@ export function buildCentralChamber(
   containmentFieldMesh.renderOrder = 2;
   group.add(containmentFieldMesh);
 
-  // C. Precision-Machined Triangular Mechanical Emitter Assembly (3 symmetrical mounting interfaces at 90°, 210°, 330°)
-  addStatic(shell, createBeveledTriangleFrame(0.88, 0.40, 0.11, 0.02, 0.02), materials.anodizedBlack, chamberAnodized, 0, 0, -0.38);
-  addStatic(shell, createBeveledTriangleFrame(0.76, 0.42, 0.07, 0.016, 0.016), materials.darkCeramic, chamberCeramic, 0, 0, -0.33);
-  const emitterArmGeo = createBeveledTrapezoid(0.20, 0.13, 0.38, 0.15, 0.016, 0.016);
-  const coreMountJawGeo = createBeveledTrapezoid(0.15, 0.09, 0.28, 0.12, 0.012, 0.012);
-  const coreContactStudGeo = createBeveledTrapezoid(0.055, 0.045, 0.09, 0.08, 0.008, 0.008);
+  // C. Precision-Machined Triangular Mechanical Emitter Cradle (3 symmetrical mounting jaws at 90°, 210°, 330°)
+  addStatic(shell, createBeveledTriangleFrame(0.88, 0.42, 0.11, 0.02, 0.02), materials.anodizedBlack, chamberAnodized, 0, 0, -0.37);
+  const emitterArmGeo = createBeveledTrapezoid(0.20, 0.13, 0.38, 0.14, 0.016, 0.016);
+  const coreMountJawGeo = createBeveledTrapezoid(0.14, 0.09, 0.26, 0.11, 0.012, 0.012);
+  const coreContactStudGeo = createBeveledTrapezoid(0.052, 0.042, 0.085, 0.075, 0.008, 0.008);
   for (let i = 0; i < 3; i++) {
     const jawA = angles[i] + Math.PI / 3; // 90°, 210°, 330° (strictly between A/R/C glyphs)
     addStatic(shell, emitterArmGeo, materials.anodizedBlack, chamberAnodized, Math.cos(jawA) * 0.62, Math.sin(jawA) * 0.62, -0.36, jawA + Math.PI / 2);
@@ -304,10 +291,10 @@ export function buildCentralChamber(
   glassWindow.matrixAutoUpdate = false;
   group.add(glassWindow);
 
-  const clipGeo = createBeveledTrapezoid(0.26, 0.18, 0.30, 0.09, 0.016, 0.016);
+  const clipGeo = createBeveledTrapezoid(0.24, 0.17, 0.28, 0.08, 0.014, 0.014);
   for (let i = 0; i < 3; i++) {
     const a = angles[i];
-    addStatic(clamps, clipGeo, materials.brushedTitanium, chamberTitanium, Math.cos(a) * 1.54, Math.sin(a) * 1.54, 0.39, a + Math.PI / 2);
+    addStatic(clamps, clipGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(a) * 1.54, Math.sin(a) * 1.54, 0.38, a + Math.PI / 2);
   }
 
   // LAYER 7: Integrated Central Chamber A.R.C. Logo Assembly
@@ -367,11 +354,10 @@ export function buildCentralChamber(
     runnersGroup.add(runnerMesh);
     runners.push(runnerMesh);
 
-    // Primary Radial Energy Distribution Channel & dual connector collars linking central chamber (r=1.34) to primary module (r=2.14)
+    // Primary Radial Energy Distribution Channel linking central chamber to primary module (r=2.12)
     const feedA = angles[i] + Math.PI / 3;
     const rFeed = 1.72;
     addStatic(conduitsGroup, feederHousingGeo, materials.anodizedBlack, chamberAnodized, Math.cos(feedA) * rFeed, Math.sin(feedA) * rFeed, -0.04, feedA - Math.PI / 2);
-    addStatic(conduitsGroup, feederFlangeGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(feedA) * 1.36, Math.sin(feedA) * 1.36, 0.02, feedA - Math.PI / 2);
     addStatic(conduitsGroup, feederFlangeGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(feedA) * 2.12, Math.sin(feedA) * 2.12, 0.04, feedA - Math.PI / 2);
     addStatic(conduitsGroup, feederCoreGeo, materials.neonTubeMat, chamberNeon, Math.cos(feedA) * rFeed, Math.sin(feedA) * rFeed, 0.08, feedA - Math.PI / 2);
   }

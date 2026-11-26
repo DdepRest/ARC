@@ -650,11 +650,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       const baseTubeIntensity = (0.82 + perimeterLightComp + smoothTotal * 0.30 + smoothBass * 0.24 + manualPulseValue * 0.22) * stageTrench * bloomOffEmissiveBoost;
       materials.neonTubeMat.emissiveIntensity = baseTubeIntensity;
 
-      // Secondary segmented conduit indicator channel: noticeably less luminous (~48% of primary conductor)
+      // Secondary segmented conduit indicator channel: noticeably less luminous (~42% of primary conductor)
       if (secondaryConduitIndicatorMesh?.material instanceof THREE.MeshStandardMaterial) {
         secondaryConduitIndicatorMesh.material.color.copy(tempTrenchColor);
         secondaryConduitIndicatorMesh.material.emissive.copy(activeColor);
-        secondaryConduitIndicatorMesh.material.emissiveIntensity = baseTubeIntensity * 0.48;
+        secondaryConduitIndicatorMesh.material.emissiveIntensity = baseTubeIntensity * 0.42;
       }
 
       // Idea 8: 3-Band Spatial Audio Mapping across the 3 inner triangle plasma tubes (bass, mid, treble)
@@ -703,8 +703,9 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.plasmaVortexMat.opacity = Math.min(0.62, (0.34 + smoothTotal * 0.20 + smoothBass * 0.10) * stageTrench);
 
       // Stage 3: Containment Rings, Energy Conduits & Wavefields
-      materials.ringFrameMat.emissive.copy(activeColor);
-      materials.ringFrameMat.emissiveIntensity = 0.06 * stageRings * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
+      // Keep gunmetal structural supports strictly non-emissive so red light only reflects physically from energy elements
+      materials.ringFrameMat.emissive.setHex(0x000000);
+      materials.ringFrameMat.emissiveIntensity = 0.0;
 
       materials.energyWaveMat.color.copy(activeColor);
       const shockwaveFactor = !gfx || gfx.shockwavesEnabled !== false ? 1.0 + manualPulseValue * 0.40 : 0.25;

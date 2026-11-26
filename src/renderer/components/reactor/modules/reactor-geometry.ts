@@ -103,61 +103,42 @@ export function buildReactorGeometry(
   carrierRailGroup.add(carrierRail);
   nacelleRingFrame.push(carrierRail);
 
-  // 3. Three Layered Segmented Containment Armor Carriers (centered at 90°, 210°, 330°; 52° outer arc + 28° raised stepped crown)
-
+  // 3. Three Segmented Containment Armor Carriers (centered at 90°, 210°, 330°; 52° arc — clean single-hull profile)
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
   const halfArc = (26 * Math.PI) / 180; // 52° total arc per carrier segment — preserves crisp breathing room
-  const crownHalfArc = (14 * Math.PI) / 180; // 28° central raised stepped armor plate
 
   for (const centerA of nacelleAngles) {
     const a0 = centerA - halfArc;
     const a1 = centerA + halfArc;
 
-    // Layer A: Primary obsidian anodized armor carrier base
+    // Layer A: Primary obsidian anodized armor carrier hull
     const hull = new THREE.Mesh(
-      createBeveledArcSector(4.70, 5.46, a0, a1, 0.50, 0.044, 0.044, 24),
+      createBeveledArcSector(4.70, 5.46, a0, a1, 0.48, 0.044, 0.044, 24),
       materials.anodizedBlack
     );
     hull.position.z = -0.45;
     outerEnvelope.add(hull);
     nacelleAnodized.push(hull);
 
-    // Layer B: Stepped central raised armor crown segment (creates multi-level industrial depth instead of a uniform arc)
-    const crownPlate = new THREE.Mesh(
-      createBeveledArcSector(4.78, 5.42, centerA - crownHalfArc, centerA + crownHalfArc, 0.18, 0.026, 0.026, 18),
-      materials.anodizedBlack
-    );
-    crownPlate.position.z = -0.25;
-    outerEnvelope.add(crownPlate);
-    nacelleAnodized.push(crownPlate);
-
-    // Layer C: Machined dark-gunmetal outer perimeter trim rail + twin end transition bevel caps
+    // Layer B: Subtle dark-gunmetal outer perimeter rim (non-competing silhouette edge)
     const bumper = new THREE.Mesh(
-      createBeveledArcSector(5.38, 5.52, a0 + 0.04, a1 - 0.04, 0.18, 0.024, 0.024, 22),
-      materials.brushedTitanium
-    );
-    bumper.position.z = -0.22;
-    outerEnvelope.add(bumper);
-    nacelleTitanium.push(bumper);
-
-    const crownTrim = new THREE.Mesh(
-      createBeveledArcSector(5.32, 5.44, centerA - crownHalfArc + 0.03, centerA + crownHalfArc - 0.03, 0.10, 0.016, 0.016, 16),
+      createBeveledArcSector(5.38, 5.51, a0 + 0.04, a1 - 0.04, 0.16, 0.022, 0.022, 22),
       materials.ringFrameMat
     );
-    crownTrim.position.z = -0.14;
-    outerEnvelope.add(crownTrim);
-    nacelleRingFrame.push(crownTrim);
+    bumper.position.z = -0.24;
+    outerEnvelope.add(bumper);
+    nacelleRingFrame.push(bumper);
 
-    // Recessed obsidian carbon-composite channel bed beneath the continuous optical ring
+    // Layer C: Recessed carbon-composite channel bed beneath the continuous optical ring
     const serviceDeck = new THREE.Mesh(
       createBeveledArcSector(4.82, 5.28, a0 + 0.04, a1 - 0.04, 0.10, 0.016, 0.016, 20),
       materials.darkCarbon
     );
-    serviceDeck.position.z = -0.16;
+    serviceDeck.position.z = -0.17;
     outerEnvelope.add(serviceDeck);
     nacelleCarbon.push(serviceDeck);
 
-    // Slim matte graphite-ceramic inner thermal liner
+    // Layer D: Recessed matte graphite-ceramic inner thermal liner
     const thermalLiner = new THREE.Mesh(
       createBeveledArcSector(4.58, 4.74, a0 + 0.03, a1 - 0.03, 0.34, 0.02, 0.02, 20),
       materials.darkCeramic

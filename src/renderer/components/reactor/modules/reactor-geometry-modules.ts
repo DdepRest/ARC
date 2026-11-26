@@ -101,30 +101,30 @@ export function buildAsymmetricOuterModules(
     g.add(ringSaddle);
     ringFrame.push(ringSaddle);
 
-    // 4. Restrained Slim Brushed-Titanium Framing Cheeks & Top Rim Lip
+    // 4. Restrained Dark-Gunmetal Framing Cheeks & Selective Brushed-Titanium Top Rim Bevel Highlight
     for (let side = -1; side <= 1; side += 2) {
-      const cheek = new THREE.Mesh(cheekGeo, materials.brushedTitanium);
+      const cheek = new THREE.Mesh(cheekGeo, materials.ringFrameMat);
       cheek.position.set(side * 0.72, 0.13, 0.08);
       g.add(cheek);
-      titanium.push(cheek);
+      ringFrame.push(cheek);
     }
     const topLip = new THREE.Mesh(topLipGeo, materials.brushedTitanium);
     topLip.position.set(0, 0.48, 0.21);
     g.add(topLip);
     titanium.push(topLip);
 
-    // 5. Unified Dark-Carbon Core Cassette Deck, Brushed-Titanium End Caps & Burnished Copper Busbar
+    // 5. Unified Dark-Carbon Core Cassette Deck, Gunmetal End Caps & Rare Burnished Copper Busbar Contact
     const coreDeck = new THREE.Mesh(coreDeckGeo, materials.darkCarbon);
     coreDeck.position.set(0, 0.23, 0.13);
     g.add(coreDeck);
     carbon.push(coreDeck);
 
     for (const side of [-1, 1]) {
-      const cap = new THREE.Mesh(endCapGeo, materials.brushedTitanium);
+      const cap = new THREE.Mesh(endCapGeo, materials.ringFrameMat);
       cap.rotation.y = Math.PI / 2;
       cap.position.set(side * 0.44, 0.23, 0.15);
       g.add(cap);
-      titanium.push(cap);
+      ringFrame.push(cap);
     }
 
     const busbar = new THREE.Mesh(busbarGeo, materials.copperWinding);
@@ -138,18 +138,16 @@ export function buildAsymmetricOuterModules(
     g.add(ventSlit);
     neon.push(ventSlit);
 
-    // 7. Subtle Functional Differentiation Recessed Inside the Unified Cassette Footprint
+    // 7. Subtle Functional Differentiation Recessed Inside the Unified Cassette Footprint (gunmetal + matte ceramic)
     if (cfg.role === 'thermal') {
-      // 3 flush burnished copper & ceramic thermal louver ribs
       for (const f of [-1, 0, 1]) {
-        const fin = new THREE.Mesh(finGeo, f === 0 ? materials.darkCeramic : materials.copperWinding);
+        const fin = new THREE.Mesh(finGeo, f === 0 ? materials.darkCeramic : materials.ringFrameMat);
         fin.position.set(f * 0.22, 0.24, 0.18);
         g.add(fin);
         if (f === 0) ceramic.push(fin);
-        else copper.push(fin);
+        else ringFrame.push(fin);
       }
     } else if (cfg.role === 'cryo') {
-      // Twin flush horizontal micro cryo-cells + center copper coupling rib
       for (const yOff of [0.16, 0.32]) {
         const cyl = new THREE.Mesh(cylGeo, materials.darkCeramic);
         cyl.position.set(0, yOff, 0.17);
@@ -157,23 +155,22 @@ export function buildAsymmetricOuterModules(
         ceramic.push(cyl);
       }
       for (const side of [-1, 1]) {
-        const strap = new THREE.Mesh(finGeo, materials.copperWinding);
+        const strap = new THREE.Mesh(finGeo, materials.ringFrameMat);
         strap.position.set(side * 0.20, 0.24, 0.18);
         g.add(strap);
-        copper.push(strap);
+        ringFrame.push(strap);
       }
     } else {
-      // Centered ventral ceramic stabilizer rib + twin flanking copper damper ribs
       const keel = new THREE.Mesh(keelGeo, materials.darkCeramic);
       keel.position.set(0, 0.24, 0.18);
       g.add(keel);
       ceramic.push(keel);
 
       for (const side of [-1, 1]) {
-        const innerVane = new THREE.Mesh(finGeo, materials.copperWinding);
+        const innerVane = new THREE.Mesh(finGeo, materials.ringFrameMat);
         innerVane.position.set(side * 0.22, 0.24, 0.18);
         g.add(innerVane);
-        copper.push(innerVane);
+        ringFrame.push(innerVane);
       }
     }
 

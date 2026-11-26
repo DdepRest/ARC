@@ -64,39 +64,39 @@ export function createReactorMaterials(
   const arcCenterLogoMap = createArcCenterLogoTexture(2048);
   const { plasmaMap: plasmaEnergyMap, glowMap: glowParticleMap } = getThemeTextures(initialTheme);
 
-  // 1. OBSIDIAN TITANIUM — Main structural housing; deep black with controlled satin reflections (never overly glossy).
+  // 1. OBSIDIAN TITANIUM — Structural satin black chassis; distinct metallic sheen without excessive gloss.
   const anodizedBlack = new THREE.MeshStandardMaterial({
-    color: 0x11141a,
-    metalness: 0.89,
-    roughness: 0.40,
-    normalScale: new THREE.Vector2(0.58, 0.58),
+    color: 0x151921,
+    metalness: 0.88,
+    roughness: 0.41,
+    normalScale: new THREE.Vector2(0.56, 0.56),
     aoMapIntensity: 0.92,
-    envMapIntensity: 0.88,
+    envMapIntensity: 0.96,
   });
 
-  // 2. SATIN SILVER — Selected machined bevels, retention arch crests & precision edges (used sparingly)
+  // 2. BRUSHED TITANIUM — Selected bevel highlights only (never makes the reactor look silver).
   const brushedTitanium = new THREE.MeshPhysicalMaterial({
-    color: 0x646d7c,
+    color: 0x6b7483,
     metalness: 0.93,
-    roughness: 0.28,
-    anisotropy: 0.72,
+    roughness: 0.27,
+    anisotropy: 0.70,
     anisotropyRotation: 0.0,
-    clearcoat: 0.05,
+    clearcoat: 0.04,
     clearcoatRoughness: 0.34,
     normalScale: new THREE.Vector2(0.46, 0.46),
     aoMapIntensity: 0.84,
     envMapIntensity: 1.02,
   });
 
-  // 3. PRECISION GUNMETAL — Mechanical supports, bearing housings, retention frames & structural connectors (cool dark metallic)
+  // 3. PRECISION GUNMETAL — Mechanical supports, conduit rails, retention arches & structural connectors.
   const ringFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x38414f,
-    metalness: 0.91,
+    color: 0x434c5c,
+    metalness: 0.90,
     roughness: 0.30,
     emissive: 0x000000,
     emissiveIntensity: 0.0,
-    normalScale: new THREE.Vector2(0.45, 0.45),
-    envMapIntensity: 1.04,
+    normalScale: new THREE.Vector2(0.44, 0.44),
+    envMapIntensity: 1.08,
   });
 
   // 4. CARBON COMPOSITE — Deep obsidian 3K 2x2 diagonal twill weave for recessed deck beds & service compartments
@@ -108,16 +108,16 @@ export function createReactorMaterials(
     clearcoatRoughness: 0.36,
     normalScale: new THREE.Vector2(0.76, 0.76),
     aoMapIntensity: 0.92,
-    envMapIntensity: 0.64,
+    envMapIntensity: 0.62,
   });
 
-  // 5. GRAPHITE CERAMIC — Recessed cavities & internal insulation; genuinely dark, matte and non-reflective
+  // 5. GRAPHITE CERAMIC — Deep matte recessed surfaces; genuinely dark and non-reflective for crisp depth separation
   const darkCeramic = new THREE.MeshStandardMaterial({
-    color: 0x1c1f25,
-    metalness: 0.04,
-    roughness: 0.90,
-    normalScale: new THREE.Vector2(0.48, 0.48),
-    envMapIntensity: 0.18,
+    color: 0x16191e,
+    metalness: 0.03,
+    roughness: 0.92,
+    normalScale: new THREE.Vector2(0.46, 0.46),
+    envMapIntensity: 0.14,
   });
 
   // 6. COPPER — Strictly limited functional internal contacts, windings & grounding studs (cool dark bronze-copper, never rusty)
@@ -316,12 +316,12 @@ export function createReactorMaterials(
     }
 
     const envScale = Math.max(50, Math.min(150, config.envMapIntensity)) / 100;
-    anodizedBlack.envMapIntensity = 0.88 * envScale;
-    brushedTitanium.envMapIntensity = 0.98 * envScale;
-    ringFrameMat.envMapIntensity = 1.02 * envScale;
-    darkCarbon.envMapIntensity = 0.64 * envScale;
-    darkCeramic.envMapIntensity = 0.18 * envScale;
-    copperWinding.envMapIntensity = 0.92 * envScale;
+    anodizedBlack.envMapIntensity = 0.94 * envScale;
+    brushedTitanium.envMapIntensity = 1.02 * envScale;
+    ringFrameMat.envMapIntensity = 1.08 * envScale;
+    darkCarbon.envMapIntensity = 0.62 * envScale;
+    darkCeramic.envMapIntensity = 0.14 * envScale;
+    copperWinding.envMapIntensity = 0.94 * envScale;
     heatTintedMetal.envMapIntensity = 0.84 * envScale;
     opticGlass.envMapIntensity = 0.94 * envScale;
     outerGlassRingMat.envMapIntensity = 0.95 * envScale;
