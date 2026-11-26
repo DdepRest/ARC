@@ -101,7 +101,7 @@ export function buildOuterMicroDetails(
 
   // 1. 12 Functional Hex Anchor Bolts placed symmetrically on the 3 nacelle decks (4 each)
   const boltGeo = createBeveledHexagon(0.048, 0.055, 0.011, 0.011);
-  const boltInst = new THREE.InstancedMesh(boltGeo, materials.ringFrameMat, 12);
+  const boltInst = new THREE.InstancedMesh(boltGeo, materials.anodizedBlack, 12);
   boltInst.name = 'arc-instanced-hex-bolts';
 
   const nacelleAngles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
@@ -152,7 +152,7 @@ export function buildOuterMicroDetails(
   const studGeo = new THREE.CylinderGeometry(0.042, 0.048, 0.10, 8);
   studGeo.rotateX(Math.PI / 2);
   ensureUv2(studGeo);
-  const studInst = new THREE.InstancedMesh(studGeo, materials.ringFrameMat, 12);
+  const studInst = new THREE.InstancedMesh(studGeo, materials.anodizedBlack, 12);
   studInst.name = 'arc-instanced-strut-screws';
 
   let studIdx = 0;

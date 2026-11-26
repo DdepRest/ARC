@@ -270,9 +270,9 @@ function scalarToSrgbAlbedoCanvas(
 }
 
 /**
- * 1. Anodized Titanium — bead-blasted aerospace obsidian-titanium metal.
- * Uses local hybrid PNG data map when loaded; seamless procedural fBm fallback otherwise.
- * Zero artificial checkerboard panel seams.
+ * 1. Obsidian Titanium — ultra-smooth CNC-anodized obsidian metal (dominant primary chassis).
+ * Uses local hybrid PNG data map when loaded; smooth tileable fBm fallback otherwise.
+ * Zero artificial panel seams or micro-mill striping.
  */
 function buildAnodizedSet(
   size: number,
@@ -288,7 +288,6 @@ function buildAnodizedSet(
 
   for (let y = 0; y < size; y++) {
     const v = y / size;
-    const microMill = Math.sin(v * Math.PI * 32) * 0.015;
     for (let x = 0; x < size; x++) {
       const u = x / size;
       const idx = y * size + x;
@@ -297,37 +296,38 @@ function buildAnodizedSet(
       let rMod: number;
       let cavityAo: number;
       if (hybridMap) {
-        h = sampleDecodedChannel(hybridMap, u, v, 0);
-        rMod = sampleDecodedChannel(hybridMap, u, v, 1);
+        // Compress hybrid PNG variance into ultra-smooth low-texture range (0.5 +/- 0.18)
+        h = 0.5 + (sampleDecodedChannel(hybridMap, u, v, 0) - 0.5) * 0.36;
+        rMod = 0.5 + (sampleDecodedChannel(hybridMap, u, v, 1) - 0.5) * 0.55;
         cavityAo = sampleDecodedChannel(hybridMap, u, v, 2);
       } else {
         const n1 = tileableValueNoise(u * 8, v * 8, 8, 17);
         const n2 = tileableValueNoise(u * 24, v * 24, 24, 53);
         const n3 = tileableValueNoise(u * 64, v * 64, 64, 97);
-        h = 0.5 + (n1 - 0.5) * 0.36 + (n2 - 0.5) * 0.24 + (n3 - 0.5) * 0.16 + microMill;
-        rMod = 0.5 + (n2 - 0.5) * 0.65 - (n3 - 0.5) * 0.25;
-        cavityAo = 0.88 + (n1 - 0.5) * 0.14;
+        h = 0.5 + (n1 - 0.5) * 0.20 + (n2 - 0.5) * 0.11 + (n3 - 0.5) * 0.05;
+        rMod = 0.5 + (n2 - 0.5) * 0.45 - (n3 - 0.5) * 0.18;
+        cavityAo = 0.90 + (n1 - 0.5) * 0.10;
       }
 
       height[idx] = Math.max(0, Math.min(1, h));
-      // Aerospace obsidian titanium: linear 0.040..0.066 (avg ~0.052, sRGB ~#383D47..#484F5C)
-      albedo[idx] = Math.max(0.040, Math.min(0.066, 0.052 + (h - 0.5) * 0.022));
-      // Physical linear roughness 0.35..0.45 (avg ~0.40, distinct satin metallic response)
-      rough[idx] = Math.max(0.35, Math.min(0.45, 0.40 + (rMod - 0.5) * 0.10));
-      ao[idx] = Math.max(0.78, Math.min(1.0, 0.88 + (cavityAo - 0.5) * 0.20));
+      // Deep Obsidian Titanium: linear 0.019..0.029 (avg ~0.0235)
+      albedo[idx] = Math.max(0.019, Math.min(0.029, 0.0235 + (h - 0.5) * 0.014));
+      // Smooth satin anodized roughness 0.28..0.36 (avg ~0.32) for clean bevel reflections
+      rough[idx] = Math.max(0.28, Math.min(0.36, 0.32 + (rMod - 0.5) * 0.08));
+      ao[idx] = Math.max(0.82, Math.min(1.0, 0.90 + (cavityAo - 0.5) * 0.14));
     }
   }
 
   return {
     albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.95, 0.98, 1.03), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
-    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 1.72), THREE.NoColorSpace, 2, 2, aniso, trilinear),
+    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 0.70), THREE.NoColorSpace, 2, 2, aniso, trilinear),
     roughness: makeCanvasTexture(scalarToLinearCanvas(rough, size), THREE.NoColorSpace, 2, 2, aniso, trilinear),
     ao: makeCanvasTexture(scalarToLinearCanvas(ao, size), THREE.NoColorSpace, 2, 2, aniso, trilinear),
   };
 }
 
 /**
- * 2. Brushed Titanium — directional satin machined alloy with smooth dual-scale anisotropic grain.
+ * 2. Brushed Titanium — whisper-fine directional satin alloy reserved strictly for selective trims & crown bezel.
  */
 function buildBrushedTitaniumSet(size: number, aniso: number, trilinear: boolean): PbrChannelSet {
   const total = size * size;
@@ -339,7 +339,7 @@ function buildBrushedTitaniumSet(size: number, aniso: number, trilinear: boolean
 
   const rowStreaks = new Float32Array(size);
   for (let y = 0; y < size; y++) {
-    rowStreaks[y] = (lcg(seed) - 0.5) * 0.22 + Math.sin((y / size) * Math.PI * 18) * 0.05;
+    rowStreaks[y] = (lcg(seed) - 0.5) * 0.10 + Math.sin((y / size) * Math.PI * 18) * 0.022;
   }
 
   for (let y = 0; y < size; y++) {
@@ -353,26 +353,26 @@ function buildBrushedTitaniumSet(size: number, aniso: number, trilinear: boolean
       const longBrush = tileableValueNoise(u * 4, v * 64, 64, 31) - 0.5;
       const fineBrush = tileableValueNoise(u * 8, v * 128, 128, 83) - 0.5;
 
-      const h = 0.5 + smoothStreak * 0.62 + longBrush * 0.26 + fineBrush * 0.12;
+      const h = 0.5 + smoothStreak * 0.42 + longBrush * 0.16 + fineBrush * 0.07;
       height[idx] = Math.max(0, Math.min(1, h));
-      // Satin machined titanium for selected bevels, rails & crown bezel: linear 0.175..0.255 (avg ~0.212)
-      albedo[idx] = Math.max(0.175, Math.min(0.255, 0.212 + smoothStreak * 0.072 + longBrush * 0.032 + fineBrush * 0.014));
-      // Physical linear roughness 0.24..0.36 (avg ~0.29, crisp directional satin highlight)
-      rough[idx] = Math.max(0.24, Math.min(0.36, 0.29 - smoothStreak * 0.12 + Math.abs(longBrush) * 0.10));
-      ao[idx] = Math.max(0.86, Math.min(1.0, 0.94 + smoothStreak * 0.10));
+      // Restrained machined titanium: linear 0.072..0.112 (avg ~0.090, never bright aluminum)
+      albedo[idx] = Math.max(0.072, Math.min(0.112, 0.090 + smoothStreak * 0.028 + longBrush * 0.016 + fineBrush * 0.007));
+      // Crisp satin linear roughness 0.22..0.32 (avg ~0.26)
+      rough[idx] = Math.max(0.22, Math.min(0.32, 0.26 - smoothStreak * 0.09 + Math.abs(longBrush) * 0.08));
+      ao[idx] = Math.max(0.88, Math.min(1.0, 0.94 + smoothStreak * 0.08));
     }
   }
 
   return {
-    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.98, 0.99, 1.02), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
-    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 2.05), THREE.NoColorSpace, 2, 2, aniso, trilinear),
+    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.97, 0.99, 1.02), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
+    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 1.10), THREE.NoColorSpace, 2, 2, aniso, trilinear),
     roughness: makeCanvasTexture(scalarToLinearCanvas(rough, size), THREE.NoColorSpace, 2, 2, aniso, trilinear),
     ao: makeCanvasTexture(scalarToLinearCanvas(ao, size), THREE.NoColorSpace, 2, 2, aniso, trilinear),
   };
 }
 
 /**
- * 3. Carbon Composite — 3K 2x2 diagonal twill weave (hybrid PNG + procedural fallback).
+ * 3. Carbon Composite — deep obsidian 3K 2x2 diagonal twill weave for recessed trays & service decks.
  */
 function buildCarbonTwillSet(
   size: number,
@@ -410,31 +410,31 @@ function buildCarbonTwillSet(
         const arch = isWarp
           ? Math.sin(lx * Math.PI) * (0.72 + 0.28 * Math.sin(ly * Math.PI))
           : Math.sin(ly * Math.PI) * (0.72 + 0.28 * Math.sin(lx * Math.PI));
-        const strand = isWarp ? Math.sin(ly * Math.PI * 6) * 0.045 : Math.sin(lx * Math.PI * 6) * 0.045;
-        h = Math.max(0, Math.min(1, 0.2 + arch * 0.72 + strand));
+        const strand = isWarp ? Math.sin(ly * Math.PI * 6) * 0.032 : Math.sin(lx * Math.PI * 6) * 0.032;
+        h = Math.max(0, Math.min(1, 0.22 + arch * 0.68 + strand));
         warpFactor = isWarp ? 0.85 : 0.2;
         rVal = isWarp ? 0.36 + (1 - arch) * 0.14 : 0.42 + (1 - arch) * 0.14;
       }
 
       height[idx] = h;
-      // Obsidian carbon-weave contrast: linear 0.014..0.032 (~sRGB #1F232A..#313640)
-      albedo[idx] = Math.max(0.014, Math.min(0.032, 0.015 + h * 0.011 + warpFactor * 0.005));
-      // Physical resin-over-weave roughness: 0.34..0.52
-      rough[idx] = Math.max(0.34, Math.min(0.52, 0.34 + rVal * 0.18));
-      ao[idx] = Math.max(0.72, Math.min(1.0, 0.74 + h * 0.26));
+      // Deepest obsidian carbon composite: linear 0.006..0.014 (avg ~0.0095)
+      albedo[idx] = Math.max(0.006, Math.min(0.014, 0.0062 + h * 0.0048 + warpFactor * 0.0022));
+      // Controlled resin-over-weave roughness: 0.40..0.56 (avg ~0.48)
+      rough[idx] = Math.max(0.40, Math.min(0.56, 0.40 + rVal * 0.16));
+      ao[idx] = Math.max(0.74, Math.min(1.0, 0.76 + h * 0.24));
     }
   }
 
   return {
     albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.98, 0.99, 1.01), THREE.SRGBColorSpace, 4, 4, aniso, trilinear),
-    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 2.3), THREE.NoColorSpace, 4, 4, aniso, trilinear),
+    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 1.45), THREE.NoColorSpace, 4, 4, aniso, trilinear),
     roughness: makeCanvasTexture(scalarToLinearCanvas(rough, size), THREE.NoColorSpace, 4, 4, aniso, trilinear),
     ao: makeCanvasTexture(scalarToLinearCanvas(ao, size), THREE.NoColorSpace, 4, 4, aniso, trilinear),
   };
 }
 
 /**
- * 4. Technical Ceramic — matte sintered graphite-slate dielectric for clear material separation against dark metal.
+ * 4. Obsidian Ceramic — ultra-matte sintered dark dielectric preserving silent recessed negative space.
  */
 function buildDarkCeramicSet(size: number, aniso: number, trilinear: boolean): PbrChannelSet {
   const total = size * size;
@@ -450,23 +450,23 @@ function buildDarkCeramicSet(size: number, aniso: number, trilinear: boolean): P
       const macro = tileableValueNoise(u * 12, v * 12, 12, 71) - 0.5;
       const fine = tileableValueNoise(u * 48, v * 48, 48, 113) - 0.5;
 
-      height[idx] = Math.max(0, Math.min(1, 0.50 + macro * 0.18 + fine * 0.12));
-      // Matte sintered graphite ceramic: linear 0.026..0.044 (avg ~0.034, sRGB ~#2E3239..#3B4048)
-      albedo[idx] = Math.max(0.026, Math.min(0.044, 0.034 + macro * 0.008 + fine * 0.005));
-      // High matte roughness 0.80..0.92 (avg ~0.86, diffuse dielectric contrast beneath specular titanium)
-      rough[idx] = Math.max(0.80, Math.min(0.92, 0.86 - macro * 0.05 - fine * 0.04));
+      height[idx] = Math.max(0, Math.min(1, 0.50 + macro * 0.12 + fine * 0.07));
+      // Deep matte obsidian ceramic: linear 0.011..0.019 (avg ~0.0145)
+      albedo[idx] = Math.max(0.011, Math.min(0.019, 0.0145 + macro * 0.004 + fine * 0.002));
+      // High matte roughness 0.86..0.96 (avg ~0.91)
+      rough[idx] = Math.max(0.86, Math.min(0.96, 0.91 - macro * 0.04 - fine * 0.03));
     }
   }
 
   return {
-    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 1.01, 1.00, 0.98), THREE.SRGBColorSpace, 3, 3, aniso, trilinear),
-    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 1.50), THREE.NoColorSpace, 3, 3, aniso, trilinear),
+    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 1.00, 1.00, 0.99), THREE.SRGBColorSpace, 3, 3, aniso, trilinear),
+    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 0.72), THREE.NoColorSpace, 3, 3, aniso, trilinear),
     roughness: makeCanvasTexture(scalarToLinearCanvas(rough, size), THREE.NoColorSpace, 3, 3, aniso, trilinear),
   };
 }
 
 /**
- * 5. Copper Alloy — burnished industrial copper for induction windings, busbars & cooling fins.
+ * 5. Smoked Copper — rare, restrained dark burnished bronze-copper for functional electrical contacts & coils.
  */
 function buildCopperAlloySet(size: number, aniso: number, trilinear: boolean): PbrChannelSet {
   const total = size * size;
@@ -477,22 +477,22 @@ function buildCopperAlloySet(size: number, aniso: number, trilinear: boolean): P
 
   for (let y = 0; y < size; y++) {
     const v = y / size;
-    const streak = (lcg(seed) - 0.5) * 0.14 + Math.sin(v * Math.PI * 24) * 0.03;
+    const streak = (lcg(seed) - 0.5) * 0.08 + Math.sin(v * Math.PI * 24) * 0.016;
     for (let x = 0; x < size; x++) {
       const u = x / size;
       const idx = y * size + x;
-      const micro = (tileableValueNoise(u * 16, v * 64, 64, 59) - 0.5) * 0.08;
+      const micro = (tileableValueNoise(u * 16, v * 64, 64, 59) - 0.5) * 0.05;
       height[idx] = Math.max(0, Math.min(1, 0.5 + streak + micro));
-      // Controlled burnished industrial copper/bronze: scalar 0.24..0.36 * tint (0.80, 0.46, 0.28)
-      albedo[idx] = Math.max(0.24, Math.min(0.36, 0.30 + streak * 0.10 + micro * 0.06));
-      // Physical roughness 0.28..0.42 (avg ~0.34)
-      rough[idx] = Math.max(0.28, Math.min(0.42, 0.34 - streak * 0.12 + Math.abs(micro) * 0.20));
+      // Smoked dark bronze-copper: scalar 0.13..0.20 * tint (0.76, 0.48, 0.34), luma ~0.088
+      albedo[idx] = Math.max(0.13, Math.min(0.20, 0.165 + streak * 0.06 + micro * 0.04));
+      // Smooth contact roughness 0.26..0.36 (avg ~0.31)
+      rough[idx] = Math.max(0.26, Math.min(0.36, 0.31 - streak * 0.09 + Math.abs(micro) * 0.14));
     }
   }
 
   return {
-    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.80, 0.46, 0.28), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
-    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 1.85), THREE.NoColorSpace, 2, 2, aniso, trilinear),
+    albedo: makeCanvasTexture(scalarToSrgbAlbedoCanvas(albedo, size, 0.76, 0.48, 0.34), THREE.SRGBColorSpace, 2, 2, aniso, trilinear),
+    normal: makeCanvasTexture(heightToNormalCanvas(height, size, 0.95), THREE.NoColorSpace, 2, 2, aniso, trilinear),
     roughness: makeCanvasTexture(scalarToLinearCanvas(rough, size), THREE.NoColorSpace, 2, 2, aniso, trilinear),
   };
 }

@@ -120,12 +120,12 @@ function measureLinearScalarMapStats(tex: THREE.CanvasTexture): {
   return { min, max, mean: sum / pixelCount };
 }
 
-describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibration', () => {
+describe('ARC-053 — Obsidian Black Restoration, Optical Glass & Lighting Calibration', () => {
   beforeEach(() => {
     ensureCanvas2dBufferMock();
   });
 
-  it('1. validates decoded linear albedo range and monotonic 5-tier reflectance ordering', () => {
+  it('1. validates decoded linear albedo range and monotonic 5-tier obsidian reflectance ordering', () => {
     const registry = new ReactorTextureRegistry();
     const bundle = registry.getBootstrapBundle(4, true);
     const mats = createReactorMaterials('crimson');
@@ -134,36 +134,44 @@ describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibrati
     const ceramicAlbedo = measureDecodedLinearAlbedoStats(bundle.ceramic.albedo);
     const anodizedAlbedo = measureDecodedLinearAlbedoStats(bundle.anodized.albedo);
     const titaniumAlbedo = measureDecodedLinearAlbedoStats(bundle.brushedTitanium.albedo);
+    const copperAlbedo = measureDecodedLinearAlbedoStats(bundle.copper.albedo);
 
-    // Target physical bounds (allowing +/- 0.004 for 8-bit sRGB quantization & RGB tint weighting)
-    expect(carbonAlbedo.min).toBeGreaterThanOrEqual(0.011);
-    expect(carbonAlbedo.max).toBeLessThanOrEqual(0.036);
+    // ARC-053 deep obsidian linear bounds (with +/- 0.003 tolerance for 8-bit sRGB quantization)
+    expect(carbonAlbedo.min).toBeGreaterThanOrEqual(0.004);
+    expect(carbonAlbedo.max).toBeLessThanOrEqual(0.017);
+    expect(carbonAlbedo.mean).toBeGreaterThanOrEqual(0.007);
+    expect(carbonAlbedo.mean).toBeLessThanOrEqual(0.013);
 
-    expect(ceramicAlbedo.min).toBeGreaterThanOrEqual(0.023);
-    expect(ceramicAlbedo.max).toBeLessThanOrEqual(0.048);
-    expect(ceramicAlbedo.mean).toBeGreaterThanOrEqual(0.028);
-    expect(ceramicAlbedo.mean).toBeLessThanOrEqual(0.040);
+    expect(ceramicAlbedo.min).toBeGreaterThanOrEqual(0.009);
+    expect(ceramicAlbedo.max).toBeLessThanOrEqual(0.022);
+    expect(ceramicAlbedo.mean).toBeGreaterThanOrEqual(0.012);
+    expect(ceramicAlbedo.mean).toBeLessThanOrEqual(0.018);
 
-    expect(anodizedAlbedo.min).toBeGreaterThanOrEqual(0.036);
-    expect(anodizedAlbedo.max).toBeLessThanOrEqual(0.070);
-    expect(anodizedAlbedo.mean).toBeGreaterThanOrEqual(0.046);
-    expect(anodizedAlbedo.mean).toBeLessThanOrEqual(0.058);
+    expect(anodizedAlbedo.min).toBeGreaterThanOrEqual(0.016);
+    expect(anodizedAlbedo.max).toBeLessThanOrEqual(0.032);
+    expect(anodizedAlbedo.mean).toBeGreaterThanOrEqual(0.020);
+    expect(anodizedAlbedo.mean).toBeLessThanOrEqual(0.027);
 
-    // Gunmetal (ringFrameMat, 0x5c6676) linear luma ~0.132
+    // Dark Gunmetal (ringFrameMat, 0x303642) linear luma ~0.0366
     const gunmetalLinearLuma =
       0.2126 * mats.ringFrameMat.color.r +
       0.7152 * mats.ringFrameMat.color.g +
       0.0722 * mats.ringFrameMat.color.b;
-    expect(gunmetalLinearLuma).toBeGreaterThanOrEqual(0.115);
-    expect(gunmetalLinearLuma).toBeLessThanOrEqual(0.150);
+    expect(gunmetalLinearLuma).toBeGreaterThanOrEqual(0.032);
+    expect(gunmetalLinearLuma).toBeLessThanOrEqual(0.042);
 
-    expect(titaniumAlbedo.min).toBeGreaterThanOrEqual(0.168);
-    expect(titaniumAlbedo.max).toBeLessThanOrEqual(0.262);
-    expect(titaniumAlbedo.mean).toBeGreaterThanOrEqual(0.195);
-    expect(titaniumAlbedo.mean).toBeLessThanOrEqual(0.230);
+    // Selective Brushed Titanium linear 0.072..0.112 (avg ~0.090)
+    expect(titaniumAlbedo.min).toBeGreaterThanOrEqual(0.068);
+    expect(titaniumAlbedo.max).toBeLessThanOrEqual(0.116);
+    expect(titaniumAlbedo.mean).toBeGreaterThanOrEqual(0.082);
+    expect(titaniumAlbedo.mean).toBeLessThanOrEqual(0.098);
+
+    // Smoked Copper luma ~0.088 (restrained dark bronze, never bright orange)
+    expect(copperAlbedo.mean).toBeGreaterThanOrEqual(0.075);
+    expect(copperAlbedo.mean).toBeLessThanOrEqual(0.102);
 
     // Strict monotonic reflectance hierarchy:
-    // carbon < ceramic < anodized < ringFrameMat (gunmetal) < brushedTitanium
+    // carbon < ceramic < anodized < ringFrameMat (dark gunmetal) < brushedTitanium
     expect(carbonAlbedo.mean).toBeLessThan(ceramicAlbedo.mean);
     expect(ceramicAlbedo.mean).toBeLessThan(anodizedAlbedo.mean);
     expect(anodizedAlbedo.mean).toBeLessThan(gunmetalLinearLuma);
@@ -201,7 +209,7 @@ describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibrati
     registry.disposeAll();
   });
 
-  it('3. prevents roughness double-multiplication and binds ringFrameMat to isotropic anodized maps', () => {
+  it('3. prevents roughness double-multiplication and binds ringFrameMat to smooth anodized maps', () => {
     const registry = new ReactorTextureRegistry();
     const bundle = registry.getBootstrapBundle(4, true);
     const mats = createReactorMaterials('crimson', bundle);
@@ -220,34 +228,56 @@ describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibrati
       expect(mat.roughness).toBe(1.0);
     }
 
-    // ringFrameMat must share bundle.anodized.normal & bundle.anodized.roughness (0.35..0.45 isotropic)
+    // ringFrameMat shares bundle.anodized.normal & bundle.anodized.roughness (0.28..0.36 smooth satin)
     expect(mats.ringFrameMat.normalMap).toBe(bundle.anodized.normal);
     expect(mats.ringFrameMat.roughnessMap).toBe(bundle.anodized.roughness);
     expect(mats.ringFrameMat.normalMap).not.toBe(bundle.brushedTitanium.normal);
     expect(mats.ringFrameMat.roughnessMap).not.toBe(bundle.brushedTitanium.roughness);
     expect(mats.ringFrameMat.map).toBeNull();
-    expect(mats.ringFrameMat.color.getHex()).toBe(0x5c6676);
+    expect(mats.ringFrameMat.color.getHex()).toBe(0x303642);
 
-    // Verify physical linear roughness ranges in the maps
+    // Verify ARC-053 linear roughness ranges in the maps
     const anodizedRough = measureLinearScalarMapStats(bundle.anodized.roughness);
     const titaniumRough = measureLinearScalarMapStats(bundle.brushedTitanium.roughness);
     const ceramicRough = measureLinearScalarMapStats(bundle.ceramic.roughness);
 
-    expect(anodizedRough.min).toBeGreaterThanOrEqual(0.34);
-    expect(anodizedRough.max).toBeLessThanOrEqual(0.46);
-    expect(titaniumRough.min).toBeGreaterThanOrEqual(0.23);
-    expect(titaniumRough.max).toBeLessThanOrEqual(0.37);
-    expect(ceramicRough.min).toBeGreaterThanOrEqual(0.79);
-    expect(ceramicRough.max).toBeLessThanOrEqual(0.93);
+    expect(anodizedRough.min).toBeGreaterThanOrEqual(0.27);
+    expect(anodizedRough.max).toBeLessThanOrEqual(0.37);
+    expect(titaniumRough.min).toBeGreaterThanOrEqual(0.21);
+    expect(titaniumRough.max).toBeLessThanOrEqual(0.33);
+    expect(ceramicRough.min).toBeGreaterThanOrEqual(0.85);
+    expect(ceramicRough.max).toBeLessThanOrEqual(0.97);
 
     mats.dispose();
     registry.disposeAll();
   });
 
-  it('4. guarantees procedural fallback and STUDIO_LIGHT_PRESETS determinism across quality presets', () => {
+  it('4. guarantees procedural fallback, opticGlass physical Fresnel contract, and STUDIO_LIGHT_PRESETS parity', () => {
     const registry = new ReactorTextureRegistry();
     const bundle = registry.getBootstrapBundle(4, true);
+    const mats = createReactorMaterials('crimson', bundle);
     expect(bundle.tier).toBe(256);
+
+    // Verify opticGlass ARC-053 physical contract (premultiplied Fresnel + diagonal sheen, zero transmission pass)
+    expect(mats.opticGlass.transmission).toBe(0);
+    expect(mats.opticGlass.premultipliedAlpha).toBe(true);
+    expect(mats.opticGlass.depthWrite).toBe(false);
+    expect(mats.opticGlass.ior).toBeGreaterThanOrEqual(1.6);
+    expect(mats.opticGlass.customProgramCacheKey()).toBe('arc-optic-glass-fresnel-v1');
+
+    // Verify onBeforeCompile cleanly transforms the live Three.js physical fragment shader
+    const shaderStub = { fragmentShader: THREE.ShaderLib.physical.fragmentShader } as any;
+    mats.opticGlass.onBeforeCompile(shaderStub, {} as any);
+    expect(shaderStub.fragmentShader).toContain('arcRimFresnel');
+    expect(shaderStub.fragmentShader).toContain('arcDiagSheen');
+    expect(shaderStub.fragmentShader).not.toContain('#include <premultiplied_alpha_fragment>');
+
+    // Verify transmission remains 0.0 across Eco, Balanced, Cinematic, and Software WebGL
+    for (const preset of [GRAPHICS_PRESETS.Eco, GRAPHICS_PRESETS.Balanced, GRAPHICS_PRESETS.Cinematic]) {
+      mats.applyGraphicsConfig(preset, null);
+      expect(mats.opticGlass.transmission).toBe(0);
+      expect(mats.opticGlass.opacity).toBeCloseTo(0.17, 4);
+    }
 
     // Verify zero NaN/zero-filled pixels across all procedural channels
     for (const set of [
@@ -272,6 +302,7 @@ describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibrati
     // Verify createReactorLighting() constructor matches STUDIO_LIGHT_PRESETS.standard
     const scene = new THREE.Scene();
     const lighting = createReactorLighting(scene, 0xff2222);
+    expect(lighting.hemiLight.groundColor.getHex()).toBe(0x06070a);
     expect(lighting.hemiLight.intensity).toBe(STUDIO_LIGHT_PRESETS.hemi.intensity.standard);
     expect(lighting.keyLight.intensity).toBe(STUDIO_LIGHT_PRESETS.key.intensity.standard);
     expect(lighting.fillLight.intensity).toBe(STUDIO_LIGHT_PRESETS.fill.intensity.standard);
@@ -282,7 +313,6 @@ describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibrati
       shadowMap: { enabled: false, type: THREE.PCFSoftShadowMap, needsUpdate: false },
     } as unknown as THREE.WebGLRenderer;
 
-    // Eco tier
     lighting.applyGraphicsConfig(GRAPHICS_PRESETS.Eco, mockRenderer, null);
     expect(lighting.hemiLight.intensity).toBe(STUDIO_LIGHT_PRESETS.hemi.intensity.eco);
     expect(lighting.keyLight.intensity).toBe(STUDIO_LIGHT_PRESETS.key.intensity.eco);
@@ -290,20 +320,19 @@ describe('ARC-052 — Premium PBR Material Look Development & Lighting Calibrati
     expect(lighting.topSpot.intensity).toBe(STUDIO_LIGHT_PRESETS.topSpot.intensity.eco);
     expect(lighting.topSpot.visible).toBe(true);
 
-    // Balanced (contact shadow, standard lights)
     lighting.applyGraphicsConfig(GRAPHICS_PRESETS.Balanced, mockRenderer, null);
     expect(lighting.hemiLight.intensity).toBe(STUDIO_LIGHT_PRESETS.hemi.intensity.standard);
     expect(lighting.keyLight.intensity).toBe(STUDIO_LIGHT_PRESETS.key.intensity.standard);
     expect(lighting.fillLight.intensity).toBe(STUDIO_LIGHT_PRESETS.fill.intensity.contact);
     expect(lighting.topSpot.intensity).toBe(STUDIO_LIGHT_PRESETS.topSpot.intensity.standard);
 
-    // Shadowed (soft1024 / soft2048)
     lighting.applyGraphicsConfig(GRAPHICS_PRESETS.Cinematic, mockRenderer, null);
     expect(lighting.hemiLight.intensity).toBe(STUDIO_LIGHT_PRESETS.hemi.intensity.shadowed);
     expect(lighting.keyLight.intensity).toBe(STUDIO_LIGHT_PRESETS.key.intensity.shadowed);
     expect(lighting.fillLight.intensity).toBe(STUDIO_LIGHT_PRESETS.fill.intensity.shadowed);
     expect(lighting.topSpot.intensity).toBe(STUDIO_LIGHT_PRESETS.topSpot.intensity.shadowed);
 
+    mats.dispose();
     registry.disposeAll();
   });
 

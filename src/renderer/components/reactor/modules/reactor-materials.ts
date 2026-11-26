@@ -64,94 +64,126 @@ export function createReactorMaterials(
   const arcCenterLogoMap = createArcCenterLogoTexture(2048);
   const { plasmaMap: plasmaEnergyMap, glowMap: glowParticleMap } = getThemeTextures(initialTheme);
 
-  // 1. OBSIDIAN TITANIUM — Structural satin black chassis; distinct metallic sheen without excessive gloss.
+  // 1. OBSIDIAN TITANIUM — Ultra-smooth dark anodized primary chassis (dominant surface area).
   const anodizedBlack = new THREE.MeshStandardMaterial({
-    color: 0x1e222a,
+    color: 0x14171d,
     metalness: 0.86,
-    roughness: 0.40,
-    normalScale: new THREE.Vector2(0.60, 0.60),
-    aoMapIntensity: 0.90,
-    envMapIntensity: 1.04,
+    roughness: 0.32,
+    normalScale: new THREE.Vector2(0.24, 0.24),
+    aoMapIntensity: 0.88,
+    envMapIntensity: 0.78,
   });
 
-  // 2. BRUSHED TITANIUM — Selected bevel highlights, conduit guide rails & chamber crown bezel.
+  // 2. BRUSHED TITANIUM — Reserved strictly for thin razor trims & chamber crown bezel.
   const brushedTitanium = new THREE.MeshPhysicalMaterial({
-    color: 0x808896,
-    metalness: 0.93,
-    roughness: 0.29,
-    anisotropy: 0.68,
+    color: 0x555d6b,
+    metalness: 0.92,
+    roughness: 0.26,
+    anisotropy: 0.55,
     anisotropyRotation: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.32,
-    normalScale: new THREE.Vector2(0.50, 0.50),
+    clearcoat: 0.04,
+    clearcoatRoughness: 0.34,
+    normalScale: new THREE.Vector2(0.26, 0.26),
     aoMapIntensity: 0.84,
-    envMapIntensity: 1.12,
+    envMapIntensity: 0.88,
   });
 
-  // 3. PRECISION GUNMETAL — Mechanical supports, corner clamps, retention arches & structural connectors.
+  // 3. DARK GUNMETAL — Restrained secondary framing, arches, diagonal rails & clamp yokes.
   const ringFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x5c6676,
-    metalness: 0.90,
-    roughness: 0.40,
+    color: 0x303642,
+    metalness: 0.88,
+    roughness: 0.32,
     emissive: 0x000000,
     emissiveIntensity: 0.0,
-    normalScale: new THREE.Vector2(0.50, 0.50),
-    envMapIntensity: 1.16,
+    normalScale: new THREE.Vector2(0.22, 0.22),
+    envMapIntensity: 0.82,
   });
 
-  // 4. CARBON COMPOSITE — Deep obsidian 3K 2x2 diagonal twill weave for recessed deck beds & service compartments
+  // 4. CARBON COMPOSITE — Deepest recessed 3K 2x2 diagonal twill weave trays & service decks.
   const darkCarbon = new THREE.MeshPhysicalMaterial({
-    color: 0x161a22,
-    metalness: 0.13,
-    roughness: 0.44,
-    clearcoat: 0.24,
-    clearcoatRoughness: 0.34,
-    normalScale: new THREE.Vector2(0.80, 0.80),
+    color: 0x0a0d12,
+    metalness: 0.10,
+    roughness: 0.48,
+    clearcoat: 0.16,
+    clearcoatRoughness: 0.38,
+    normalScale: new THREE.Vector2(0.48, 0.48),
     aoMapIntensity: 0.90,
-    envMapIntensity: 0.74,
+    envMapIntensity: 0.46,
   });
 
-  // 5. GRAPHITE CERAMIC — Deep matte recessed surfaces; non-reflective sintered dielectric for crisp depth separation
+  // 5. OBSIDIAN CERAMIC — Ultra-matte recessed cavities, chamber well & trench beds.
   const darkCeramic = new THREE.MeshStandardMaterial({
-    color: 0x2d3138,
-    metalness: 0.04,
-    roughness: 0.86,
-    normalScale: new THREE.Vector2(0.55, 0.55),
-    envMapIntensity: 0.28,
+    color: 0x16191e,
+    metalness: 0.03,
+    roughness: 0.91,
+    normalScale: new THREE.Vector2(0.28, 0.28),
+    envMapIntensity: 0.14,
   });
 
-  // 6. COPPER — Strictly limited functional internal contacts, windings & grounding studs (cool dark bronze-copper, never rusty)
+  // 6. SMOKED COPPER — Rare functional electrical contacts, coils & grounding studs.
   const copperWinding = new THREE.MeshStandardMaterial({
-    color: 0x7c4c30,
-    metalness: 0.92,
-    roughness: 0.34,
-    normalScale: new THREE.Vector2(0.44, 0.44),
-    envMapIntensity: 1.00,
+    color: 0x4c3426,
+    metalness: 0.90,
+    roughness: 0.31,
+    normalScale: new THREE.Vector2(0.24, 0.24),
+    envMapIntensity: 0.72,
   });
 
   const microMeshMat = new THREE.MeshStandardMaterial({
-    color: 0x191d24,
+    color: 0x15181e,
     metalness: 0.86,
     roughness: 0.34,
     wireframe: true,
   });
 
-  // Cool dark tempered titanium shroud (replaces warm brown tint so outer modules never appear oxidized)
+  // Tempered dark obsidian shroud for outer substation housings.
   const heatTintedMetal = new THREE.MeshStandardMaterial({
-    color: 0x2d333f, metalness: 0.89, roughness: 0.40, emissive: 0x000000,
-    normalScale: new THREE.Vector2(0.50, 0.50), envMapIntensity: 0.96,
+    color: 0x171b22, metalness: 0.87, roughness: 0.32, emissive: 0x000000,
+    normalScale: new THREE.Vector2(0.24, 0.24), envMapIntensity: 0.74,
   });
 
-  // 7. SMOKED OPTICAL GLASS — Original recessed central chamber viewport; high transparency and crisp bevel edge reflections
+  // 7. SMOKED OPTICAL GLASS — Premultiplied physical Fresnel rim + subtle diagonal sheen (transmission=0).
   const opticGlass = new THREE.MeshPhysicalMaterial({
-    color: 0x0d1117, metalness: 0.02, roughness: 0.05, ior: 1.50, reflectivity: 0.80,
-    clearcoat: 1.0, clearcoatRoughness: 0.05, transmission: 0.0, thickness: 0.34,
-    transparent: true, opacity: 0.14, depthWrite: false, envMapIntensity: 0.96,
+    color: 0x0b0f16, metalness: 0.0, roughness: 0.07, ior: 1.62, reflectivity: 0.92,
+    specularIntensity: 1.0, specularColor: new THREE.Color(0xeaf0f8),
+    clearcoat: 1.0, clearcoatRoughness: 0.035, transmission: 0.0, thickness: 0.34,
+    transparent: true, opacity: 0.17, premultipliedAlpha: true, depthWrite: false, envMapIntensity: 1.65,
   });
+  opticGlass.customProgramCacheKey = () => 'arc-optic-glass-fresnel-v1';
+  opticGlass.onBeforeCompile = (shader) => {
+    if (!shader.fragmentShader.includes('#include <opaque_fragment>')) return;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `vec3 arcSpecCoat = max( outgoingLight - totalDiffuse, vec3( 0.0 ) );
+      float arcDotNV = saturate( dot( geometryNormal, geometryViewDir ) );
+      float arcRimFresnel = pow( 1.0 - arcDotNV, 1.85 );
+      vec3 arcBevelGlint = vec3( 0.84, 0.88, 0.95 ) * arcRimFresnel * 0.52;
+      float arcDiagPos = dot( geometryPosition.xy, vec2( 0.66, 0.75 ) ) + dot( geometryViewDir.xy, vec2( 3.5, 3.5 ) ) - 0.14;
+      float arcDiagBand = smoothstep( -0.58, -0.04, arcDiagPos ) * ( 1.0 - smoothstep( 0.08, 0.54, arcDiagPos ) )
+        + smoothstep( 0.36, 0.56, arcDiagPos ) * ( 1.0 - smoothstep( 0.62, 0.88, arcDiagPos ) ) * 0.42;
+      float arcEnvGain = 1.0;
+      #ifdef USE_ENVMAP
+        arcEnvGain = clamp( envMapIntensity * 0.60, 0.55, 1.45 );
+      #endif
+      vec3 arcDiagSheen = vec3( 0.88, 0.91, 0.96 ) * arcDiagBand * ( 0.065 * arcEnvGain ) * smoothstep( 0.60, 0.94, arcDotNV );
+      vec3 arcGlassRefl = arcSpecCoat + arcBevelGlint + arcDiagSheen;
+      float arcSpecLuma = dot( arcGlassRefl, vec3( 0.2126, 0.7152, 0.0722 ) );
+      outgoingLight = totalDiffuse * diffuseColor.a + arcGlassRefl;
+      diffuseColor.a = clamp( diffuseColor.a + arcRimFresnel * 0.50 + arcSpecLuma * 0.22, diffuseColor.a, 0.86 );
+      #include <opaque_fragment>`
+    );
+    if (shader.fragmentShader.includes('#include <premultiplied_alpha_fragment>')) {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <premultiplied_alpha_fragment>',
+        '/* ARC-053: physically premultiplied in opaque_fragment */'
+      );
+    }
+  };
+
   const outerGlassRingMat = new THREE.MeshPhysicalMaterial({
-    color: 0x101319, metalness: 0.04, roughness: 0.07, ior: 1.52, clearcoat: 1.0,
-    clearcoatRoughness: 0.06, reflectivity: 0.85, transparent: true, opacity: 0.22,
-    depthWrite: false, blending: THREE.NormalBlending, envMapIntensity: 0.98,
+    color: 0x0d1016, metalness: 0.03, roughness: 0.07, ior: 1.56, clearcoat: 1.0,
+    clearcoatRoughness: 0.05, reflectivity: 0.88, transparent: true, opacity: 0.24,
+    depthWrite: false, blending: THREE.NormalBlending, envMapIntensity: 1.05,
   });
   const darkGlassOuter = new THREE.MeshStandardMaterial({
     color: 0x0e1015, metalness: 0.65, roughness: 0.15, transparent: true, opacity: 0.20,
@@ -243,8 +275,8 @@ export function createReactorMaterials(
    * CRITICAL: Sets `roughness = 1.0` so Three.js uses the physical roughnessMap directly
    * (preventing roughness*roughnessMap double-multiplication mirror artifacts),
    * and sets `color = 0xffffff` on albedo-mapped materials so sRGB albedo maps stay calibrated.
-   * Precision Gunmetal (`ringFrameMat`) shares `bundle.anodized.normal` & `bundle.anodized.roughness`
-   * (0.35..0.45 isotropic satin finish) while keeping its dedicated gunmetal color `0x5c6676`.
+   * Dark Gunmetal (`ringFrameMat`) shares `bundle.anodized.normal` & `bundle.anodized.roughness`
+   * (0.28..0.36 ultra-smooth satin finish) while keeping its dedicated dark gunmetal color `0x303642`.
    */
   const applyPbrBundle = (bundle: ReactorPbrTextureBundle) => {
     anodizedBlack.color.setHex(0xffffff);
@@ -318,27 +350,26 @@ export function createReactorMaterials(
     }
 
     const envScale = Math.max(50, Math.min(150, config.envMapIntensity)) / 100;
-    anodizedBlack.envMapIntensity = 1.04 * envScale;
-    brushedTitanium.envMapIntensity = 1.12 * envScale;
-    ringFrameMat.envMapIntensity = 1.16 * envScale;
-    darkCarbon.envMapIntensity = 0.74 * envScale;
-    darkCeramic.envMapIntensity = 0.28 * envScale;
-    copperWinding.envMapIntensity = 1.00 * envScale;
-    heatTintedMetal.envMapIntensity = 0.96 * envScale;
-    opticGlass.envMapIntensity = 0.96 * envScale;
-    outerGlassRingMat.envMapIntensity = 0.98 * envScale;
+    anodizedBlack.envMapIntensity = 0.78 * envScale;
+    brushedTitanium.envMapIntensity = 0.88 * envScale;
+    ringFrameMat.envMapIntensity = 0.82 * envScale;
+    darkCarbon.envMapIntensity = 0.46 * envScale;
+    darkCeramic.envMapIntensity = 0.14 * envScale;
+    copperWinding.envMapIntensity = 0.72 * envScale;
+    heatTintedMetal.envMapIntensity = 0.74 * envScale;
+    opticGlass.envMapIntensity = 1.65 * envScale;
+    outerGlassRingMat.envMapIntensity = 1.05 * envScale;
     neonTubeMat.envMapIntensity = 0.85 * envScale;
     coreDiodeMat.envMapIntensity = 0.85 * envScale;
 
-    const allowTransmission = !caps?.isSoftwareGl && config.pmremQuality !== 'eco';
-    const nextTransmission = allowTransmission ? 0.48 : 0.0;
-    if (opticGlass.transmission !== nextTransmission) {
-      opticGlass.transmission = nextTransmission;
-      opticGlass.opacity = allowTransmission ? 0.18 : 0.14;
+    // ARC-053: keep transmission=0 permanently (transparent plasma stays 100% visible without extra pass)
+    if (opticGlass.transmission !== 0.0) {
+      opticGlass.transmission = 0.0;
       opticGlass.needsUpdate = true;
     }
+    opticGlass.opacity = 0.17;
 
-    brushedTitanium.anisotropy = config.pmremQuality === 'eco' ? 0.0 : 0.68;
+    brushedTitanium.anisotropy = config.pmremQuality === 'eco' ? 0.0 : 0.55;
     plasmaVortexMat.roughness = config.glslPlasmaShader ? 0.06 : 0.14;
     plasmaVortexMat.metalness = config.glslPlasmaShader ? 0.88 : 0.75;
   };

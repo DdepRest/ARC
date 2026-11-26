@@ -28,7 +28,7 @@ export function buildCornerClamps(
   const pistonGeo = new THREE.CylinderGeometry(0.040, 0.044, 0.74, 12);
   ensureUv2(pistonGeo);
 
-  const pistonInst = new THREE.InstancedMesh(pistonGeo, materials.ringFrameMat, 6);
+  const pistonInst = new THREE.InstancedMesh(pistonGeo, materials.anodizedBlack, 6);
   pistonInst.name = "arc-instanced-pistons";
   let pistonIdx = 0;
 
@@ -59,11 +59,11 @@ export function buildCornerClamps(
     clampGroup.add(blockMesh);
     clampAnodizedBlack.push(blockMesh);
 
-    // 2. Machined Dark-Gunmetal Rear Coupling Bracket bridging clamp cleanly into outer substation & carrier rail
-    const bridgeBracket = new THREE.Mesh(outerBridgeBracketGeo, materials.ringFrameMat);
+    // 2. Recessed Obsidian Rear Coupling Bracket bridging clamp cleanly into outer substation & carrier rail
+    const bridgeBracket = new THREE.Mesh(outerBridgeBracketGeo, materials.anodizedBlack);
     bridgeBracket.position.set(0, -0.34, -0.22);
     clampGroup.add(bridgeBracket);
-    clampRingFrame.push(bridgeBracket);
+    clampAnodizedBlack.push(bridgeBracket);
 
     // 3. Twin Slim Wrap-Around Gunmetal Caliper Yokes locking adjacent bridge/conduit ends
     for (let side = -1; side <= 1; side += 2) {
