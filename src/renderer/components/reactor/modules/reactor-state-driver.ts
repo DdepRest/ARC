@@ -55,6 +55,52 @@ export interface ReactorStateDriverParams {
   };
 }
 
+export const REACTOR_OUTER_RADIUS = 5.62;
+
+export function computeReactorViewportTransform(params: {
+  winW: number;
+  winH: number;
+  camZ: number;
+  fov: number;
+  aspect: number;
+  centerProp?: { x: number; y: number };
+  scaleProp?: number;
+}): { x: number; y: number; scale: number } {
+  const { winW, winH, camZ, fov, aspect, centerProp, scaleProp } = params;
+  const baseScale = scaleProp !== undefined ? scaleProp : 1.0;
+  const safeW = Math.max(winW, 1);
+  const safeH = Math.max(winH, 1);
+  const safeAspect = aspect > 0 ? aspect : safeW / safeH;
+  const halfFovRad = ((fov * 0.5) * Math.PI) / 180.0;
+  const vHalfHeight = Math.max(20, camZ) * Math.tan(halfFovRad);
+  const vHalfWidth = vHalfHeight * safeAspect;
+
+  let targetX = 0;
+  let targetY = 0;
+  if (centerProp) {
+    const normX = centerProp.x > 1.5 ? centerProp.x / safeW : centerProp.x;
+    const normY = centerProp.y > 1.5 ? centerProp.y / safeH : centerProp.y;
+    targetX = (normX - 0.5) * 2.0 * vHalfWidth;
+    targetY = -(normY - 0.5) * 2.0 * vHalfHeight;
+  }
+
+  // Apply +10% scale boost when viewport allows; clamp strictly so reactor never clips or overlaps UI.
+  // On narrow/portrait screens (phones, narrow panes), allow width-driven scaling below 0.90 so the
+  // full outer silhouette fits horizontally with ~6% breathing margin on each side.
+  const desiredScale = baseScale * 1.10;
+  const isNarrowViewport = safeAspect < 1.05 || safeW < 768;
+  const yBottomSafe = -vHalfHeight * 0.75; // Safe distance above bottom dock bar
+  const yTopSafe = vHalfHeight * 0.84;     // Safe distance below top header bar
+  const xSideSafe = vHalfWidth * (isNarrowViewport ? 0.87 : 0.74);
+  const maxScaleBottom = Math.max(0.25, (targetY - yBottomSafe) / REACTOR_OUTER_RADIUS);
+  const maxScaleTop = Math.max(0.25, (yTopSafe - targetY) / REACTOR_OUTER_RADIUS);
+  const maxScaleSide = Math.max(0.25, (xSideSafe - Math.abs(targetX)) / REACTOR_OUTER_RADIUS);
+  const maxAllowedScale = Math.min(maxScaleBottom, maxScaleTop, maxScaleSide);
+  const safeScale = Math.max(0.25, Math.min(desiredScale, maxAllowedScale));
+
+  return { x: targetX, y: targetY, scale: safeScale };
+}
+
 export function createReactorStateDriver(params: ReactorStateDriverParams) {
   const {
     scene,
@@ -220,8 +266,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   });
 
   // Viewport-aware reactor scale helper: increases displayed reactor scale by ~10% (8-12% target)
-  // when viewport dimensions allow, while enforcing safe clearance from bottom dock, top bar, and side UI.
-  const REACTOR_OUTER_RADIUS = 5.62;
+  // when viewport dimensions allow, while enforcing safe clearance from bottom dock, top bar, and side edges
+  // (including narrow portrait/mobile viewports where width is the limiting dimension).
   const computeViewportTransform = (
     centerProp: { x: number; y: number } | undefined,
     scaleProp: number | undefined
@@ -233,32 +279,18 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     const winW = Math.max(window.innerWidth || 1280, 1);
     const winH = Math.max(window.innerHeight || 800, 1);
     const camZ = camera ? Math.max(20, camera.position.z) : 41.2;
-    const halfFovRad = (((camera ? camera.fov : 24) * 0.5) * Math.PI) / 180.0;
-    const vHalfHeight = camZ * Math.tan(halfFovRad);
+    const fov = camera ? camera.fov : 24;
     const aspect = camera && camera.aspect > 0 ? camera.aspect : winW / winH;
-    const vHalfWidth = vHalfHeight * aspect;
 
-    let targetX = 0;
-    let targetY = 0;
-    if (centerProp) {
-      const normX = centerProp.x > 1.5 ? centerProp.x / winW : centerProp.x;
-      const normY = centerProp.y > 1.5 ? centerProp.y / winH : centerProp.y;
-      targetX = (normX - 0.5) * 2.0 * vHalfWidth;
-      targetY = -(normY - 0.5) * 2.0 * vHalfHeight;
-    }
-
-    // Apply +10% scale boost when viewport allows; clamp strictly so reactor never clips or overlaps UI
-    const desiredScale = baseScale * 1.10;
-    const yBottomSafe = -vHalfHeight * 0.75; // Safe distance above bottom dock bar
-    const yTopSafe = vHalfHeight * 0.84;     // Safe distance below top header bar
-    const xSideSafe = vHalfWidth * 0.74;     // Safe distance inside side panels
-    const maxScaleBottom = (targetY - yBottomSafe) / REACTOR_OUTER_RADIUS;
-    const maxScaleTop = (yTopSafe - targetY) / REACTOR_OUTER_RADIUS;
-    const maxScaleSide = Math.max(0.85, (xSideSafe - Math.abs(targetX)) / REACTOR_OUTER_RADIUS);
-    const maxAllowedScale = Math.min(maxScaleBottom, maxScaleTop, maxScaleSide);
-    const safeScale = Math.max(baseScale * 0.90, Math.min(desiredScale, maxAllowedScale));
-
-    return { x: targetX, y: targetY, scale: safeScale };
+    return computeReactorViewportTransform({
+      winW,
+      winH,
+      camZ,
+      fov,
+      aspect,
+      centerProp,
+      scaleProp,
+    });
   };
 
   // Set initial position and viewport-safe scale right away

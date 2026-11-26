@@ -74,10 +74,10 @@ export function buildCentralChamber(
   innerChassisGroup.add(mainBarrelMesh);
   chamberAnodized.push(mainBarrelMesh);
 
-  const crownBezelMesh = new THREE.Mesh(createBeveledTriangleFrame(2.38, 1.88, 0.10, 0.024, 0.024), materials.ringFrameMat);
+  const crownBezelMesh = new THREE.Mesh(createBeveledTriangleFrame(2.38, 1.88, 0.10, 0.024, 0.024), materials.brushedTitanium);
   crownBezelMesh.position.z = 0.31;
   innerChassisGroup.add(crownBezelMesh);
-  chamberRingFrame.push(crownBezelMesh);
+  chamberTitanium.push(crownBezelMesh);
 
   // =========================================================================
   // LAYER 2: 3 Edge Waveguide Channels, Riser Stanchions & Clamping Yokes
@@ -358,7 +358,7 @@ export function buildCentralChamber(
     const feedA = angles[i] + Math.PI / 3;
     const rFeed = 1.72;
     addStatic(conduitsGroup, feederHousingGeo, materials.anodizedBlack, chamberAnodized, Math.cos(feedA) * rFeed, Math.sin(feedA) * rFeed, -0.04, feedA - Math.PI / 2);
-    addStatic(conduitsGroup, feederFlangeGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(feedA) * 2.12, Math.sin(feedA) * 2.12, 0.04, feedA - Math.PI / 2);
+    addStatic(conduitsGroup, feederFlangeGeo, materials.brushedTitanium, chamberTitanium, Math.cos(feedA) * 2.12, Math.sin(feedA) * 2.12, 0.04, feedA - Math.PI / 2);
     addStatic(conduitsGroup, feederCoreGeo, materials.neonTubeMat, chamberNeon, Math.cos(feedA) * rFeed, Math.sin(feedA) * rFeed, 0.08, feedA - Math.PI / 2);
   }
 

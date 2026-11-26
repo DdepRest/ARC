@@ -184,9 +184,9 @@ export function buildTrenches(
       // Single recessed dark divider rib separating primary conductor from secondary indicator
       addMesh(edgeGroup, conduitCenterRibGeo, materials.anodizedBlack, trenchAnodizedBlack, 0, apothem + 0.02, 0.04);
 
-      // Two raised dark-gunmetal structural side rails seated directly onto the tapered housing walls
-      addMesh(edgeGroup, conduitInnerRailGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem - 0.39, 0.27);
-      addMesh(edgeGroup, conduitOuterRailGeo, materials.ringFrameMat, trenchRingFrame, 0, apothem + 0.40, 0.27);
+      // Two raised brushed-titanium structural guide rails seated directly onto the tapered housing walls
+      addMesh(edgeGroup, conduitInnerRailGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem - 0.39, 0.27);
+      addMesh(edgeGroup, conduitOuterRailGeo, materials.brushedTitanium, trenchBrushedTitanium, 0, apothem + 0.40, 0.27);
 
       // Primary continuous red conductor (visually dominant, r = 0.050) + 4 instanced collars & end caps
       const primaryY = apothem - 0.15;

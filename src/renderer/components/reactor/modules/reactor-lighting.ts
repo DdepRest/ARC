@@ -19,6 +19,34 @@ export interface ReactorLighting {
 }
 
 /**
+ * Single source of truth for studio lighting colors, grazing positions, and tier intensities.
+ * Both `createReactorLighting()` and `applyGraphicsConfig()` read from this table so initial
+ * bootstrap intensities and runtime tier switches never diverge.
+ */
+export const STUDIO_LIGHT_PRESETS = {
+  hemi: {
+    skyColor: 0xdfe3ea,
+    groundColor: 0x1e222a,
+    intensity: { eco: 0.48, standard: 0.50, shadowed: 0.52 },
+  },
+  key: {
+    color: 0xfffaf2,
+    position: [-12.5, 14.5, 16.0] as const,
+    intensity: { eco: 1.80, standard: 1.98, shadowed: 2.08 },
+  },
+  fill: {
+    color: 0xdce0e8,
+    position: [13.5, -11.5, 15.0] as const,
+    intensity: { eco: 0.78, standard: 0.86, contact: 0.80, shadowed: 0.88 },
+  },
+  topSpot: {
+    color: 0xf6f7fa,
+    position: [1.2, 16.5, 11.5] as const,
+    intensity: { eco: 0.48, standard: 0.68, shadowed: 0.70 },
+  },
+} as const;
+
+/**
  * Studio 4-source industrial lighting rig:
  *  A. Key Light — directional neutral-warm with controlled PCFSoftShadowMap (Cinematic / Showcase)
  *  B. Fill Light — cool technical Hemisphere + low-right DirectionalLight preserving shadow legibility
@@ -29,13 +57,20 @@ export function createReactorLighting(
   scene: THREE.Scene,
   initialColorHex: number
 ): ReactorLighting {
-  // Restrained neutral hemisphere preserves deeply shadowed recessed cavities while revealing obsidian forms
-  const hemiLight = new THREE.HemisphereLight(0xd8dce0, 0x08090c, 0.42);
+  // Restrained neutral hemisphere lifts recessed ceramic cavities out of pure #000000 while keeping deep shadow contrast
+  const hemiLight = new THREE.HemisphereLight(
+    STUDIO_LIGHT_PRESETS.hemi.skyColor,
+    STUDIO_LIGHT_PRESETS.hemi.groundColor,
+    STUDIO_LIGHT_PRESETS.hemi.intensity.standard
+  );
   scene.add(hemiLight);
 
   // A. Key Light (sole shadow caster, neutral-warm studio grazing angle to expose machined armor bevels)
-  const keyLight = new THREE.DirectionalLight(0xfcfaf6, 1.88);
-  keyLight.position.set(-13, 15, 14.5);
+  const keyLight = new THREE.DirectionalLight(
+    STUDIO_LIGHT_PRESETS.key.color,
+    STUDIO_LIGHT_PRESETS.key.intensity.standard
+  );
+  keyLight.position.set(...STUDIO_LIGHT_PRESETS.key.position);
   keyLight.castShadow = false;
   keyLight.shadow.mapSize.set(1024, 1024);
   keyLight.shadow.camera.near = 6;
@@ -50,14 +85,20 @@ export function createReactorLighting(
   scene.add(keyLight);
 
   // B. Neutral studio Fill Light from lower-right grazing angle (reveals diagonal conduit rails & chamber steps)
-  const fillLight = new THREE.DirectionalLight(0xd8dbe0, 0.76);
-  fillLight.position.set(14, -12, 13.5);
+  const fillLight = new THREE.DirectionalLight(
+    STUDIO_LIGHT_PRESETS.fill.color,
+    STUDIO_LIGHT_PRESETS.fill.intensity.standard
+  );
+  fillLight.position.set(...STUDIO_LIGHT_PRESETS.fill.position);
   fillLight.castShadow = false;
   scene.add(fillLight);
 
   // Overhead bevel-grazing light exposing the upper armored power bridge spine & central chamber crown
-  const topSpot = new THREE.DirectionalLight(0xf4f5f7, 0.54);
-  topSpot.position.set(1.5, 18, 9.5);
+  const topSpot = new THREE.DirectionalLight(
+    STUDIO_LIGHT_PRESETS.topSpot.color,
+    STUDIO_LIGHT_PRESETS.topSpot.intensity.standard
+  );
+  topSpot.position.set(...STUDIO_LIGHT_PRESETS.topSpot.position);
   topSpot.castShadow = false;
   scene.add(topSpot);
 
@@ -87,8 +128,10 @@ export function createReactorLighting(
   ) => {
     const canShadow = !caps?.isSoftwareGl && (caps?.supportsShadows ?? true);
     const quality = canShadow ? config.shadowQuality : 'off';
+    const isShadowed = quality === 'soft1024' || quality === 'soft2048';
+    const isEco = config.dynamicPointLights === 'eco';
 
-    if (quality === 'soft1024' || quality === 'soft2048') {
+    if (isShadowed) {
       const requestedSize = quality === 'soft2048' ? 2048 : 1024;
       const safeSize = Math.min(requestedSize, caps?.maxTextureSize ?? 2048);
 
@@ -118,11 +161,33 @@ export function createReactorLighting(
       }
     }
 
-    // Balance neutral studio key/fill cleanly across shadow tiers
-    const shadowBoost = quality === 'soft1024' || quality === 'soft2048' ? 1.06 : 1.0;
-    keyLight.intensity = (config.dynamicPointLights === 'eco' ? 1.62 : 1.82) * shadowBoost;
-    fillLight.intensity = config.shadowQuality === 'contact' ? 0.64 : 0.72;
-    topSpot.visible = config.dynamicPointLights !== 'eco';
+    // Balance neutral studio key/fill/hemi/topSpot deterministically from STUDIO_LIGHT_PRESETS
+    hemiLight.intensity = isEco
+      ? STUDIO_LIGHT_PRESETS.hemi.intensity.eco
+      : isShadowed
+        ? STUDIO_LIGHT_PRESETS.hemi.intensity.shadowed
+        : STUDIO_LIGHT_PRESETS.hemi.intensity.standard;
+
+    keyLight.intensity = isEco
+      ? STUDIO_LIGHT_PRESETS.key.intensity.eco
+      : isShadowed
+        ? STUDIO_LIGHT_PRESETS.key.intensity.shadowed
+        : STUDIO_LIGHT_PRESETS.key.intensity.standard;
+
+    fillLight.intensity = isEco
+      ? STUDIO_LIGHT_PRESETS.fill.intensity.eco
+      : isShadowed
+        ? STUDIO_LIGHT_PRESETS.fill.intensity.shadowed
+        : config.shadowQuality === 'contact'
+          ? STUDIO_LIGHT_PRESETS.fill.intensity.contact
+          : STUDIO_LIGHT_PRESETS.fill.intensity.standard;
+
+    topSpot.visible = true;
+    topSpot.intensity = isEco
+      ? STUDIO_LIGHT_PRESETS.topSpot.intensity.eco
+      : isShadowed
+        ? STUDIO_LIGHT_PRESETS.topSpot.intensity.shadowed
+        : STUDIO_LIGHT_PRESETS.topSpot.intensity.standard;
   };
 
   return {

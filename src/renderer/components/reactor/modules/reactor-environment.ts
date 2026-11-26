@@ -13,7 +13,7 @@ export interface ReactorStudioEnvironment {
  */
 function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x040507);
+  envScene.background = new THREE.Color(0x080a0e);
 
   const isHigh = quality === 'high';
   const isEco = quality === 'eco';
@@ -48,16 +48,19 @@ function buildStudioSoftboxScene(quality: GraphicsPmremQuality): THREE.Scene {
   // 4. Neutral graphite lower bounce panel (balances ventral 270° and diagonal undersides)
   addPanel(14, 5.5, 0x62666e, 0.86, [0, -11.5, 6.2]);
 
+  // 5. Narrow off-axis front-upper neutral specular strip (catches +Z bevels on chamber crown & 210°/330° conduits without flattening)
+  addPanel(10, 2.8, 0xdce0e8, 0.42, [-1.8, 5.2, 15.5]);
+
   if (!isEco) {
-    // 5. Crisp upper-right neutral rim bar for smoked glass Fresnel & dark bevel edge catching
+    // 6. Crisp upper-right neutral rim bar for smoked glass Fresnel & dark bevel edge catching
     addPanel(11, 1.5, 0xf7f8fa, isHigh ? 2.25 : 1.68, [6.5, 7.5, -9.5]);
 
-    // 6. Neutral back-left rim bar separating black outer silhouette from deep space
+    // 7. Neutral back-left rim bar separating black outer silhouette from deep space
     addPanel(2.4, 11, 0xe8eaee, isHigh ? 1.95 : 1.32, [-10.5, -2.5, -9.0]);
   }
 
   if (isHigh) {
-    // 7. High-tier precision razor specular strip overhead for subtle obsidian chamfer glints
+    // 8. High-tier precision razor specular strip overhead for subtle obsidian chamfer glints
     addPanel(15, 0.8, 0xffffff, 2.2, [0, 13.0, 2.5]);
   }
 
