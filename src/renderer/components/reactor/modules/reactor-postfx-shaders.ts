@@ -88,22 +88,44 @@ export function resolveGtaoPassSettings(isFullGtao: boolean): GtaoPassSettings {
 }
 
 /**
- * Pure reference evaluator of GTAO Poisson-denoise bilateral edge weights:
- *   w_depth  = exp(-abs(depthDelta) / max(depthPhi, 1e-4))
- *   w_normal = pow(clamp(normalDot, 0, 1), normalPhi)
- * Used in synthetic depth-discontinuity & normal-step regression tests.
+ * Exact luminance helper from Three.js r174 PoissonDenoiseShader.js (line 67):
+ *   SAMPLE_LUMINANCE = dot(vec3(0.2125, 0.7154, 0.0721), rgb)
  */
-export function evaluateBilateralDenoiseWeight(
-  depthDelta: number,
-  normalDot: number,
-  depthPhi: number,
-  normalPhi: number
-): number {
-  const safeDepthPhi = Math.max(1e-4, depthPhi);
-  const wDepth = Math.exp(-Math.abs(depthDelta) / safeDepthPhi);
-  const clampedDot = Math.max(0, Math.min(1, normalDot));
-  const wNormal = Math.pow(clampedDot, Math.max(0, normalPhi));
-  return wDepth * wNormal;
+export function getPoissonDenoiseLuminance(rgb: [number, number, number]): number {
+  return 0.2125 * rgb[0] + 0.7154 * rgb[1] + 0.0721 * rgb[2];
+}
+
+export interface PoissonDenoiseWeightInput {
+  /** View-space normal-projected plane distance: abs(dot(viewPos - viewPosSample, viewNormal)). */
+  depthDiff: number;
+  /** Dot product of center and sample view-space normals: dot(viewNormal, sampleNormal). */
+  normalDot: number;
+  /** Absolute luminance difference: abs(getLuminance(neighborColor) - getLuminance(center)). */
+  lumaDiff?: number;
+  depthPhi?: number;
+  normalPhi?: number;
+  lumaPhi?: number;
+}
+
+/**
+ * Exact CPU reference of Three.js r174 PoissonDenoiseShader.js (lines 143-149):
+ *   normalSimilarity = pow(max(normalDot, 0.0), normalPhi)
+ *   lumaSimilarity   = max(1.0 - lumaDiff / lumaPhi, 0.0)
+ *   depthSimilarity  = max(1.0 - depthDiff / depthPhi, 0.0)
+ *   w                = lumaSimilarity * depthSimilarity * normalSimilarity
+ * Used in synthetic depth-discontinuity, normal-step, and luminance regression tests.
+ */
+export function evaluatePoissonDenoiseWeight(params: PoissonDenoiseWeightInput): number {
+  const depthPhi = Math.max(1e-4, params.depthPhi ?? GTAO_DENOISE_CONFIG.depthPhi);
+  const normalPhi = Math.max(0, params.normalPhi ?? GTAO_DENOISE_CONFIG.normalPhi);
+  const lumaPhi = Math.max(1e-4, params.lumaPhi ?? GTAO_DENOISE_CONFIG.lumaPhi);
+  const lumaDiff = Math.abs(params.lumaDiff ?? 0);
+  const depthDiff = Math.abs(params.depthDiff);
+
+  const normalSimilarity = Math.pow(Math.max(params.normalDot, 0), normalPhi);
+  const lumaSimilarity = Math.max(1.0 - lumaDiff / lumaPhi, 0.0);
+  const depthSimilarity = Math.max(1.0 - depthDiff / depthPhi, 0.0);
+  return lumaSimilarity * depthSimilarity * normalSimilarity;
 }
 
 export function mapBloomRadius(uiRadius: number): number {

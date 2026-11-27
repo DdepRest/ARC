@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import {
   clearStaticTextureCache,
   createCoreThermalTexture,
-  createHotCoreTexture,
   createOuterEnvelopeTexture,
 } from '../reactorTextures';
 import { ReactorTextureRegistry } from './reactor-texture-registry';
@@ -11,11 +10,20 @@ import { createReactorMaterials } from './reactor-materials';
 import { createReactorLighting } from './reactor-lighting';
 import { buildReactorGeometry } from './reactor-geometry';
 import { createReactorStateDriver } from './reactor-state-driver';
-import { evaluateThermalRampRgb } from './reactor-core-plasma-shaders';
+import {
+  applyThemeToMaterials,
+  clearThemeTextureCache,
+  getThemeTextures,
+} from './reactor-theme';
+import {
+  CORE_PLASMA_SHADER_CONFIG,
+  evaluateThermalRampRgb,
+} from './reactor-core-plasma-shaders';
 import {
   ColorGradingVignetteShader,
   GTAO_DENOISE_CONFIG,
-  evaluateBilateralDenoiseWeight,
+  evaluatePoissonDenoiseWeight,
+  getPoissonDenoiseLuminance,
   resolveAutoDprCap,
   resolveEffectiveFxaa,
   resolveGtaoPassSettings,
@@ -78,19 +86,29 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
   beforeEach(() => {
     ensureCanvas2dMock();
     clearStaticTextureCache();
+    clearThemeTextureCache();
   });
 
   afterEach(() => {
     clearStaticTextureCache();
+    clearThemeTextureCache();
   });
 
-  it('1. replaces #include <emissivemap_fragment> in Balanced/Cinematic without duplicate modulation or diffuseColor turbulence', () => {
+  it('1. replaces #include <emissivemap_fragment> once, samples outerEnvelopeMap in Balanced/Cinematic, and unbinds plasmaVortexMat.emissiveMap cleanly', () => {
     const registry = new ReactorTextureRegistry();
     const bundle = registry.getBootstrapBundle(4, true);
     const mats = createReactorMaterials('red', bundle);
+    const expectedEnvTex = createOuterEnvelopeTexture(256);
+    const expectedThermalTex = createCoreThermalTexture(512);
 
     for (const preset of [GRAPHICS_PRESETS.Balanced, GRAPHICS_PRESETS.Cinematic]) {
       mats.applyGraphicsConfig(preset, null);
+
+      // plasmaOuterEnvelopeMat keeps outerEnvelopeMap bound and samples it via USE_EMISSIVEMAP / vEmissiveMapUv
+      expect(mats.plasmaOuterEnvelopeMat.emissiveMap).toBe(expectedEnvTex);
+      // plasmaVortexMat intentionally unbinds emissiveMap in Balanced/Cinematic (radial falloff via vColor, filaments via map)
+      expect(mats.plasmaVortexMat.emissiveMap).toBeNull();
+
       for (const mat of [
         mats.singularityCoreEmissiveMat,
         mats.plasmaOuterEnvelopeMat,
@@ -109,11 +127,22 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
         expect(stub.fragmentShader).toContain('#ifdef USE_MAP');
         expect(stub.fragmentShader).toContain('texture2D(map, vMapUv)');
         expect(stub.fragmentShader).not.toContain('dot(diffuseColor.rgb');
+
+        if (mat === mats.plasmaOuterEnvelopeMat) {
+          expect(stub.fragmentShader).toContain('#ifdef USE_EMISSIVEMAP');
+          expect(stub.fragmentShader).toContain('vEmissiveMapUv');
+          expect(stub.fragmentShader).toContain('texture2D(emissiveMap, arcEnvUv)');
+          expect(stub.fragmentShader).toContain('pow(max(arcEnvMapSample.r');
+          // Preserve Three.js r174 hardware sRGB decoding without manual double-decode
+          expect(stub.fragmentShader).not.toContain('sRGBTransferEOTF');
+        }
       }
     }
 
-    // Eco restores pure static fallback with untouched ShaderLib fragment
+    // Eco restores pure static fallback with untouched ShaderLib fragment & valid emissiveMaps
     mats.applyGraphicsConfig(GRAPHICS_PRESETS.Eco, null);
+    expect(mats.plasmaOuterEnvelopeMat.emissiveMap).toBe(expectedEnvTex);
+    expect(mats.plasmaVortexMat.emissiveMap).toBe(expectedThermalTex);
     const envEcoStub = {
       vertexShader: THREE.ShaderLib.standard.vertexShader,
       fragmentShader: THREE.ShaderLib.standard.fragmentShader,
@@ -127,7 +156,7 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
     registry.disposeAll();
   });
 
-  it('2. validates isolated 4-stop thermal ramp progression and deterministic outer-envelope texture caching/ownership', () => {
+  it('2. validates isolated 4-stop thermal ramp progression, outer-envelope UV alignment, and theme synchronization', () => {
     // Isolated emission chromaticity ramp only (does NOT simulate full GPU framebuffer or Bloom)
     const crimsonHue: [number, number, number] = [1.0, 0.013, 0.027];
     const outer = evaluateThermalRampRgb(0.05, crimsonHue);
@@ -142,7 +171,7 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
     expect(hotCore[1]).toBeGreaterThan(innerAmber[1]);
     expect(hotCore[2]).toBeGreaterThan(innerAmber[2]);
 
-    // Deterministic static texture cache & color space for all three core maps
+    // Deterministic static texture cache & color space for outer envelope
     const env1 = createOuterEnvelopeTexture(256);
     const env2 = createOuterEnvelopeTexture(256);
     expect(env1).toBe(env2);
@@ -150,12 +179,23 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
     expect(env1.wrapS).toBe(THREE.ClampToEdgeWrapping);
     expect(env1.wrapT).toBe(THREE.ClampToEdgeWrapping);
 
-    // Mid-annular band (r ~0.64) is brighter than outer edge (r ~0.96)
+    // Validate transformed outer-envelope UV range (geometry r_uv = 0.342..0.449) against actual texture pixels
     const envData = (env1.image as any).__imageData as Uint8ClampedArray;
-    const ringIdx = (128 * 256 + Math.round(128 + 0.64 * 128)) * 4;
-    const cornerIdx = (2 * 256 + 2) * 4;
-    expect(envData[ringIdx]).toBeGreaterThan(120);
-    expect(envData[cornerIdx]).toBeLessThan(20);
+    const sampleRedAtUv = (u: number, v: number): number => {
+      const cx = Math.max(0, Math.min(255, Math.floor(Math.max(0.01, Math.min(0.99, u)) * 256)));
+      const cy = Math.max(0, Math.min(255, Math.floor(Math.max(0.01, Math.min(0.99, v)) * 256)));
+      return envData[(cy * 256 + cx) * 4];
+    };
+    const scale = CORE_PLASMA_SHADER_CONFIG.outerEnvelopeUvScale;
+    const innerRed = sampleRedAtUv(0.5 + 0.342 * scale, 0.5);
+    const midRed = sampleRedAtUv(0.5 + 0.395 * scale, 0.5);
+    const outerRed = sampleRedAtUv(0.5 + 0.449 * scale, 0.5);
+    // Transformed UV band lands directly on the bright annular profile without clamping to dark edges
+    expect(innerRed).toBeGreaterThan(200);
+    expect(midRed).toBeGreaterThan(190);
+    expect(outerRed).toBeGreaterThan(160);
+    // Verify unaligned 1.4x scale would have pushed mid/outer geometry past texture edge into black
+    expect(sampleRedAtUv(0.5 + 0.449 * 1.4, 0.5)).toBeLessThan(15);
 
     // Core thermal map remains visibly luminous at r = 0.22/0.54 (main body sample outside hot core r = 0.145)
     const thermal = createCoreThermalTexture(256);
@@ -164,6 +204,31 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
     const bodyIdx = (128 * 256 + (128 + r022UvOffset)) * 4;
     expect(thermalData[bodyIdx]).toBeGreaterThan(220);
     expect(thermalData[bodyIdx + 1]).toBeGreaterThan(80);
+
+    // Runtime theme synchronization updates plasmaOuterEnvelopeMat.map while preserving outerEnvelopeMap
+    const registry = new ReactorTextureRegistry();
+    const bundle = registry.getBootstrapBundle(4, true);
+    const mats = createReactorMaterials('red', bundle);
+    const initialRedMap = mats.plasmaOuterEnvelopeMat.map;
+    const initialEnvEmissive = mats.plasmaOuterEnvelopeMat.emissiveMap;
+    expect(initialEnvEmissive).toBe(env1);
+
+    applyThemeToMaterials('blue', mats);
+    const bluePlasmaMap = getThemeTextures('blue').plasmaMap;
+    expect(mats.plasmaOuterEnvelopeMat.map).toBe(bluePlasmaMap);
+    expect(mats.plasmaOuterEnvelopeMat.map).not.toBe(initialRedMap);
+    expect(mats.plasmaOuterEnvelopeMat.map).toBe(mats.singularityCoreEmissiveMat.map);
+    expect(mats.plasmaOuterEnvelopeMat.map).toBe(mats.plasmaVortexMat.map);
+    expect(mats.plasmaOuterEnvelopeMat.emissiveMap).toBe(initialEnvEmissive);
+
+    applyThemeToMaterials('green', mats);
+    const greenPlasmaMap = getThemeTextures('green').plasmaMap;
+    expect(mats.plasmaOuterEnvelopeMat.map).toBe(greenPlasmaMap);
+    expect(mats.plasmaOuterEnvelopeMat.map).not.toBe(bluePlasmaMap);
+    expect(mats.plasmaOuterEnvelopeMat.emissiveMap).toBe(initialEnvEmissive);
+
+    mats.dispose();
+    registry.disposeAll();
   });
 
   it('3. enforces independent plasmaOuterEnvelopeMat lifecycle: pre-frame-0 binding, filtering, OFF/Power=0 blackout, and disposal separation', () => {
@@ -178,7 +243,7 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
 
     let activeState = 'idle';
     let activePower = 1.0;
-    let activeConfig: GraphicsConfig = { ...GRAPHICS_PRESETS.Balanced };
+    const activeConfig: GraphicsConfig = { ...GRAPHICS_PRESETS.Balanced };
 
     const driver = createReactorStateDriver({
       scene,
@@ -301,20 +366,46 @@ describe('ARC-057 — Plasma Look Development, Material Separation & Render Cali
     registry.disposeAll();
   });
 
-  it('4. validates synthetic GTAO depth-discontinuity & normal-step rejection, FXAA-vs-MSAA4x, DPR 1.25 default cap, and preserved contrast curve', () => {
-    expect(GTAO_DENOISE_CONFIG.radius).toBe(3);
-    expect(GTAO_DENOISE_CONFIG.depthPhi).toBe(2);
-    expect(GTAO_DENOISE_CONFIG.normalPhi).toBe(4.5);
+  it('4. validates exact Three.js r174 PoissonDenoiseShader depth/normal/luma weights, FXAA-vs-MSAA4x, DPR 1.25 default cap, and preserved contrast curve', () => {
+    expect(GTAO_DENOISE_CONFIG).toEqual({
+      lumaPhi: 10,
+      depthPhi: 2,
+      normalPhi: 4.5,
+      radius: 3,
+      samples: 8,
+    });
 
-    // Synthetic depth step: depthPhi=2 rejects cross-depth samples strictly more strongly than depthPhi=3
-    const bleedDepthPhi2 = evaluateBilateralDenoiseWeight(4.0, 1.0, GTAO_DENOISE_CONFIG.depthPhi, GTAO_DENOISE_CONFIG.normalPhi);
-    const bleedDepthPhi3 = evaluateBilateralDenoiseWeight(4.0, 1.0, 3.0, GTAO_DENOISE_CONFIG.normalPhi);
-    expect(bleedDepthPhi2).toBeLessThan(bleedDepthPhi3);
+    // Under Three.js r174 linear-clamped depthSimilarity = max(1 - depthDiff / depthPhi, 0):
+    // 1) depthDiff = 1.5 distinguishes depthPhi=2 (0.25) from depthPhi=3 (0.50)
+    const wDepth15Phi2 = evaluatePoissonDenoiseWeight({ depthDiff: 1.5, normalDot: 1.0, depthPhi: 2 });
+    const wDepth15Phi3 = evaluatePoissonDenoiseWeight({ depthDiff: 1.5, normalDot: 1.0, depthPhi: 3 });
+    expect(wDepth15Phi2).toBeCloseTo(0.25, 6);
+    expect(wDepth15Phi3).toBeCloseTo(0.50, 6);
+    expect(wDepth15Phi2).toBeLessThan(wDepth15Phi3);
 
-    // Synthetic 60-degree bevel normal step (dot = 0.5): normalPhi=4.5 rejects stronger than normalPhi=3
-    const bleedNormal45 = evaluateBilateralDenoiseWeight(0.0, 0.5, GTAO_DENOISE_CONFIG.depthPhi, 4.5);
-    const bleedNormal30 = evaluateBilateralDenoiseWeight(0.0, 0.5, GTAO_DENOISE_CONFIG.depthPhi, 3.0);
-    expect(bleedNormal45).toBeLessThan(bleedNormal30);
+    // 2) depthDiff = 2.4 crosses depthPhi=2 cutoff (0.0 rejected) while depthPhi=3 still leaks 0.20
+    const wDepth24Phi2 = evaluatePoissonDenoiseWeight({ depthDiff: 2.4, normalDot: 1.0, depthPhi: 2 });
+    const wDepth24Phi3 = evaluatePoissonDenoiseWeight({ depthDiff: 2.4, normalDot: 1.0, depthPhi: 3 });
+    expect(wDepth24Phi2).toBe(0);
+    expect(wDepth24Phi3).toBeCloseTo(0.20, 6);
+
+    // 3) depthDiff >= 3.0 clamps both cleanly to 0
+    expect(evaluatePoissonDenoiseWeight({ depthDiff: 4.0, normalDot: 1.0, depthPhi: 2 })).toBe(0);
+    expect(evaluatePoissonDenoiseWeight({ depthDiff: 4.0, normalDot: 1.0, depthPhi: 3 })).toBe(0);
+
+    // 4) Normal similarity pow(max(dot, 0), normalPhi): 60-degree bevel (dot = 0.5)
+    const wNormal45 = evaluatePoissonDenoiseWeight({ depthDiff: 0, normalDot: 0.5, normalPhi: 4.5 });
+    const wNormal30 = evaluatePoissonDenoiseWeight({ depthDiff: 0, normalDot: 0.5, normalPhi: 3.0 });
+    expect(wNormal45).toBeCloseTo(Math.pow(0.5, 4.5), 6);
+    expect(wNormal30).toBeCloseTo(0.125, 6);
+    expect(wNormal45).toBeLessThan(wNormal30);
+
+    // 5) Luminance similarity max(1 - lumaDiff / lumaPhi, 0) using exact 0.2125/0.7154/0.0721 weights
+    expect(getPoissonDenoiseLuminance([1, 1, 1])).toBeCloseTo(1.0, 6);
+    const wLuma5 = evaluatePoissonDenoiseWeight({ depthDiff: 0, normalDot: 1.0, lumaDiff: 5.0, lumaPhi: 10 });
+    const wLuma10 = evaluatePoissonDenoiseWeight({ depthDiff: 0, normalDot: 1.0, lumaDiff: 10.0, lumaPhi: 10 });
+    expect(wLuma5).toBeCloseTo(0.5, 6);
+    expect(wLuma10).toBe(0);
 
     const balancedGtao = resolveGtaoPassSettings(false);
     const cinematicGtao = resolveGtaoPassSettings(true);

@@ -34,12 +34,16 @@ export interface CorePlasmaShaderUniforms {
 }
 
 export const CORE_PLASMA_SHADER_CONFIG = {
-  cacheVersion: 'v2',
+  cacheVersion: 'v3',
   detailLevel: { balanced: 0.60, cinematic: 1.0 },
   bodyGain: { balanced: 1.85, cinematic: 2.20 },
   hotCoreGain: { balanced: 1.38, cinematic: 1.62 },
   envelopeGain: { balanced: 1.15, cinematic: 1.35 },
   vortexGain: { balanced: 1.08, cinematic: 1.28 },
+  // Outer-envelope geometry UVs span r_uv = [0.342..0.449] -> texture rad = 2*r_uv = [0.684..0.898].
+  // Scaling by 0.80 maps r_uv -> [0.274..0.359] (texture rad [0.547..0.718]), aligning the inner rim
+  // directly onto createOuterEnvelopeTexture's 0.54..0.56 annular peak without clamping [0, 1].
+  outerEnvelopeUvScale: 0.80,
 } as const;
 
 export const NOOP_BEFORE_COMPILE = (): void => {};
@@ -232,6 +236,7 @@ export function installProceduralCoreShaders(
   singularityPointMat.needsUpdate = true;
 
   // 3. Dedicated Outer Energy Envelope (renderOrder = 1, independent deep-crimson volumetric aura)
+  const envUvScaleStr = CORE_PLASMA_SHADER_CONFIG.outerEnvelopeUvScale.toFixed(2);
   plasmaOuterEnvelopeMat.emissiveMap = textures.outerEnvelopeMap;
   plasmaOuterEnvelopeMat.vertexColors = true;
   plasmaOuterEnvelopeMat.customProgramCacheKey = () => `arc-plasma-envelope-${tier}-${ver}`;
@@ -247,13 +252,19 @@ export function installProceduralCoreShaders(
     if (shader.fragmentShader.includes('#include <emissivemap_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
-        `/* ARC-057: independent outer-envelope emission (replaces emissivemap_fragment) */
+        `/* ARC-057: single-pass outer-envelope emission sampling outerEnvelopeMap (replaces emissivemap_fragment) */
+        float arcEnvMask = 1.0;
+        #ifdef USE_EMISSIVEMAP
+          vec2 arcEnvUv = clamp((vEmissiveMapUv - 0.5) * ${envUvScaleStr} + 0.5, 0.01, 0.99);
+          vec3 arcEnvMapSample = texture2D(emissiveMap, arcEnvUv).rgb;
+          arcEnvMask = pow(max(arcEnvMapSample.r, max(arcEnvMapSample.g, arcEnvMapSample.b)), 0.55);
+        #endif
         float arcEnvRawTurb = 0.48;
         #ifdef USE_MAP
           vec3 arcEnvTex = texture2D(map, vMapUv).rgb;
           arcEnvRawTurb = max(arcEnvTex.r, max(arcEnvTex.g, arcEnvTex.b));
         #endif
-        float arcEnvMod = (0.76 + 0.42 * uDetailLevel * arcEnvRawTurb) * uEnvelopeGain;
+        float arcEnvMod = arcEnvMask * (0.76 + 0.42 * uDetailLevel * arcEnvRawTurb) * uEnvelopeGain;
         #ifdef USE_COLOR
           totalEmissiveRadiance *= vColor.rgb * arcEnvMod;
         #else
@@ -265,7 +276,10 @@ export function installProceduralCoreShaders(
   plasmaOuterEnvelopeMat.needsUpdate = true;
 
   // 4. Independent Front Containment Field (renderOrder = 4, crisp magnetic filament arcs)
-  plasmaVortexMat.emissiveMap = textures.thermalMap;
+  // Procedural radial shaping is driven by baked vColor and animated filaments by `map` (plasmaEnergyMap);
+  // emissiveMap is intentionally unbound here to avoid an unused USE_EMISSIVEMAP sampler binding
+  // while installEcoCoreFallback() restores textures.thermalMap for Eco static mode.
+  plasmaVortexMat.emissiveMap = null;
   plasmaVortexMat.vertexColors = true;
   plasmaVortexMat.customProgramCacheKey = () => `arc-plasma-vortex-${tier}-${ver}`;
   plasmaVortexMat.onBeforeCompile = (shader) => {

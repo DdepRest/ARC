@@ -76,4 +76,9 @@ export function applyThemeToMaterials(theme: string, materials: ReactorMaterials
   
   materials.plasmaVortexMat.map = textures.plasmaMap;
   materials.plasmaVortexMat.needsUpdate = true;
+
+  if (materials.plasmaOuterEnvelopeMat) {
+    materials.plasmaOuterEnvelopeMat.map = textures.plasmaMap;
+    materials.plasmaOuterEnvelopeMat.needsUpdate = true;
+  }
 }
