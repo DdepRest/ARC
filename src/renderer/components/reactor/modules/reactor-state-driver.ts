@@ -174,9 +174,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   let triangularCoreMesh: THREE.Mesh | null = null;
   let triangularCoreBasic: THREE.Mesh | null = null;
   let plasmaWhiteCoreMesh: THREE.Mesh | null = null;
+  let plasmaOuterEnvelopeMesh: THREE.Mesh | null = null;
   let plasmaContainmentFieldMesh: THREE.Mesh | null = null;
   let innerTriWireMesh: THREE.Mesh | null = null;
   let hudLensMesh: THREE.Mesh | null = null;
+  let coreSpillLight: THREE.PointLight | null = null;
   const conduitRunners: THREE.Mesh[] = [];
   const portDiodes: THREE.Mesh[] = [];
   const bearingIndicators: THREE.Mesh[] = [];
@@ -223,9 +225,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     if (child.name === "arc-triangular-core-mesh") triangularCoreMesh = child as THREE.Mesh;
     if (child.name === "arc-triangular-core-basic") triangularCoreBasic = child as THREE.Mesh;
     if (child.name === "arc-plasma-white-core") plasmaWhiteCoreMesh = child as THREE.Mesh;
+    if (child.name === "arc-plasma-outer-envelope") plasmaOuterEnvelopeMesh = child as THREE.Mesh;
     if (child.name === "arc-plasma-containment-field") plasmaContainmentFieldMesh = child as THREE.Mesh;
     if (child.name === "arc-inner-wire-triangle") innerTriWireMesh = child as THREE.Mesh;
     if (child.name === "arc-core-hud-lens") hudLensMesh = child as THREE.Mesh;
+    if (child.name === "arc-core-spill-light") coreSpillLight = child as THREE.PointLight;
     if (child.name.startsWith("arc-conduit-runner-")) conduitRunners.push(child as THREE.Mesh);
     if (child.name.startsWith("arc-inner-plasma-tube-")) {
       const idx = parseInt(child.name.replace("arc-inner-plasma-tube-", ""), 10);
@@ -622,6 +626,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.plasmaVortexMat.opacity = 0.0;
       materials.plasmaVortexMat.emissive.setHex(0x000000);
       materials.plasmaVortexMat.emissiveIntensity = 0.0;
+      if (plasmaOuterEnvelopeMesh) plasmaOuterEnvelopeMesh.visible = false;
+      if (coreSpillLight) {
+        coreSpillLight.intensity = 0.0;
+        coreSpillLight.visible = false;
+      }
 
       for (let bIdx = 0; bIdx < 3; bIdx++) {
         const bMat = bearingIndicators[bIdx]?.material;
@@ -823,11 +832,22 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
           materials.singularityCoreEmissiveMat.emissiveIntensity = 0.0;
         }
         if (plasmaWhiteCoreMesh) {
-          const whiteScale = 1.0 + Math.sin(elapsedTime * 6.4) * 0.04 + smoothBass * 0.08 + manualPulseValue * 0.06;
+          const whiteScale = prefersReducedMotion
+            ? 1.0
+            : 1.0 + Math.sin(elapsedTime * 6.4) * 0.04 + smoothBass * 0.08 + manualPulseValue * 0.06;
           plasmaWhiteCoreMesh.scale.setScalar(whiteScale);
         }
+        if (plasmaOuterEnvelopeMesh) {
+          plasmaOuterEnvelopeMesh.visible = isGlowActive;
+          const envelopeScale = prefersReducedMotion
+            ? 1.0
+            : 1.0 + Math.sin(elapsedTime * 2.6) * 0.02 + smoothTotal * 0.035;
+          plasmaOuterEnvelopeMesh.scale.setScalar(envelopeScale);
+        }
         if (plasmaContainmentFieldMesh) {
-          const fieldScale = 1.0 + Math.cos(elapsedTime * 4.2) * 0.03 + smoothTotal * 0.05;
+          const fieldScale = prefersReducedMotion
+            ? 1.0
+            : 1.0 + Math.cos(elapsedTime * 4.2) * 0.03 + smoothTotal * 0.05;
           plasmaContainmentFieldMesh.scale.setScalar(fieldScale);
         }
         if (innerTriWireMesh) {
@@ -1527,6 +1547,22 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       ? Math.min(0.42, (0.26 + smoothTotal * 0.16) * stageCenter)
       : Math.min(0.76, (0.44 + smoothTotal * 0.30 + smoothBass * 0.14) * stageCenter);
     lighting.coreLight.intensity += (targetCoreLight - lighting.coreLight.intensity) * 0.2;
+
+    if (coreSpillLight) {
+      const spillEnabled = isGlowActive && !isEcoLights && gfx?.glslPlasmaShader !== false;
+      if (!spillEnabled) {
+        coreSpillLight.visible = false;
+        coreSpillLight.intensity = 0.0;
+      } else {
+        coreSpillLight.visible = true;
+        coreSpillLight.color.copy(activeColor);
+        const isCinematicSpill = activeLightTier === "full" || gfx?.pmremQuality === "high";
+        const targetSpill = isCinematicSpill
+          ? Math.min(1.85, (0.80 + currentVisuals.coreIntensity * 0.36 + smoothTotal * 0.34 + smoothBass * 0.22) * stageCenter)
+          : Math.min(1.15, (0.46 + currentVisuals.coreIntensity * 0.24 + smoothTotal * 0.22 + smoothBass * 0.14) * stageCenter);
+        coreSpillLight.intensity += (targetSpill - coreSpillLight.intensity) * 0.18;
+      }
+    }
 
     if (lighting.innerChamberLight.visible !== !isEcoLights) lighting.innerChamberLight.visible = !isEcoLights;
     if (lighting.rimLight.visible !== !isEcoLights) lighting.rimLight.visible = !isEcoLights;

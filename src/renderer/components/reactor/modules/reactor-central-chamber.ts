@@ -9,6 +9,7 @@ import {
   createBeveledHexagon,
   mergeGeometryBatch,
 } from "./reactor-geometry-primitives";
+import { applyCenteredPlasmaUvs, bakeRadialPlasmaVertexColors } from "./reactor-core-plasma";
 
 export interface CentralChamberRig {
   group: THREE.Group;
@@ -26,14 +27,7 @@ export interface CentralChamberRig {
 }
 
 /**
- * Builds the Deep 7-Layer Central Mechanical Energy Chamber + Volumetric Plasma Core & Radial Feeders:
- * 1. Two-tier stepped obsidian outer chamber barrel + precision gunmetal crown bezel
- * 2. Edge audio plasma trenches, clamping yokes & pier-supported radial power bridges + primary radial feeders
- * 3. Deep stepped matte ceramic isolation well + 3 radial iris guide rails + copper focus coil
- * 4. True 3D 6-blade mechanical aperture iris (`arc-aperture-inner-rim`, z = +0.02)
- * 5. Volumetric 3-layer plasma core (white-hot center, crimson envelope, containment field, 3-jaw emitter cradle)
- * 6. Recessed beveled smoked optical glass viewport with 3 retaining clips (`arc-chamber-optic-glass`, z = +0.34)
- * 7. Crisp floating A.R.C. central mark (`arc-central-letters-logo`, z = +0.38)
+ * Builds the 7-Layer Central Mechanical Energy Chamber, Volumetric 4-Layer Plasma Core & Radial Feeders (ARC-056).
  */
 export function buildCentralChamber(
   materials: ReactorMaterials,
@@ -223,70 +217,91 @@ export function buildCentralChamber(
   apertureInnerRim.add(irisCopperActuator);
   group.add(apertureInnerRim);
 
-  // LAYER 5: Volumetric 3-Layer Central Plasma Energy Core & Electromagnetic Containment Assembly
-  // A. Deep Faceted Plasma Chamber Well
+  // LAYER 5: Volumetric 4-Layer Central Plasma Energy Core, Containment & Spill Light (ARC-056)
   const facetedCavityGeo = new THREE.OctahedronGeometry(0.46, 1);
-  facetedCavityGeo.scale(1.0, 1.0, 0.40);
+  facetedCavityGeo.scale(1.0, 1.0, 0.24);
   ensureUv2(facetedCavityGeo);
   const facetedCavity = new THREE.Mesh(facetedCavityGeo, materials.singularityFacetedMat);
   facetedCavity.name = "arc-core-faceted-cavity";
-  facetedCavity.position.z = -0.82;
+  facetedCavity.position.z = -0.745;
   facetedCavity.updateMatrix();
   facetedCavity.matrixAutoUpdate = false;
   shell.add(facetedCavity);
 
-  // A1. Primary Plasma Source — Saturated Crimson Volumetric Outer Plasma Envelope (`arc-triangular-core-mesh`)
+  // Widened Mechanical Emitter Cradle behind primary plasma (innerR=0.62 -> actual bore 0.600 > body 0.568)
+  addStatic(shell, createBeveledTriangleFrame(0.88, 0.62, 0.048, 0.010, 0.010), materials.anodizedBlack, chamberAnodized, 0, 0, -0.595);
+
+  // Outer Plasma Energy Envelope — annular crimson corona behind main body (outer 0.700 <= iris actuator 0.72)
+  const outerEnvelopeGeo = bakeRadialPlasmaVertexColors(
+    applyCenteredPlasmaUvs(createBeveledTriangleFrame(0.684, 0.52, 0.044, 0.008, 0.008), 0.70),
+    0.50, 0.70, [0.88, 0.24, 0.18], [0.22, 0.04, 0.05]
+  );
+  const outerEnvelopeMesh = new THREE.Mesh(outerEnvelopeGeo, materials.plasmaVortexMat);
+  outerEnvelopeMesh.name = "arc-plasma-outer-envelope";
+  outerEnvelopeMesh.position.z = -0.525;
+  outerEnvelopeMesh.renderOrder = 1;
+  group.add(outerEnvelopeMesh);
+
+  // Three Symmetrical Mounting Jaws at 90°, 210°, 330° (r=[0.583..0.860], strictly clear of 0.568 main body)
+  const emitterArmGeo = createBeveledTrapezoid(0.19, 0.13, 0.24, 0.064, 0.010, 0.010);
+  const coreMountJawGeo = createBeveledTrapezoid(0.14, 0.10, 0.14, 0.056, 0.008, 0.008);
+  const coreContactStudGeo = createBeveledTrapezoid(0.054, 0.042, 0.058, 0.044, 0.006, 0.006);
+  for (let i = 0; i < 3; i++) {
+    const jawA = angles[i] + Math.PI / 3;
+    addStatic(shell, emitterArmGeo, materials.anodizedBlack, chamberAnodized, Math.cos(jawA) * 0.73, Math.sin(jawA) * 0.73, -0.455, jawA + Math.PI / 2);
+    addStatic(shell, coreMountJawGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(jawA) * 0.67, Math.sin(jawA) * 0.67, -0.445, jawA + Math.PI / 2);
+    addStatic(shell, coreContactStudGeo, materials.copperWinding, chamberCopper, Math.cos(jawA) * 0.618, Math.sin(jawA) * 0.618, -0.435, jawA + Math.PI / 2);
+  }
+
+  // Main Plasma Body (r=0.54 -> 69.2% radius / 47.9% area of 0.78 aperture) & White-Hot Singularity Heart (r=0.145)
   const triangularCoreMesh = new THREE.Mesh(
-    createBeveledTriangleSolid(0.285, 0.22, 0.026, 0.026),
+    applyCenteredPlasmaUvs(createBeveledTriangleSolid(0.54, 0.124, 0.014, 0.014), 0.568),
     materials.singularityCoreEmissiveMat
   );
   triangularCoreMesh.name = "arc-triangular-core-mesh";
-  triangularCoreMesh.position.z = -0.46;
+  triangularCoreMesh.position.z = -0.410;
+  triangularCoreMesh.renderOrder = 2;
   group.add(triangularCoreMesh);
 
-  // A2. White-Hot Compact Plasma Singularity Heart (`arc-plasma-white-core`, compact radius prevents hotspot overlap on A/R/C)
-  const whiteCoreGeo = createBeveledTriangleSolid(0.125, 0.11, 0.015, 0.015);
-  const whiteHotCoreMesh = new THREE.Mesh(whiteCoreGeo, materials.singularityPointMat);
+  const whiteHotCoreMesh = new THREE.Mesh(
+    applyCenteredPlasmaUvs(createBeveledTriangleSolid(0.145, 0.048, 0.010, 0.010), 0.165),
+    materials.singularityPointMat
+  );
   whiteHotCoreMesh.name = "arc-plasma-white-core";
-  whiteHotCoreMesh.position.z = -0.37;
-  whiteHotCoreMesh.renderOrder = 2;
+  whiteHotCoreMesh.position.z = -0.285;
+  whiteHotCoreMesh.renderOrder = 3;
   group.add(whiteHotCoreMesh);
 
-  // B. Electromagnetic Containment Field — Semi-transparent layered triangular energy loop (`arc-plasma-containment-field`)
+  // Front Electromagnetic Containment Field, Inner Wireframe & Single Core Spill Light
   const containmentFieldMesh = new THREE.Mesh(
-    createBeveledTriangleFrame(0.46, 0.35, 0.05, 0.01, 0.01),
+    bakeRadialPlasmaVertexColors(
+      applyCenteredPlasmaUvs(createBeveledTriangleFrame(0.64, 0.45, 0.032, 0.008, 0.008), 0.656),
+      0.434, 0.656, [0.95, 0.48, 0.28], [0.32, 0.08, 0.10]
+    ),
     materials.plasmaVortexMat
   );
   containmentFieldMesh.name = "arc-plasma-containment-field";
-  containmentFieldMesh.position.z = -0.32;
-  containmentFieldMesh.renderOrder = 2;
+  containmentFieldMesh.position.z = -0.190;
+  containmentFieldMesh.renderOrder = 4;
   group.add(containmentFieldMesh);
 
-  // C. Precision-Machined Triangular Mechanical Emitter Cradle (3 symmetrical mounting jaws at 90°, 210°, 330°)
-  addStatic(shell, createBeveledTriangleFrame(0.88, 0.42, 0.11, 0.02, 0.02), materials.anodizedBlack, chamberAnodized, 0, 0, -0.37);
-  const emitterArmGeo = createBeveledTrapezoid(0.20, 0.13, 0.38, 0.14, 0.016, 0.016);
-  const coreMountJawGeo = createBeveledTrapezoid(0.14, 0.09, 0.26, 0.11, 0.012, 0.012);
-  const coreContactStudGeo = createBeveledTrapezoid(0.052, 0.042, 0.085, 0.075, 0.008, 0.008);
-  for (let i = 0; i < 3; i++) {
-    const jawA = angles[i] + Math.PI / 3; // 90°, 210°, 330° (strictly between A/R/C glyphs)
-    addStatic(shell, emitterArmGeo, materials.anodizedBlack, chamberAnodized, Math.cos(jawA) * 0.62, Math.sin(jawA) * 0.62, -0.36, jawA + Math.PI / 2);
-    addStatic(shell, coreMountJawGeo, materials.ringFrameMat, chamberRingFrame, Math.cos(jawA) * 0.52, Math.sin(jawA) * 0.52, -0.30, jawA + Math.PI / 2);
-    addStatic(shell, coreContactStudGeo, materials.copperWinding, chamberCopper, Math.cos(jawA) * 0.42, Math.sin(jawA) * 0.42, -0.27, jawA + Math.PI / 2);
-  }
-
-  const innerTriWireMesh = new THREE.Mesh(
-    createBeveledTriangleFrame(0.36, 0.29, 0.07, 0.011, 0.011),
-    materials.singularityInnerWireMat
-  );
+  const innerTriWireMesh = new THREE.Mesh(createBeveledTriangleFrame(0.58, 0.48, 0.028, 0.006, 0.006), materials.singularityInnerWireMat);
   innerTriWireMesh.name = "arc-inner-wire-triangle";
-  innerTriWireMesh.position.z = -0.26;
+  innerTriWireMesh.position.z = -0.125;
+  innerTriWireMesh.renderOrder = 5;
   group.add(innerTriWireMesh);
+
+  const coreSpillLight = new THREE.PointLight(materials.currentColor.getHex(), 0.0, 3.8, 1.8);
+  coreSpillLight.name = "arc-core-spill-light";
+  coreSpillLight.castShadow = false;
+  coreSpillLight.position.set(0, 0, -0.18);
+  group.add(coreSpillLight);
 
   // LAYER 6: Recessed Armored Optical Protective Glass Viewport + 3 Retaining Clips
   const glassWindow = new THREE.Mesh(createBeveledTriangleSolid(1.66, 0.04, 0.018, 0.018), materials.opticGlass);
   glassWindow.name = "arc-chamber-optic-glass";
   glassWindow.position.z = 0.34;
-  glassWindow.renderOrder = 4;
+  glassWindow.renderOrder = 6;
   glassWindow.updateMatrix();
   glassWindow.matrixAutoUpdate = false;
   group.add(glassWindow);
@@ -303,7 +318,7 @@ export function buildCentralChamber(
   lettersGroup.position.set(0, 0.0, 0.38);
   const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.14, 2.14), materials.arcCenterLogoMat);
   hudMesh.name = "arc-central-hud-mesh";
-  hudMesh.renderOrder = 6;
+  hudMesh.renderOrder = 7;
   lettersGroup.add(hudMesh);
   group.add(lettersGroup);
 

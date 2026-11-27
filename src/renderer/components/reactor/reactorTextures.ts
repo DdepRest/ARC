@@ -5,6 +5,8 @@ let cachedCarbonFiber: THREE.CanvasTexture | null = null;
 let cachedHoloReticle: THREE.CanvasTexture | null = null;
 let cachedTriangularReticle: THREE.CanvasTexture | null = null;
 let cachedArcLogo: THREE.CanvasTexture | null = null;
+let cachedCoreThermal: THREE.CanvasTexture | null = null;
+let cachedHotCore: THREE.CanvasTexture | null = null;
 
 export function clearStaticTextureCache(): void {
   try { cachedBrushedMetal?.dispose(); } catch {}
@@ -17,6 +19,10 @@ export function clearStaticTextureCache(): void {
   cachedTriangularReticle = null;
   try { cachedArcLogo?.dispose(); } catch {}
   cachedArcLogo = null;
+  try { cachedCoreThermal?.dispose(); } catch {}
+  cachedCoreThermal = null;
+  try { cachedHotCore?.dispose(); } catch {}
+  cachedHotCore = null;
 }
 
 /**
@@ -180,6 +186,156 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+/**
+ * Deterministic thermal plasma texture for the central triangular core body (ARC-056).
+ * Centered strictly at UV (0.5, 0.5) with white-amber core -> orange-red -> saturated crimson
+ * -> deep ruby outer band and subtle 3-fold turbulent plasma filaments (no blue/cyan tones).
+ * Owned by the static texture cache and cleared via clearStaticTextureCache().
+ */
+export function createCoreThermalTexture(size = 512): THREE.CanvasTexture {
+  if (cachedCoreThermal) {
+    cachedCoreThermal.needsUpdate = true;
+    return cachedCoreThermal;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    const imgData = ctx.createImageData(size, size);
+    const data = imgData.data;
+    const half = size * 0.5;
+    const invHalf = 1 / half;
+
+    for (let y = 0; y < size; y++) {
+      const ny = (y + 0.5 - half) * invHalf;
+      for (let x = 0; x < size; x++) {
+        const nx = (x + 0.5 - half) * invHalf;
+        const rad = Math.hypot(nx, ny);
+        const ang = Math.atan2(ny, nx);
+
+        // Downward-pointing 3-fold triangular symmetry shaping + deterministic plasma filaments
+        const triHarmonic = Math.cos(3 * (ang + Math.PI / 2)) * 0.085;
+        const effR = Math.max(0, rad - triHarmonic * Math.min(1, rad * 1.4));
+
+        const f1 = Math.sin(nx * 11.0 + Math.cos(ny * 9.0) * 1.6) * Math.cos(ny * 10.5 - Math.sin(nx * 8.5) * 1.4);
+        const f2 = Math.sin(rad * 22.0 - Math.cos(ang * 3.0) * 2.2 + f1 * 1.5);
+        const vein = Math.pow(0.5 + 0.5 * Math.sin(ang * 6.0 + rad * 12.0 + f1 * 2.1), 2.0);
+        const filament = (f1 * 0.5 + 0.5) * 0.45 + (f2 * 0.5 + 0.5) * 0.30 + vein * 0.25;
+
+        const baseHeat = Math.max(0, Math.min(1, 1.0 - Math.pow(effR * 1.04, 1.18)));
+        const heat = Math.max(0, Math.min(1, baseHeat * (0.76 + filament * 0.34) + (1.0 - Math.min(1, effR * 2.4)) * 0.16));
+
+        // 4-stop thermal blackbody ramp: deep ruby -> saturated crimson -> orange-red -> warm amber-white
+        let r: number;
+        let g: number;
+        let b: number;
+        if (heat < 0.30) {
+          const t = heat / 0.30;
+          r = 24 + t * 138;
+          g = 3 + t * 13;
+          b = 6 + t * 14;
+        } else if (heat < 0.64) {
+          const t = (heat - 0.30) / 0.34;
+          r = 162 + t * 88;
+          g = 16 + t * 62;
+          b = 20 + t * 10;
+        } else if (heat < 0.86) {
+          const t = (heat - 0.64) / 0.22;
+          r = 250 + t * 5;
+          g = 78 + t * 116;
+          b = 30 + t * 76;
+        } else {
+          const t = (heat - 0.86) / 0.14;
+          r = 255;
+          g = 194 + t * 54;
+          b = 106 + t * 118;
+        }
+
+        const idx = (y * size + x) * 4;
+        data[idx] = Math.max(0, Math.min(255, Math.round(r)));
+        data[idx + 1] = Math.max(0, Math.min(255, Math.round(g)));
+        data[idx + 2] = Math.max(0, Math.min(255, Math.round(b)));
+        data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  cachedCoreThermal = texture;
+  return texture;
+}
+
+/**
+ * Deterministic compact white-hot to warm-amber singularity texture (ARC-056).
+ * Soft edge falloff to transparent black prevents harsh polygonal edges under AdditiveBlending.
+ */
+export function createHotCoreTexture(size = 256): THREE.CanvasTexture {
+  if (cachedHotCore) {
+    cachedHotCore.needsUpdate = true;
+    return cachedHotCore;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    const imgData = ctx.createImageData(size, size);
+    const data = imgData.data;
+    const half = size * 0.5;
+    const invHalf = 1 / half;
+
+    for (let y = 0; y < size; y++) {
+      const ny = (y + 0.5 - half) * invHalf;
+      for (let x = 0; x < size; x++) {
+        const nx = (x + 0.5 - half) * invHalf;
+        const rad = Math.hypot(nx, ny);
+        const ang = Math.atan2(ny, nx);
+
+        const triShape = Math.cos(3 * (ang + Math.PI / 2)) * 0.06;
+        const effR = Math.max(0, rad - triShape * Math.min(1, rad));
+        const cell = 0.86 + 0.14 * Math.sin(nx * 14.0 + Math.cos(ny * 13.0)) * Math.cos(ny * 14.0 - Math.sin(nx * 12.0));
+        const edgeMask = Math.max(0, Math.min(1, 1.0 - Math.pow(effR / 0.94, 2.2)));
+        const core = Math.max(0, Math.min(1, Math.pow(edgeMask, 1.35) * cell));
+
+        // White-ivory center -> restrained warm amber -> deep orange edge -> black
+        const r = 255 * Math.pow(core, 0.55);
+        const g = 248 * Math.pow(core, 1.05);
+        const b = 228 * Math.pow(core, 1.85);
+        const a = 255 * edgeMask;
+
+        const idx = (y * size + x) * 4;
+        data[idx] = Math.max(0, Math.min(255, Math.round(r)));
+        data[idx + 1] = Math.max(0, Math.min(255, Math.round(g)));
+        data[idx + 2] = Math.max(0, Math.min(255, Math.round(b)));
+        data[idx + 3] = Math.max(0, Math.min(255, Math.round(a)));
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  cachedHotCore = texture;
   return texture;
 }
 
@@ -424,16 +580,16 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
 
       // Recessed dark anodized channel bed under connecting bar
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(6, 8, 12, 0.86)';
-      ctx.lineWidth = 9.5 * scale;
+      ctx.strokeStyle = 'rgba(6, 8, 12, 0.64)';
+      ctx.lineWidth = 6.5 * scale;
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
 
-      // Machined satin titanium connecting bridge visually uniting A - R - C
+      // Machined dark-titanium connecting bridge visually uniting A - R - C without glare
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(208, 218, 230, 0.60)';
-      ctx.lineWidth = 3.8 * scale;
+      ctx.strokeStyle = 'rgba(148, 154, 164, 0.40)';
+      ctx.lineWidth = 2.6 * scale;
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
@@ -441,10 +597,10 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
       // Precision recessed end-notches anchoring each connecting bridge toward its glyph
       const nx = -uy;
       const ny = ux;
-      const tick = 6.5 * scale;
+      const tick = 5.5 * scale;
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(196, 206, 220, 0.52)';
-      ctx.lineWidth = 2.6 * scale;
+      ctx.strokeStyle = 'rgba(142, 148, 158, 0.36)';
+      ctx.lineWidth = 2.1 * scale;
       ctx.moveTo(startX - nx * tick, startY - ny * tick);
       ctx.lineTo(startX + nx * tick, startY + ny * tick);
       ctx.moveTo(endX - nx * tick, endY - ny * tick);
@@ -452,13 +608,13 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
       ctx.stroke();
     };
 
-    const gapR = 82 * scale;
+    const gapR = 88 * scale;
     drawSegmentWithGap(letters[0].x, letters[0].y, letters[1].x, letters[1].y, gapR);
     drawSegmentWithGap(letters[1].x, letters[1].y, letters[2].x, letters[2].y, gapR);
     drawSegmentWithGap(letters[2].x, letters[2].y, letters[0].x, letters[0].y, gapR);
 
-    // 2. Custom Geometric A, R, C Vector Glyphs — integrated machined titanium-silver finish
-    //    with localized dark contour cushion so 'R' stays crisp at all core brightness levels
+    // 2. Custom Geometric A, R, C Vector Glyphs — restrained dark-titanium / muted silver finish
+    //    calibrated strictly below the effective 0.58 Bloom threshold even with 0xe2e7f0 runtime tint
     const strokeGlyphPath = (
       char: string,
       gx: number,
@@ -468,7 +624,7 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
       sw: number,
       isContourPass: boolean
     ) => {
-      ctx.lineWidth = isContourPass ? sw + 20 * scale : sw;
+      ctx.lineWidth = isContourPass ? sw + 14 * scale : sw;
       if (char === 'A') {
         ctx.beginPath();
         ctx.moveTo(gx - w, gy + h);
@@ -477,7 +633,7 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.lineWidth = (isContourPass ? sw + 16 * scale : sw) * 0.85;
+        ctx.lineWidth = (isContourPass ? sw + 12 * scale : sw) * 0.85;
         ctx.moveTo(gx - w * 0.56, gy + h * 0.25);
         ctx.lineTo(gx + w * 0.56, gy + h * 0.25);
         ctx.stroke();
@@ -509,35 +665,39 @@ export function createArcCenterLogoTexture(size = 2048): THREE.CanvasTexture {
     };
 
     const drawPrecisionGlyph = (char: string, gx: number, gy: number) => {
-      // Compact borderless radial shadow cushion (no large opaque backing or medallion ring)
-      const haloGrad = ctx.createRadialGradient(gx, gy, 14 * scale, gx, gy, 80 * scale);
-      haloGrad.addColorStop(0, 'rgba(5, 7, 10, 0.74)');
-      haloGrad.addColorStop(0.58, 'rgba(5, 7, 10, 0.42)');
+      // Compact borderless radial shadow cushion preserving sharp legibility over enlarged plasma body
+      const haloGrad = ctx.createRadialGradient(gx, gy, 12 * scale, gx, gy, 58 * scale);
+      haloGrad.addColorStop(0, 'rgba(5, 7, 10, 0.58)');
+      haloGrad.addColorStop(0.58, 'rgba(5, 7, 10, 0.30)');
       haloGrad.addColorStop(1.0, 'rgba(5, 7, 10, 0.0)');
       ctx.fillStyle = haloGrad;
       ctx.beginPath();
-      ctx.arc(gx, gy, 80 * scale, 0, Math.PI * 2);
+      ctx.arc(gx, gy, 58 * scale, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.save();
       ctx.lineCap = 'butt';
       ctx.lineJoin = 'miter';
       ctx.miterLimit = 6;
-      const sw = 24.5 * scale;
+      const sw = 23.0 * scale;
       const h = 68 * scale;
       const w = 53 * scale;
 
       // Pass 1: Tight obsidian machined bezel contour directly behind glyph strokes
-      ctx.strokeStyle = 'rgba(5, 7, 10, 0.96)';
+      ctx.strokeStyle = 'rgba(5, 7, 10, 0.90)';
       strokeGlyphPath(char, gx, gy, h, w, sw, true);
 
-      // Pass 2: Machined satin titanium-silver glyph face (high contrast without glowing white glare)
+      // Pass 2: Restrained machined dark-titanium / muted silver face (~0.26..0.31 linear post-tint < 0.58 bloom threshold)
       const metalGrad = ctx.createLinearGradient(gx, gy - h, gx, gy + h);
-      metalGrad.addColorStop(0, '#f4f7fb');
-      metalGrad.addColorStop(0.52, '#e0e7f1');
-      metalGrad.addColorStop(1, '#c5cedc');
+      metalGrad.addColorStop(0, 'rgba(164, 170, 180, 0.92)');
+      metalGrad.addColorStop(0.54, 'rgba(136, 142, 152, 0.88)');
+      metalGrad.addColorStop(1, 'rgba(146, 126, 126, 0.90)');
       ctx.strokeStyle = metalGrad;
       strokeGlyphPath(char, gx, gy, h, w, sw, false);
+
+      // Pass 3: Subtle warm core-reflected micro-edge integrating emblem with optical glass
+      ctx.strokeStyle = 'rgba(204, 126, 106, 0.18)';
+      strokeGlyphPath(char, gx, gy, h, w, 3.0 * scale, false);
       ctx.restore();
     };
 

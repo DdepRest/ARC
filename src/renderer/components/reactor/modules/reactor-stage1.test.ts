@@ -158,7 +158,8 @@ describe('Reactor Stage I — PBR Material & Geometry Foundation', () => {
       'arc-process-node-0', 'arc-process-node-5', 'arc-node-screen-0', 'arc-node-led-5',
       'arc-hybrid-glass-enclosure', 'arc-deep-rear-housing', 'arc-turbine-rotor-hub',
       'arc-turbine-rotor-indicators', 'arc-turbine-secondary-carrier',
-      'arc-bearing-indicators-ring', 'arc-plasma-white-core', 'arc-plasma-containment-field',
+      'arc-bearing-indicators-ring', 'arc-plasma-white-core', 'arc-plasma-outer-envelope',
+      'arc-plasma-containment-field', 'arc-core-spill-light',
     ];
     for (const name of requiredNames) {
       expect(scene.getObjectByName(name), `Missing named object: ${name}`).toBeTruthy();

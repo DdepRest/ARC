@@ -5,6 +5,7 @@ import {
   createArcCenterLogoTexture,
 } from '../reactorTextures';
 import { themeAccentHex, getThemeTextures } from './reactor-theme';
+import { createCorePlasmaController } from './reactor-core-plasma';
 import type { GraphicsConfig } from '../../../features/settings/logic/graphics-presets';
 import type { GpuCapabilities } from './reactor-gpu-capabilities';
 import type { ReactorPbrTextureBundle } from './reactor-texture-registry';
@@ -194,14 +195,14 @@ export function createReactorMaterials(
     depthWrite: false, blending: THREE.NormalBlending,
   });
 
-  // Core Cavity, White-Hot Plasma Source & Deep Crimson Energy Materials
+  // Core Cavity, White-Hot Plasma Source & Deep Crimson Energy Materials (ARC-056)
   const singularityFacetedMat = new THREE.MeshStandardMaterial({
-    color: 0x262c36, metalness: 0.9, roughness: 0.24, emissive: 0x000000, emissiveIntensity: 0.0,
-    flatShading: true, transparent: false, envMapIntensity: 1.25,
+    color: 0x1e222a, metalness: 0.88, roughness: 0.30, emissive: 0x000000, emissiveIntensity: 0.0,
+    flatShading: true, transparent: false, envMapIntensity: 0.95,
   });
   const singularityCoreEmissiveMat = new THREE.MeshStandardMaterial({
-    color: 0x381218, map: plasmaEnergyMap, emissive: currentColor.getHex(), emissiveIntensity: 0.0,
-    roughness: 0.22, metalness: 0.42, transparent: true, opacity: 0.96,
+    color: 0x2a080c, map: plasmaEnergyMap, emissive: currentColor.getHex(), emissiveIntensity: 0.0,
+    roughness: 0.28, metalness: 0.25, transparent: true, opacity: 0.96, depthWrite: false,
   });
   const singularityInnerWireMat = new THREE.MeshBasicMaterial({
     color: currentColor.getHex(), wireframe: true, transparent: true, opacity: 0.28,
@@ -210,7 +211,7 @@ export function createReactorMaterials(
   const plasmaVortexMat = new THREE.MeshStandardMaterial({
     color: currentColor.getHex(), map: plasmaEnergyMap, emissive: 0x000000, emissiveIntensity: 0.0,
     roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.0, depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.AdditiveBlending, vertexColors: true,
   });
   const energyWaveMat = new THREE.MeshBasicMaterial({
     color: currentColor.getHex(), transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending,
@@ -220,15 +221,13 @@ export function createReactorMaterials(
     color: currentColor.getHex(), transparent: true, opacity: 0.0, linewidth: 2,
     blending: THREE.AdditiveBlending,
   });
-
-  // White-Hot Red Primary Plasma Inner Singularity Heart (transparent: true so center raycast hits triangularCoreMesh)
+  // White-Hot Compact Plasma Singularity Heart (transparent: true so center raycast hits triangularCoreMesh)
   const singularityPointMat = new THREE.MeshBasicMaterial({
-    color: 0xfff3f0,
-    transparent: true,
-    opacity: 0.94,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
+    color: 0xfff3f0, transparent: true, opacity: 0.94, blending: THREE.AdditiveBlending, depthWrite: false,
   });
+  const corePlasma = createCorePlasmaController(
+    { singularityCoreEmissiveMat, singularityPointMat, plasmaVortexMat }, 0.54, 'balanced'
+  );
 
   const coronaMat = new THREE.MeshBasicMaterial({
     color: currentColor.getHex(),
@@ -372,6 +371,7 @@ export function createReactorMaterials(
     brushedTitanium.anisotropy = config.pmremQuality === 'eco' ? 0.0 : 0.60;
     plasmaVortexMat.roughness = config.glslPlasmaShader ? 0.06 : 0.14;
     plasmaVortexMat.metalness = config.glslPlasmaShader ? 0.88 : 0.75;
+    corePlasma.applyGraphicsConfig(config, maxHwAniso, minFilter);
   };
 
   // Single-owner rule: materials.dispose() disposes ONLY THREE.Material instances.
