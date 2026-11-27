@@ -27,22 +27,22 @@ export const STUDIO_LIGHT_PRESETS = {
   hemi: {
     skyColor: 0xd8dee8,
     groundColor: 0x131720,
-    intensity: { eco: 0.36, standard: 0.40, shadowed: 0.42 },
+    intensity: { eco: 0.38, standard: 0.43, shadowed: 0.45 },
   },
   key: {
     color: 0xfdfaf5,
     position: [-11.5, 13.5, 16.5] as const,
-    intensity: { eco: 1.72, standard: 1.92, shadowed: 2.02 },
+    intensity: { eco: 1.92, standard: 2.22, shadowed: 2.38 },
   },
   fill: {
     color: 0xd8dde6,
     position: [13.0, -10.5, 14.5] as const,
-    intensity: { eco: 0.66, standard: 0.74, contact: 0.70, shadowed: 0.78 },
+    intensity: { eco: 0.72, standard: 0.82, contact: 0.78, shadowed: 0.86 },
   },
   topSpot: {
     color: 0xf4f6fa,
     position: [1.4, 16.5, 10.8] as const,
-    intensity: { eco: 0.44, standard: 0.62, shadowed: 0.66 },
+    intensity: { eco: 0.56, standard: 0.82, shadowed: 0.90 },
   },
 } as const;
 

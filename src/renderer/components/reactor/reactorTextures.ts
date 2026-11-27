@@ -7,6 +7,7 @@ let cachedTriangularReticle: THREE.CanvasTexture | null = null;
 let cachedArcLogo: THREE.CanvasTexture | null = null;
 let cachedCoreThermal: THREE.CanvasTexture | null = null;
 let cachedHotCore: THREE.CanvasTexture | null = null;
+let cachedOuterEnvelope: THREE.CanvasTexture | null = null;
 
 export function clearStaticTextureCache(): void {
   try { cachedBrushedMetal?.dispose(); } catch {}
@@ -23,6 +24,8 @@ export function clearStaticTextureCache(): void {
   cachedCoreThermal = null;
   try { cachedHotCore?.dispose(); } catch {}
   cachedHotCore = null;
+  try { cachedOuterEnvelope?.dispose(); } catch {}
+  cachedOuterEnvelope = null;
 }
 
 /**
@@ -227,33 +230,37 @@ export function createCoreThermalTexture(size = 512): THREE.CanvasTexture {
         const vein = Math.pow(0.5 + 0.5 * Math.sin(ang * 6.0 + rad * 12.0 + f1 * 2.1), 2.0);
         const filament = (f1 * 0.5 + 0.5) * 0.45 + (f2 * 0.5 + 0.5) * 0.30 + vein * 0.25;
 
-        const baseHeat = Math.max(0, Math.min(1, 1.0 - Math.pow(effR * 1.04, 1.18)));
-        const heat = Math.max(0, Math.min(1, baseHeat * (0.76 + filament * 0.34) + (1.0 - Math.min(1, effR * 2.4)) * 0.16));
+        // Broad luminous body plateau keeping outer triangle perimeter active while square corners remain deep ruby
+        const baseHeat = Math.max(0, Math.min(1, 1.0 - Math.pow(effR * 0.98, 1.38)));
+        const heat = Math.max(
+          0,
+          Math.min(1, baseHeat * (0.82 + filament * 0.28) + (1.0 - Math.min(1, effR * 2.15)) * 0.16)
+        );
 
-        // 4-stop thermal blackbody ramp: deep ruby -> saturated crimson -> orange-red -> warm amber-white
+        // 4-stop thermal blackbody ramp: deep crimson -> rich orange-red -> warm amber -> white-hot center
         let r: number;
         let g: number;
         let b: number;
-        if (heat < 0.30) {
-          const t = heat / 0.30;
-          r = 24 + t * 138;
-          g = 3 + t * 13;
+        if (heat < 0.26) {
+          const t = heat / 0.26;
+          r = 26 + t * 158;
+          g = 3 + t * 18;
           b = 6 + t * 14;
-        } else if (heat < 0.64) {
-          const t = (heat - 0.30) / 0.34;
-          r = 162 + t * 88;
-          g = 16 + t * 62;
-          b = 20 + t * 10;
-        } else if (heat < 0.86) {
-          const t = (heat - 0.64) / 0.22;
-          r = 250 + t * 5;
-          g = 78 + t * 116;
-          b = 30 + t * 76;
+        } else if (heat < 0.60) {
+          const t = (heat - 0.26) / 0.34;
+          r = 184 + t * 68;
+          g = 21 + t * 79;
+          b = 20 + t * 14;
+        } else if (heat < 0.84) {
+          const t = (heat - 0.60) / 0.24;
+          r = 252 + t * 3;
+          g = 100 + t * 106;
+          b = 34 + t * 84;
         } else {
-          const t = (heat - 0.86) / 0.14;
+          const t = (heat - 0.84) / 0.16;
           r = 255;
-          g = 194 + t * 54;
-          b = 106 + t * 118;
+          g = 206 + t * 44;
+          b = 118 + t * 112;
         }
 
         const idx = (y * size + x) * 4;
@@ -305,16 +312,16 @@ export function createHotCoreTexture(size = 256): THREE.CanvasTexture {
         const rad = Math.hypot(nx, ny);
         const ang = Math.atan2(ny, nx);
 
-        const triShape = Math.cos(3 * (ang + Math.PI / 2)) * 0.06;
+        const triShape = Math.cos(3 * (ang + Math.PI / 2)) * 0.065;
         const effR = Math.max(0, rad - triShape * Math.min(1, rad));
-        const cell = 0.86 + 0.14 * Math.sin(nx * 14.0 + Math.cos(ny * 13.0)) * Math.cos(ny * 14.0 - Math.sin(nx * 12.0));
-        const edgeMask = Math.max(0, Math.min(1, 1.0 - Math.pow(effR / 0.94, 2.2)));
-        const core = Math.max(0, Math.min(1, Math.pow(edgeMask, 1.35) * cell));
+        const cell = 0.84 + 0.16 * Math.sin(nx * 14.0 + Math.cos(ny * 13.0)) * Math.cos(ny * 14.0 - Math.sin(nx * 12.0));
+        const edgeMask = Math.max(0, Math.min(1, 1.0 - Math.pow(effR / 0.96, 1.95)));
+        const core = Math.max(0, Math.min(1, Math.pow(edgeMask, 1.25) * cell));
 
-        // White-ivory center -> restrained warm amber -> deep orange edge -> black
-        const r = 255 * Math.pow(core, 0.55);
-        const g = 248 * Math.pow(core, 1.05);
-        const b = 228 * Math.pow(core, 1.85);
+        // White-ivory center -> warm amber -> rich orange feather -> transparent black
+        const r = 255 * Math.pow(core, 0.50);
+        const g = 250 * Math.pow(core, 0.98);
+        const b = 232 * Math.pow(core, 1.72);
         const a = 255 * edgeMask;
 
         const idx = (y * size + x) * 4;
@@ -336,6 +343,67 @@ export function createHotCoreTexture(size = 256): THREE.CanvasTexture {
   texture.magFilter = THREE.LinearFilter;
   texture.needsUpdate = true;
   cachedHotCore = texture;
+  return texture;
+}
+
+/**
+ * Deterministic annular crimson corona texture for the dedicated outer plasma envelope (ARC-057).
+ * Peaks across the annular envelope ring (r ~0.50..0.78) and feathers cleanly to zero at perimeter.
+ * Owned by the static texture cache and cleared via clearStaticTextureCache().
+ */
+export function createOuterEnvelopeTexture(size = 256): THREE.CanvasTexture {
+  if (cachedOuterEnvelope) {
+    cachedOuterEnvelope.needsUpdate = true;
+    return cachedOuterEnvelope;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    const imgData = ctx.createImageData(size, size);
+    const data = imgData.data;
+    const half = size * 0.5;
+    const invHalf = 1 / half;
+
+    for (let y = 0; y < size; y++) {
+      const ny = (y + 0.5 - half) * invHalf;
+      for (let x = 0; x < size; x++) {
+        const nx = (x + 0.5 - half) * invHalf;
+        const rad = Math.hypot(nx, ny);
+        const ang = Math.atan2(ny, nx);
+
+        const triMod = Math.cos(3 * (ang + Math.PI / 2)) * 0.055;
+        const effR = Math.max(0, rad - triMod * Math.min(1, rad));
+        const innerRise = Math.max(0, Math.min(1, (effR - 0.18) / 0.36));
+        const outerFall = Math.max(0, Math.min(1, 1.0 - Math.pow(Math.max(0, (effR - 0.56) / 0.42), 1.65)));
+        const swirl = 0.80 + 0.20 * Math.sin(ang * 6.0 + effR * 14.0) * Math.cos(ang * 3.0 - effR * 9.0);
+        const density = Math.max(0, Math.min(1, (0.38 + 0.62 * innerRise) * outerFall * swirl));
+
+        const r = 248 * Math.pow(density, 0.72);
+        const g = 68 * Math.pow(density, 1.45);
+        const b = 28 * Math.pow(density, 1.75);
+
+        const idx = (y * size + x) * 4;
+        data[idx] = Math.max(0, Math.min(255, Math.round(r)));
+        data[idx + 1] = Math.max(0, Math.min(255, Math.round(g)));
+        data[idx + 2] = Math.max(0, Math.min(255, Math.round(b)));
+        data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  cachedOuterEnvelope = texture;
   return texture;
 }
 

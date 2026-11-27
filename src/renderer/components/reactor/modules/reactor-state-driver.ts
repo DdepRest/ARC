@@ -197,6 +197,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   const unlitGlassColor = new THREE.Color(0x0e0c12);
   const unlitBlack = new THREE.Color(0x000000);
   const whiteHotBaseColor = new THREE.Color(0xfff4f2);
+  const warmSpillTint = new THREE.Color(0xff6020);
 
   const tempCenterColor = new THREE.Color();
   const tempTrenchColor = new THREE.Color();
@@ -225,7 +226,12 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
     if (child.name === "arc-triangular-core-mesh") triangularCoreMesh = child as THREE.Mesh;
     if (child.name === "arc-triangular-core-basic") triangularCoreBasic = child as THREE.Mesh;
     if (child.name === "arc-plasma-white-core") plasmaWhiteCoreMesh = child as THREE.Mesh;
-    if (child.name === "arc-plasma-outer-envelope") plasmaOuterEnvelopeMesh = child as THREE.Mesh;
+    if (child.name === "arc-plasma-outer-envelope") {
+      plasmaOuterEnvelopeMesh = child as THREE.Mesh;
+      if (materials.plasmaOuterEnvelopeMat) {
+        plasmaOuterEnvelopeMesh.material = materials.plasmaOuterEnvelopeMat;
+      }
+    }
     if (child.name === "arc-plasma-containment-field") plasmaContainmentFieldMesh = child as THREE.Mesh;
     if (child.name === "arc-inner-wire-triangle") innerTriWireMesh = child as THREE.Mesh;
     if (child.name === "arc-core-hud-lens") hudLensMesh = child as THREE.Mesh;
@@ -626,6 +632,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.plasmaVortexMat.opacity = 0.0;
       materials.plasmaVortexMat.emissive.setHex(0x000000);
       materials.plasmaVortexMat.emissiveIntensity = 0.0;
+      if (materials.plasmaOuterEnvelopeMat) {
+        materials.plasmaOuterEnvelopeMat.opacity = 0.0;
+        materials.plasmaOuterEnvelopeMat.emissive.setHex(0x000000);
+        materials.plasmaOuterEnvelopeMat.emissiveIntensity = 0.0;
+      }
       if (plasmaOuterEnvelopeMesh) plasmaOuterEnvelopeMesh.visible = false;
       if (coreSpillLight) {
         coreSpillLight.intensity = 0.0;
@@ -680,15 +691,15 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.singularityFacetedMat.emissiveIntensity = (0.14 + smoothTotal * 0.20) * stageCenter * bloomOffEmissiveBoost;
 
       // Stage 2: Primary Energy Distribution Channels, Waveguides, Electromagnetic Containment Field & Port Diodes
-      // Emissive hierarchy: Primary Plasma > Primary Channels (~0.84) > Bearing/Tertiary Indicators (~0.62)
+      // Emissive hierarchy: Primary Plasma > Inner Tubes (~0.54) > Primary Channels (~0.48) > Bearings (~0.32)
       const lightTier = gfx?.dynamicPointLights ?? "standard";
       const isFullPerimeterLights = diagFlags.overrideActive
         ? diagFlags.enablePerimeterPointLights
         : lightTier === "full" || diagFlags.enablePerimeterPointLights;
-      const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.05;
+      const perimeterLightComp = isFullPerimeterLights ? 0.0 : 0.04;
       materials.neonTubeMat.color.copy(tempTrenchColor);
       materials.neonTubeMat.emissive.copy(activeColor);
-      const baseTubeIntensity = (0.82 + perimeterLightComp + smoothTotal * 0.30 + smoothBass * 0.24 + manualPulseValue * 0.22) * stageTrench * bloomOffEmissiveBoost;
+      const baseTubeIntensity = (0.48 + perimeterLightComp + smoothTotal * 0.28 + smoothBass * 0.22 + manualPulseValue * 0.20) * stageTrench * bloomOffEmissiveBoost;
       materials.neonTubeMat.emissiveIntensity = baseTubeIntensity;
 
       // Secondary segmented conduit indicator channel: noticeably less luminous (~42% of primary conductor)
@@ -705,8 +716,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         const mid = smoothMid || 0;
         const treble = smoothTreble || 0;
         const bandValues = use3Band ? [bass, mid, treble] : [smoothTotal, smoothTotal, smoothTotal];
-        const innerBaseIntensity = (0.88 + perimeterLightComp + smoothTotal * 0.34 + manualPulseValue * 0.24) * stageTrench * bloomOffEmissiveBoost;
-        const freqMultiplier = 0.34 * stageTrench * bloomOffEmissiveBoost;
+        const innerBaseIntensity = (0.54 + perimeterLightComp + smoothTotal * 0.30 + manualPulseValue * 0.22) * stageTrench * bloomOffEmissiveBoost;
+        const freqMultiplier = 0.32 * stageTrench * bloomOffEmissiveBoost;
         for (let idx = 0; idx < 3; idx++) {
           const tube = innerEdgeTubes[idx];
           if (tube?.material instanceof THREE.MeshStandardMaterial) {
@@ -721,7 +732,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
       materials.coreDiodeMat.color.copy(tempTrenchColor);
       materials.coreDiodeMat.emissive.copy(activeColor);
-      materials.coreDiodeMat.emissiveIntensity = (0.72 + perimeterLightComp + smoothBass * 0.32 + manualPulseValue * 0.20) * stageTrench * bloomOffEmissiveBoost;
+      materials.coreDiodeMat.emissiveIntensity = (0.46 + perimeterLightComp + smoothBass * 0.28 + manualPulseValue * 0.18) * stageTrench * bloomOffEmissiveBoost;
 
       // Synchronized Bearing Status Indicators (tertiary emissive level phased with rotor azimuth & plasma activity)
       const rotorAzimuth = geometry.internalTurbine.rotation.z;
@@ -732,16 +743,31 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
           bMat.color.copy(tempTrenchColor);
           bMat.emissive.copy(activeColor);
           bMat.emissiveIntensity =
-            (0.50 + bearingPhase * 0.24 + smoothMid * 0.22 + currentVisuals.coreIntensity * 0.12) *
+            (0.32 + bearingPhase * 0.16 + smoothMid * 0.20 + currentVisuals.coreIntensity * 0.10) *
             stageRings *
             bloomOffEmissiveBoost;
         }
       }
 
+      // Independent Rear Outer Energy Envelope (renderOrder = 1)
+      if (materials.plasmaOuterEnvelopeMat) {
+        materials.plasmaOuterEnvelopeMat.color.copy(activeColor);
+        materials.plasmaOuterEnvelopeMat.emissive.copy(activeColor);
+        materials.plasmaOuterEnvelopeMat.emissiveIntensity =
+          (0.95 + currentVisuals.coreIntensity * 0.35 + smoothTotal * 0.55 + smoothBass * 0.35 + manualPulseValue * 0.30) *
+          stageCenter *
+          bloomOffEmissiveBoost;
+        materials.plasmaOuterEnvelopeMat.opacity = Math.min(
+          0.76,
+          (0.44 + currentVisuals.coreIntensity * 0.10 + smoothTotal * 0.16 + smoothBass * 0.10) * stageCenter
+        );
+      }
+
+      // Independent Front Containment Field (renderOrder = 4, crisp magnetic filaments)
       materials.plasmaVortexMat.color.copy(activeColor);
       materials.plasmaVortexMat.emissive.copy(activeColor);
-      materials.plasmaVortexMat.emissiveIntensity = (0.76 + smoothTotal * 0.48) * stageTrench * bloomOffEmissiveBoost;
-      materials.plasmaVortexMat.opacity = Math.min(0.62, (0.34 + smoothTotal * 0.20 + smoothBass * 0.10) * stageTrench);
+      materials.plasmaVortexMat.emissiveIntensity = (0.86 + smoothTotal * 0.50 + smoothBass * 0.20) * stageTrench * bloomOffEmissiveBoost;
+      materials.plasmaVortexMat.opacity = Math.min(0.46, (0.28 + smoothTotal * 0.14 + smoothBass * 0.06) * stageTrench);
 
       // Stage 3: Containment Rings, Energy Conduits & Wavefields
       // Keep gunmetal structural supports strictly non-emissive so red light only reflects physically from energy elements
@@ -759,7 +785,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       // Stage 4: Outer Perimeter, Locks, Outer Glass Tint & Critical Accents
       materials.outerGlassRingMat.color.copy(tempOuterColor);
       materials.criticalWhite.emissive.copy(activeColor);
-      materials.criticalWhite.emissiveIntensity = 0.68 * stageOuter * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
+      materials.criticalWhite.emissiveIntensity = 0.38 * stageOuter * currentSignature.glowIntensity * ringsFocus * bloomOffEmissiveBoost;
     }
 
     // Synchronize central triangular A.R.C. emblem (crisp satin titanium-silver contrast without glowing glare)
@@ -1555,11 +1581,11 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         coreSpillLight.intensity = 0.0;
       } else {
         coreSpillLight.visible = true;
-        coreSpillLight.color.copy(activeColor);
+        coreSpillLight.color.copy(activeColor).lerp(warmSpillTint, 0.20);
         const isCinematicSpill = activeLightTier === "full" || gfx?.pmremQuality === "high";
         const targetSpill = isCinematicSpill
-          ? Math.min(1.85, (0.80 + currentVisuals.coreIntensity * 0.36 + smoothTotal * 0.34 + smoothBass * 0.22) * stageCenter)
-          : Math.min(1.15, (0.46 + currentVisuals.coreIntensity * 0.24 + smoothTotal * 0.22 + smoothBass * 0.14) * stageCenter);
+          ? Math.min(1.90, (0.86 + currentVisuals.coreIntensity * 0.36 + smoothTotal * 0.34 + smoothBass * 0.22) * stageCenter)
+          : Math.min(1.25, (0.56 + currentVisuals.coreIntensity * 0.26 + smoothTotal * 0.22 + smoothBass * 0.14) * stageCenter);
         coreSpillLight.intensity += (targetSpill - coreSpillLight.intensity) * 0.18;
       }
     }

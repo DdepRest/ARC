@@ -9,49 +9,14 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import type { GraphicsConfig } from '../../../features/settings/logic/graphics-presets';
 import type { GpuCapabilities } from './reactor-gpu-capabilities';
-
-const ColorGradingVignetteShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    uContrast: { value: 1.04 },
-    uSaturation: { value: 1.04 },
-    uVignette: { value: 0.14 },
-  },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse;
-    uniform float uContrast;
-    uniform float uSaturation;
-    uniform float uVignette;
-    varying vec2 vUv;
-
-    void main() {
-      vec4 texel = texture2D(tDiffuse, vUv);
-      vec3 col = texel.rgb;
-
-      // Subtle filmic saturation & gentle midtone contrast in linear HDR without crushing darks
-      float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
-      col = mix(vec3(luma), col, uSaturation);
-      col = max(vec3(0.0), (col - vec3(0.02)) * uContrast + vec3(0.02));
-
-      // Delicate optical edge vignette (applied gently to preserve transparent backdrop alpha)
-      if (uVignette > 0.001) {
-        vec2 centered = (vUv - 0.5) * 2.0;
-        float distSq = dot(centered, centered);
-        float vig = 1.0 - smoothstep(0.55, 1.85, distSq) * uVignette;
-        col *= vig;
-      }
-
-      gl_FragColor = vec4(col, texel.a);
-    }
-  `,
-};
+import {
+  ColorGradingVignetteShader,
+  GTAO_DENOISE_CONFIG,
+  mapBloomRadius,
+  resolveAutoDprCap,
+  resolveEffectiveFxaa,
+  resolveGtaoPassSettings,
+} from './reactor-postfx-shaders';
 
 export interface ReactorPostFX {
   composer: EffectComposer;
@@ -90,11 +55,6 @@ export function createReactorPostFX(
   let adaptiveBloomScale: number | null = null;
   let effectiveDpr = 1.0;
 
-  const mapBloomRadius = (uiRadius: number): number => {
-    const clamped = Math.max(0.2, Math.min(0.8, uiRadius));
-    return 0.18 + ((clamped - 0.2) / 0.6) * 0.14;
-  };
-
   const resolveBufferType = (cfg: GraphicsConfig, caps: GpuCapabilities): THREE.TextureDataType => {
     if (cfg.colorBufferPrecision === 'halfFloat' && caps.supportsHalfFloatColorBuffer) {
       return THREE.HalfFloatType;
@@ -111,7 +71,7 @@ export function createReactorPostFX(
 
   const computeEffectiveDpr = (cfg: GraphicsConfig, caps: GpuCapabilities): number => {
     const winDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-    const baseDpr = cfg.targetDpr === 'auto' ? Math.min(winDpr, 1.25) : cfg.targetDpr;
+    const baseDpr = cfg.targetDpr === 'auto' ? resolveAutoDprCap(winDpr, caps, false) : cfg.targetDpr;
     const scale = adaptiveRenderScale !== null ? adaptiveRenderScale : cfg.renderScale;
     const combined = baseDpr * scale;
     const maxCap = caps.isSoftwareGl ? 1.0 : 1.5;
@@ -161,22 +121,10 @@ export function createReactorPostFX(
       const aoH = Math.max(1, Math.round(currentHeight * effectiveDpr * 0.5));
       gtaoPass = new GTAOPass(scene, camera, aoW, aoH);
       gtaoPass.output = GTAOPass.OUTPUT.Default;
-      gtaoPass.updateGtaoMaterial({
-        radius: 0.65,
-        distanceExponent: 1.6,
-        thickness: 1.2,
-        scale: 1.0,
-        samples: 12,
-        distanceFallOff: 0.9,
-      });
-      gtaoPass.updatePdMaterial({
-        lumaPhi: 10,
-        depthPhi: 2,
-        normalPhi: 3,
-        radius: 5,
-        samples: 8,
-      });
-      gtaoPass.blendIntensity = 0.65;
+      const initGtao = resolveGtaoPassSettings(activeConfig.aoMode === 'gtao');
+      gtaoPass.updateGtaoMaterial(initGtao.gtaoMaterial);
+      gtaoPass.updatePdMaterial({ ...GTAO_DENOISE_CONFIG });
+      gtaoPass.blendIntensity = initGtao.blendIntensity;
       gtaoPass.enabled = false;
       composer.addPass(gtaoPass);
     } catch (err) {
@@ -224,9 +172,9 @@ export function createReactorPostFX(
   const outputPass = new OutputPass();
   composer.addPass(outputPass);
 
-  // 7. Conditional FXAA Pass (placed AFTER OutputPass in sRGB space; genuinely respects config.fxaaEnabled)
+  // 7. Conditional FXAA Pass (placed AFTER OutputPass in sRGB space; suppressed when hardware MSAA >= 4x)
   const fxaaPass = new ShaderPass(FXAAShader);
-  fxaaPass.enabled = activeConfig.fxaaEnabled;
+  fxaaPass.enabled = resolveEffectiveFxaa(activeConfig.fxaaEnabled, initialSamples);
   composer.addPass(fxaaPass);
 
   let currentBufferType: THREE.TextureDataType = initialBufferType;
@@ -279,16 +227,10 @@ export function createReactorPostFX(
       const aoActive = !adaptiveDisableAo && !activeCaps.isSoftwareGl && activeConfig.aoMode !== 'off';
       gtaoPass.enabled = aoActive;
       if (aoActive) {
-        const isFullGtao = activeConfig.aoMode === 'gtao';
-        gtaoPass.blendIntensity = isFullGtao ? 0.78 : 0.45;
-        gtaoPass.updateGtaoMaterial({
-          radius: isFullGtao ? 0.68 : 0.52,
-          samples: isFullGtao ? 14 : 8,
-          distanceExponent: 1.6,
-          thickness: 1.15,
-          scale: 1.0,
-          distanceFallOff: 0.9,
-        });
+        const gtaoSettings = resolveGtaoPassSettings(activeConfig.aoMode === 'gtao');
+        gtaoPass.blendIntensity = gtaoSettings.blendIntensity;
+        gtaoPass.updateGtaoMaterial(gtaoSettings.gtaoMaterial);
+        gtaoPass.updatePdMaterial({ ...GTAO_DENOISE_CONFIG });
       }
     }
 
@@ -309,7 +251,7 @@ export function createReactorPostFX(
       colorGradePass.uniforms.uVignette.value = vig;
     }
 
-    fxaaPass.enabled = activeConfig.fxaaEnabled;
+    fxaaPass.enabled = resolveEffectiveFxaa(activeConfig.fxaaEnabled, targetSamples);
 
     renderer.setPixelRatio(effectiveDpr);
     composer.setPixelRatio(effectiveDpr);

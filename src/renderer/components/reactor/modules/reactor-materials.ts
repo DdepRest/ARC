@@ -5,7 +5,7 @@ import {
   createArcCenterLogoTexture,
 } from '../reactorTextures';
 import { themeAccentHex, getThemeTextures } from './reactor-theme';
-import { createCorePlasmaController } from './reactor-core-plasma';
+import { createCorePlasmaController, createCorePlasmaMaterials } from './reactor-core-plasma';
 import type { GraphicsConfig } from '../../../features/settings/logic/graphics-presets';
 import type { GpuCapabilities } from './reactor-gpu-capabilities';
 import type { ReactorPbrTextureBundle } from './reactor-texture-registry';
@@ -34,6 +34,7 @@ export interface ReactorMaterials {
   singularityCoreEmissiveMat: THREE.MeshStandardMaterial;
   singularityInnerWireMat: THREE.MeshBasicMaterial;
   singularityPointMat: THREE.MeshBasicMaterial;
+  plasmaOuterEnvelopeMat: THREE.MeshStandardMaterial;
   plasmaVortexMat: THREE.MeshStandardMaterial;
   energyWaveMat: THREE.MeshBasicMaterial;
   energyArcMat: THREE.LineBasicMaterial;
@@ -67,80 +68,49 @@ export function createReactorMaterials(
 
   // 1. OBSIDIAN TITANIUM — Ultra-smooth dark anodized primary chassis (dominant surface area).
   const anodizedBlack = new THREE.MeshStandardMaterial({
-    color: 0x37383a,
-    metalness: 0.86,
-    roughness: 0.380,
-    normalScale: new THREE.Vector2(0.26, 0.26),
-    aoMapIntensity: 0.88,
-    envMapIntensity: 0.96,
+    color: 0x37383a, metalness: 0.86, roughness: 0.380,
+    normalScale: new THREE.Vector2(0.32, 0.32), aoMapIntensity: 0.88, envMapIntensity: 1.18,
   });
 
   // 2. BRUSHED TITANIUM — Reserved strictly for thin razor trims & chamber crown bezel.
   const brushedTitanium = new THREE.MeshPhysicalMaterial({
-    color: 0x6a6b6c,
-    metalness: 0.92,
-    roughness: 0.274,
-    anisotropy: 0.60,
-    anisotropyRotation: 0.0,
-    clearcoat: 0.04,
-    clearcoatRoughness: 0.34,
-    normalScale: new THREE.Vector2(0.28, 0.28),
-    aoMapIntensity: 0.84,
-    envMapIntensity: 1.08,
+    color: 0x6a6b6c, metalness: 0.92, roughness: 0.274, anisotropy: 0.60, anisotropyRotation: 0.0,
+    clearcoat: 0.12, clearcoatRoughness: 0.20, normalScale: new THREE.Vector2(0.38, 0.38),
+    aoMapIntensity: 0.84, envMapIntensity: 1.48,
   });
 
   // 3. DARK GUNMETAL — Crisp dark-steel framing, arches, diagonal rails & structural brackets.
   const ringFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x4c5666,
-    metalness: 0.89,
-    roughness: 0.380,
-    emissive: 0x000000,
-    emissiveIntensity: 0.0,
-    normalScale: new THREE.Vector2(0.26, 0.26),
-    envMapIntensity: 1.04,
+    color: 0x4c5666, metalness: 0.89, roughness: 0.380, emissive: 0x000000, emissiveIntensity: 0.0,
+    normalScale: new THREE.Vector2(0.34, 0.34), envMapIntensity: 1.26,
   });
 
   // 4. CARBON COMPOSITE — Deepest recessed 3K 2x2 diagonal twill weave trays & service decks.
   const darkCarbon = new THREE.MeshPhysicalMaterial({
-    color: 0x212122,
-    metalness: 0.11,
-    roughness: 0.452,
-    clearcoat: 0.22,
-    clearcoatRoughness: 0.36,
-    normalScale: new THREE.Vector2(0.52, 0.52),
-    aoMapIntensity: 0.90,
-    envMapIntensity: 0.62,
+    color: 0x212122, metalness: 0.11, roughness: 0.452, clearcoat: 0.22, clearcoatRoughness: 0.28,
+    normalScale: new THREE.Vector2(0.62, 0.62), aoMapIntensity: 0.90, envMapIntensity: 0.76,
   });
 
   // 5. OBSIDIAN CERAMIC — Ultra-matte recessed cavities, chamber well & trench beds.
   const darkCeramic = new THREE.MeshStandardMaterial({
-    color: 0x2c2c2c,
-    metalness: 0.03,
-    roughness: 0.880,
-    normalScale: new THREE.Vector2(0.32, 0.32),
-    envMapIntensity: 0.22,
+    color: 0x2c2c2c, metalness: 0.03, roughness: 0.880,
+    normalScale: new THREE.Vector2(0.34, 0.34), envMapIntensity: 0.22,
   });
 
   // 6. SMOKED COPPER — Rare functional electrical contacts, coils & grounding studs.
   const copperWinding = new THREE.MeshStandardMaterial({
-    color: 0x785f4e,
-    metalness: 0.91,
-    roughness: 0.311,
-    normalScale: new THREE.Vector2(0.26, 0.26),
-    envMapIntensity: 0.90,
+    color: 0x785f4e, metalness: 0.91, roughness: 0.311,
+    normalScale: new THREE.Vector2(0.36, 0.36), envMapIntensity: 1.32,
   });
 
   const microMeshMat = new THREE.MeshStandardMaterial({
-    color: 0x181c24,
-    metalness: 0.86,
-    roughness: 0.34,
-    wireframe: true,
+    color: 0x181c24, metalness: 0.86, roughness: 0.34, wireframe: true,
   });
 
   // Tempered dark shroud for outer substation housings (distinct step between obsidian cradle & gunmetal saddle).
   const heatTintedMetal = new THREE.MeshStandardMaterial({
     color: 0x3a4252, metalness: 0.88, roughness: 0.380, emissive: 0x000000,
-    normalScale: new THREE.Vector2(0.26, 0.26), envMapIntensity: 0.90,
+    normalScale: new THREE.Vector2(0.32, 0.32), envMapIntensity: 1.12,
   });
 
   // 7. SMOKED OPTICAL GLASS — Premultiplied physical Fresnel rim + subtle diagonal sheen (transmission=0).
@@ -195,23 +165,14 @@ export function createReactorMaterials(
     depthWrite: false, blending: THREE.NormalBlending,
   });
 
-  // Core Cavity, White-Hot Plasma Source & Deep Crimson Energy Materials (ARC-056)
+  // Core Cavity, White-Hot Plasma Source & Independent Plasma Layer Materials (ARC-056/057)
   const singularityFacetedMat = new THREE.MeshStandardMaterial({
-    color: 0x1e222a, metalness: 0.88, roughness: 0.30, emissive: 0x000000, emissiveIntensity: 0.0,
-    flatShading: true, transparent: false, envMapIntensity: 0.95,
-  });
-  const singularityCoreEmissiveMat = new THREE.MeshStandardMaterial({
-    color: 0x2a080c, map: plasmaEnergyMap, emissive: currentColor.getHex(), emissiveIntensity: 0.0,
-    roughness: 0.28, metalness: 0.25, transparent: true, opacity: 0.96, depthWrite: false,
+    color: 0x1e222a, metalness: 0.88, roughness: 0.26, emissive: 0x000000, emissiveIntensity: 0.0,
+    flatShading: true, transparent: false, envMapIntensity: 1.10,
   });
   const singularityInnerWireMat = new THREE.MeshBasicMaterial({
     color: currentColor.getHex(), wireframe: true, transparent: true, opacity: 0.28,
     blending: THREE.AdditiveBlending, depthWrite: false,
-  });
-  const plasmaVortexMat = new THREE.MeshStandardMaterial({
-    color: currentColor.getHex(), map: plasmaEnergyMap, emissive: 0x000000, emissiveIntensity: 0.0,
-    roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.0, depthWrite: false,
-    blending: THREE.AdditiveBlending, vertexColors: true,
   });
   const energyWaveMat = new THREE.MeshBasicMaterial({
     color: currentColor.getHex(), transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending,
@@ -221,12 +182,16 @@ export function createReactorMaterials(
     color: currentColor.getHex(), transparent: true, opacity: 0.0, linewidth: 2,
     blending: THREE.AdditiveBlending,
   });
-  // White-Hot Compact Plasma Singularity Heart (transparent: true so center raycast hits triangularCoreMesh)
-  const singularityPointMat = new THREE.MeshBasicMaterial({
-    color: 0xfff3f0, transparent: true, opacity: 0.94, blending: THREE.AdditiveBlending, depthWrite: false,
-  });
+  const {
+    singularityCoreEmissiveMat,
+    singularityPointMat,
+    plasmaOuterEnvelopeMat,
+    plasmaVortexMat,
+  } = createCorePlasmaMaterials(currentColor.getHex(), plasmaEnergyMap);
   const corePlasma = createCorePlasmaController(
-    { singularityCoreEmissiveMat, singularityPointMat, plasmaVortexMat }, 0.54, 'balanced'
+    { singularityCoreEmissiveMat, singularityPointMat, plasmaOuterEnvelopeMat, plasmaVortexMat },
+    0.54,
+    'balanced'
   );
 
   const coronaMat = new THREE.MeshBasicMaterial({
@@ -349,13 +314,14 @@ export function createReactorMaterials(
     }
 
     const envScale = Math.max(50, Math.min(150, config.envMapIntensity)) / 100;
-    anodizedBlack.envMapIntensity = 0.96 * envScale;
-    brushedTitanium.envMapIntensity = 1.08 * envScale;
-    ringFrameMat.envMapIntensity = 1.04 * envScale;
-    darkCarbon.envMapIntensity = 0.62 * envScale;
+    anodizedBlack.envMapIntensity = 1.18 * envScale;
+    brushedTitanium.envMapIntensity = 1.48 * envScale;
+    ringFrameMat.envMapIntensity = 1.26 * envScale;
+    darkCarbon.envMapIntensity = 0.76 * envScale;
     darkCeramic.envMapIntensity = 0.22 * envScale;
-    copperWinding.envMapIntensity = 0.90 * envScale;
-    heatTintedMetal.envMapIntensity = 0.90 * envScale;
+    copperWinding.envMapIntensity = 1.32 * envScale;
+    heatTintedMetal.envMapIntensity = 1.12 * envScale;
+    singularityFacetedMat.envMapIntensity = 1.10 * envScale;
     opticGlass.envMapIntensity = 1.75 * envScale;
     outerGlassRingMat.envMapIntensity = 1.05 * envScale;
     neonTubeMat.envMapIntensity = 0.85 * envScale;
@@ -369,6 +335,7 @@ export function createReactorMaterials(
     opticGlass.opacity = 0.16;
 
     brushedTitanium.anisotropy = config.pmremQuality === 'eco' ? 0.0 : 0.60;
+    plasmaOuterEnvelopeMat.roughness = config.glslPlasmaShader ? 0.10 : 0.16;
     plasmaVortexMat.roughness = config.glslPlasmaShader ? 0.06 : 0.14;
     plasmaVortexMat.metalness = config.glslPlasmaShader ? 0.88 : 0.75;
     corePlasma.applyGraphicsConfig(config, maxHwAniso, minFilter);
@@ -380,7 +347,7 @@ export function createReactorMaterials(
       anodizedBlack, brushedTitanium, ringFrameMat, darkCarbon, darkCeramic, copperWinding,
       microMeshMat, heatTintedMetal, opticGlass, outerGlassRingMat, darkGlassOuter,
       darkGlassInner, singularityFacetedMat, singularityCoreEmissiveMat,
-      singularityInnerWireMat, plasmaVortexMat, energyWaveMat, energyArcMat,
+      singularityInnerWireMat, plasmaOuterEnvelopeMat, plasmaVortexMat, energyWaveMat, energyArcMat,
       singularityPointMat, coronaMat, criticalWhite, neonTubeMat, coreDiodeMat, arcCenterLogoMat,
     ].forEach((m) => m.dispose());
   };
@@ -390,7 +357,7 @@ export function createReactorMaterials(
     anodizedBlack, brushedTitanium, ringFrameMat, darkCarbon, darkCeramic, copperWinding,
     microMeshMat, heatTintedMetal, opticGlass, outerGlassRingMat, darkGlassOuter, darkGlassInner,
     singularityFacetedMat, singularityCoreEmissiveMat, singularityInnerWireMat, singularityPointMat,
-    plasmaVortexMat, energyWaveMat, energyArcMat, coronaMat, criticalWhite,
+    plasmaOuterEnvelopeMat, plasmaVortexMat, energyWaveMat, energyArcMat, coronaMat, criticalWhite,
     neonTubeMat, coreDiodeMat, arcCenterLogoMat, currentColor, targetColor,
     applyPbrBundle, applyGraphicsConfig, dispose,
   };
