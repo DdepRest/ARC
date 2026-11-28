@@ -34,11 +34,11 @@ export interface CorePlasmaShaderUniforms {
 }
 
 export const CORE_PLASMA_SHADER_CONFIG = {
-  cacheVersion: 'v3',
+  cacheVersion: 'v4',
   detailLevel: { balanced: 0.60, cinematic: 1.0 },
-  bodyGain: { balanced: 1.85, cinematic: 2.20 },
-  hotCoreGain: { balanced: 1.38, cinematic: 1.62 },
-  envelopeGain: { balanced: 1.15, cinematic: 1.35 },
+  bodyGain: { balanced: 1.92, cinematic: 2.22 },
+  hotCoreGain: { balanced: 1.45, cinematic: 1.68 },
+  envelopeGain: { balanced: 1.25, cinematic: 1.45 },
   vortexGain: { balanced: 1.08, cinematic: 1.28 },
   // Outer-envelope geometry UVs span r_uv = [0.342..0.449] -> texture rad = 2*r_uv = [0.684..0.898].
   // Scaling by 0.80 maps r_uv -> [0.274..0.359] (texture rad [0.547..0.718]), aligning the inner rim
@@ -63,6 +63,35 @@ function mix3(
     a[1] + (b[1] - a[1]) * t,
     a[2] + (b[2] - a[2]) * t,
   ];
+}
+
+/**
+ * Normalized triangular distance metric matching the central chamber's equilateral triangle
+ * (vertices at -90°, +30°, +150°; flat edges at +90°, -30°, -150° with apothem a = 0.5 * R).
+ * Returns 0.0 at center (0, 0) and 1.0 along all three flat edges and all three vertices.
+ */
+export function evaluateTriangularCoreRadius(px: number, py: number): number {
+  const edgeProj = Math.max(py, 0.8660254 * Math.abs(px) - 0.5 * py);
+  return Math.max(0.0, Math.min(1.0, 2.0 * edgeProj));
+}
+
+/**
+ * Deterministic CPU reference of the GLSL arcHeat calculation for control-point verification.
+ */
+export function evaluateCoreThermalHeat(
+  rhoTri: number,
+  mapHeat: number,
+  rawTurb: number,
+  detailLevel: number
+): number {
+  const clampedRho = Math.max(0.0, Math.min(1.0, rhoTri));
+  const arcRadial = 1.0 - clampedRho;
+  const clampedMap = Math.max(0.0, Math.min(1.0, mapHeat));
+  const turbTerm = (rawTurb - 0.46) * 0.22 * detailLevel;
+  return Math.max(
+    0.0,
+    Math.min(1.0, 0.12 + arcRadial * 0.62 + clampedMap * 0.24 + turbTerm)
+  );
 }
 
 /**
@@ -123,7 +152,7 @@ export function installEcoCoreFallback(
 /**
  * Installs single-pass procedural thermal shaders for Balanced and Cinematic tiers.
  * Replaces `#include <emissivemap_fragment>` cleanly so `emissiveMap` is never applied twice,
- * and samples raw `map` UVs before `diffuseColor` tinting so scrolling plasma turbulence stays active.
+ * and enforces material-specific alpha contracts across NormalBlending and AdditiveBlending.
  */
 export function installProceduralCoreShaders(
   tier: 'balanced' | 'cinematic',
@@ -177,21 +206,27 @@ export function installProceduralCoreShaders(
     if (shader.fragmentShader.includes('#include <emissivemap_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
-        `/* ARC-057: single-pass procedural thermal emission (replaces emissivemap_fragment) */
+        `/* ARC-058: triangular distance thermal emission & NormalBlending alpha lock */
+        diffuseColor.a = opacity;
         float arcDrive = max(totalEmissiveRadiance.r, max(totalEmissiveRadiance.g, totalEmissiveRadiance.b));
         if (arcDrive > 0.0005) {
           vec3 arcHue = totalEmissiveRadiance / arcDrive;
           vec2 arcCenteredUv = clamp(vArcCoreLocal * 0.46 + 0.5, 0.01, 0.99);
           vec3 arcThermal = texture2D(uCoreThermalMap, arcCenteredUv).rgb;
-          float arcRawTurb = 0.42;
+          float arcRawTurb = 0.46;
           #ifdef USE_MAP
             vec3 arcMapSample = texture2D(map, vMapUv).rgb;
             arcRawTurb = max(arcMapSample.r, max(arcMapSample.g, arcMapSample.b));
           #endif
-          float arcMapHeat = pow(max(arcThermal.r, 0.0001), 0.48);
-          float arcRadial = clamp(1.0 - length(vArcCoreLocal) * 0.84, 0.0, 1.0);
+          float rhoTri = clamp(
+            2.0 * max(vArcCoreLocal.y, 0.8660254 * abs(vArcCoreLocal.x) - 0.5 * vArcCoreLocal.y),
+            0.0,
+            1.0
+          );
+          float arcRadial = 1.0 - rhoTri;
+          float arcMapHeat = clamp(dot(arcThermal, vec3(0.36, 0.44, 0.20)), 0.0, 1.0);
           float arcHeat = clamp(
-            arcMapHeat * 0.62 + arcRadial * 0.34 + (arcRawTurb - 0.42) * 0.26 * uDetailLevel,
+            0.12 + arcRadial * 0.62 + arcMapHeat * 0.24 + (arcRawTurb - 0.46) * 0.22 * uDetailLevel,
             0.0,
             1.0
           );
@@ -202,8 +237,9 @@ export function installProceduralCoreShaders(
           vec3 arcRamp = mix(cDeep, cMid, smoothstep(0.06, 0.42, arcHeat));
           arcRamp = mix(arcRamp, cHot, smoothstep(0.42, 0.76, arcHeat));
           arcRamp = mix(arcRamp, cCore, smoothstep(0.76, 0.96, arcHeat));
+          diffuseColor.rgb = mix(diffuseColor.rgb * 0.28, arcRamp * 0.26, 0.80);
           float arcFacing = pow(saturate(dot(normalize(vNormal), normalize(vViewPosition))), 0.45);
-          float arcEnergy = mix(0.76, uEmissiveGain, smoothstep(0.05, 0.92, arcHeat)) * mix(0.84, 1.0, arcFacing);
+          float arcEnergy = mix(0.68, uEmissiveGain, smoothstep(0.08, 0.92, arcHeat)) * mix(0.86, 1.0, arcFacing);
           totalEmissiveRadiance = arcRamp * arcDrive * arcEnergy;
         } else {
           totalEmissiveRadiance = vec3(0.0);
@@ -252,7 +288,7 @@ export function installProceduralCoreShaders(
     if (shader.fragmentShader.includes('#include <emissivemap_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
-        `/* ARC-057: single-pass outer-envelope emission sampling outerEnvelopeMap (replaces emissivemap_fragment) */
+        `/* ARC-058: outer-envelope emission sampling outerEnvelopeMap & mask-driven additive alpha */
         float arcEnvMask = 1.0;
         #ifdef USE_EMISSIVEMAP
           vec2 arcEnvUv = clamp((vEmissiveMapUv - 0.5) * ${envUvScaleStr} + 0.5, 0.01, 0.99);
@@ -264,9 +300,11 @@ export function installProceduralCoreShaders(
           vec3 arcEnvTex = texture2D(map, vMapUv).rgb;
           arcEnvRawTurb = max(arcEnvTex.r, max(arcEnvTex.g, arcEnvTex.b));
         #endif
+        diffuseColor.a = opacity * clamp(0.65 + 0.35 * arcEnvMask, 0.0, 1.0);
         float arcEnvMod = arcEnvMask * (0.76 + 0.42 * uDetailLevel * arcEnvRawTurb) * uEnvelopeGain;
         #ifdef USE_COLOR
-          totalEmissiveRadiance *= vColor.rgb * arcEnvMod;
+          vec3 arcEnvVert = max(vColor.rgb, vec3(0.38, 0.10, 0.10));
+          totalEmissiveRadiance *= arcEnvVert * arcEnvMod;
         #else
           totalEmissiveRadiance *= arcEnvMod;
         #endif`
@@ -276,9 +314,6 @@ export function installProceduralCoreShaders(
   plasmaOuterEnvelopeMat.needsUpdate = true;
 
   // 4. Independent Front Containment Field (renderOrder = 4, crisp magnetic filament arcs)
-  // Procedural radial shaping is driven by baked vColor and animated filaments by `map` (plasmaEnergyMap);
-  // emissiveMap is intentionally unbound here to avoid an unused USE_EMISSIVEMAP sampler binding
-  // while installEcoCoreFallback() restores textures.thermalMap for Eco static mode.
   plasmaVortexMat.emissiveMap = null;
   plasmaVortexMat.vertexColors = true;
   plasmaVortexMat.customProgramCacheKey = () => `arc-plasma-vortex-${tier}-${ver}`;
@@ -294,13 +329,15 @@ export function installProceduralCoreShaders(
     if (shader.fragmentShader.includes('#include <emissivemap_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
-        `/* ARC-057: independent front containment-field filaments (replaces emissivemap_fragment) */
+        `/* ARC-058: independent front containment-field filaments & filament-driven additive alpha */
         float arcVortexRaw = 0.45;
         #ifdef USE_MAP
           vec3 arcVortexTex = texture2D(map, vMapUv).rgb;
           arcVortexRaw = max(arcVortexTex.r, max(arcVortexTex.g, arcVortexTex.b));
         #endif
-        float arcFilament = mix(0.62, 1.32, smoothstep(0.18, 0.82, arcVortexRaw));
+        float arcFilamentStep = smoothstep(0.18, 0.82, arcVortexRaw);
+        diffuseColor.a = opacity * clamp(0.32 + 0.68 * arcFilamentStep, 0.0, 1.0);
+        float arcFilament = mix(0.34, 1.38, arcFilamentStep);
         float arcVortexMod = mix(0.85, arcFilament, 0.45 + 0.55 * uDetailLevel) * uVortexGain;
         #ifdef USE_COLOR
           totalEmissiveRadiance *= vColor.rgb * arcVortexMod;

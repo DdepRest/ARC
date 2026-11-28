@@ -135,7 +135,9 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
     const cx = size / 2;
     const cy = size / 2;
 
-    // White-hot inner plasma core transitioning cleanly to saturated crimson edges (compact falloff prevents logo washout)
+    // White-hot inner plasma core transitioning cleanly to saturated crimson edges (compact falloff prevents logo washout).
+    // Preserves radial alpha graduation for Eco additive materials while keeping a safe outer floor (>= 0.56)
+    // so RepeatWrapping UV scrolling never causes 95% transparency dropouts.
     const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
     const r = (hexColor >> 16) & 255;
     const g = (hexColor >> 8) & 255;
@@ -143,12 +145,14 @@ export function createPlasmaEnergyTexture(size = 256, hexColor = 0x00d4ff): THRE
     const hotR = Math.min(255, r + 95);
     const hotG = Math.min(255, g + 165);
     const hotB = Math.min(255, b + 150);
-    bgGrad.addColorStop(0.0, `rgba(${hotR}, ${hotG}, ${hotB}, 0.92)`);
-    bgGrad.addColorStop(0.18, `rgba(${Math.min(255, r + 45)}, ${Math.min(255, g + 55)}, ${Math.min(255, b + 48)}, 0.78)`);
-    bgGrad.addColorStop(0.38, `rgba(${r}, ${g}, ${b}, 0.52)`);
-    bgGrad.addColorStop(0.66, `rgba(${r}, ${g}, ${b}, 0.22)`);
-    bgGrad.addColorStop(0.88, `rgba(${r}, ${g}, ${b}, 0.05)`);
-    bgGrad.addColorStop(1.0, '#000000');
+    const floorR = Math.max(16, Math.round(r * 0.24));
+    const floorG = Math.max(6, Math.round(g * 0.20));
+    const floorB = Math.max(8, Math.round(b * 0.20));
+    bgGrad.addColorStop(0.0, `rgba(${hotR}, ${hotG}, ${hotB}, 0.95)`);
+    bgGrad.addColorStop(0.20, `rgba(${Math.min(255, r + 45)}, ${Math.min(255, g + 55)}, ${Math.min(255, b + 48)}, 0.86)`);
+    bgGrad.addColorStop(0.44, `rgba(${r}, ${g}, ${b}, 0.74)`);
+    bgGrad.addColorStop(0.72, `rgba(${Math.round(r * 0.62)}, ${Math.round(g * 0.56)}, ${Math.round(b * 0.56)}, 0.64)`);
+    bgGrad.addColorStop(1.0, `rgba(${floorR}, ${floorG}, ${floorB}, 0.56)`);
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, size, size);
 
@@ -376,7 +380,7 @@ export function createOuterEnvelopeTexture(size = 256): THREE.CanvasTexture {
 
         const triMod = Math.cos(3 * (ang + Math.PI / 2)) * 0.055;
         const effR = Math.max(0, rad - triMod * Math.min(1, rad));
-        const innerRise = Math.max(0, Math.min(1, (effR - 0.18) / 0.36));
+        const innerRise = Math.max(0, Math.min(1, (effR - 0.06) / 0.26));
         const outerFall = Math.max(0, Math.min(1, 1.0 - Math.pow(Math.max(0, (effR - 0.56) / 0.42), 1.65)));
         const swirl = 0.80 + 0.20 * Math.sin(ang * 6.0 + effR * 14.0) * Math.cos(ang * 3.0 - effR * 9.0);
         const density = Math.max(0, Math.min(1, (0.38 + 0.62 * innerRise) * outerFall * swirl));

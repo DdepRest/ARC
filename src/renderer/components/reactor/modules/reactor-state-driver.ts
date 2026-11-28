@@ -101,6 +101,39 @@ export function computeReactorViewportTransform(params: {
   return { x: targetX, y: targetY, scale: safeScale };
 }
 
+export const APERTURE_MECHANICAL_BOUNDS = {
+  minScale: 0.96,
+  maxScale: 1.14,
+  baseOffset: 0.91,
+  rawSlope: 0.17,
+} as const;
+
+export function mapApertureToMechanicalScale(rawAperture: number): number {
+  const safeRaw = Number.isFinite(rawAperture) ? rawAperture : 0.4;
+  const mapped =
+    APERTURE_MECHANICAL_BOUNDS.baseOffset +
+    safeRaw * APERTURE_MECHANICAL_BOUNDS.rawSlope;
+  return Math.min(
+    APERTURE_MECHANICAL_BOUNDS.maxScale,
+    Math.max(APERTURE_MECHANICAL_BOUNDS.minScale, mapped)
+  );
+}
+
+export function computeAlertApertureTarget(
+  elapsedTime: number,
+  pulseRate: number,
+  fallbackAperture: number,
+  prefersReducedMotion: boolean
+): number {
+  if (prefersReducedMotion) {
+    return fallbackAperture;
+  }
+  const rate = Math.max(1.0, Number.isFinite(pulseRate) ? pulseRate : 6.0);
+  const phase = elapsedTime * rate * Math.PI * 2.0;
+  const compositeWave = Math.sin(phase) + 0.45 * Math.sin(phase * 1.732 + 0.8);
+  return compositeWave >= 0.0 ? 1.2 : 0.7;
+}
+
 export function createReactorStateDriver(params: ReactorStateDriverParams) {
   const {
     scene,
@@ -156,7 +189,7 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
   let turbineBoostMultiplier = 1.0;
   let turbineBoostEndTime = 0;
   let neuroFiringIndex = 0;
-  let apertureSpringScale = 1.0;
+  let apertureSpringScale = mapApertureToMechanicalScale(currentSignature.apertureOpen);
   let apertureSpringVel = 0.0;
 
   const clock = new THREE.Clock();
@@ -667,14 +700,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       materials.outerGlassRingMat.color.copy(unlitGlassColor);
     } else {
       // Stage 1: Primary Volumetric Plasma Source (White-Hot Center + Saturated Crimson Envelope)
-      const isSpeaking = state === 'speaking';
       materials.singularityCoreEmissiveMat.color.copy(unlitBlack).lerp(activeColor, stageCenter);
       materials.singularityCoreEmissiveMat.emissive.copy(activeColor);
-      const coreGlowMod = isSpeaking
-        ? (1.06 + smoothBass * 0.80 + smoothMid * 0.52)
-        : (0.98 + smoothBass * 0.74 + smoothMid * 0.48 + smoothTotal * 0.58 + manualPulseValue * 0.36);
-      materials.singularityCoreEmissiveMat.emissiveIntensity =
-        (0.56 + currentVisuals.coreIntensity * 0.44) * coreGlowMod * stageCenter * bloomOffEmissiveBoost;
 
       // White-hot inner plasma core tint & controlled animated intensity
       materials.singularityPointMat.color.copy(whiteHotBaseColor).lerp(activeColor, 0.24);
@@ -688,7 +715,8 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
 
       materials.singularityFacetedMat.color.copy(unlitFacetedColor).lerp(activeColor, stageCenter * 0.18);
       materials.singularityFacetedMat.emissive.copy(activeColor);
-      materials.singularityFacetedMat.emissiveIntensity = (0.14 + smoothTotal * 0.20) * stageCenter * bloomOffEmissiveBoost;
+      materials.singularityFacetedMat.emissiveIntensity =
+        (0.24 + currentVisuals.coreIntensity * 0.10 + smoothTotal * 0.20) * stageCenter * bloomOffEmissiveBoost;
 
       // Stage 2: Primary Energy Distribution Channels, Waveguides, Electromagnetic Containment Field & Port Diodes
       // Emissive hierarchy: Primary Plasma > Inner Tubes (~0.54) > Primary Channels (~0.48) > Bearings (~0.32)
@@ -853,7 +881,10 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
         }
         if (isGlowActive) {
           materials.singularityCoreEmissiveMat.emissiveIntensity =
-            (0.56 + currentVisuals.coreIntensity * 0.44) * (0.92 + patternBoost * 0.60 + manualPulseValue * 0.26) * stageCenter * bloomOffEmissiveBoost;
+            (0.74 + currentVisuals.coreIntensity * 0.50) *
+            (0.95 + patternBoost * 0.52 + manualPulseValue * 0.26) *
+            stageCenter *
+            bloomOffEmissiveBoost;
         } else {
           materials.singularityCoreEmissiveMat.emissiveIntensity = 0.0;
         }
@@ -893,19 +924,36 @@ export function createReactorStateDriver(params: ReactorStateDriverParams) {
       }
 
       if (apertureInnerRim) {
-        const baseAperture = (state === 'error' || state === 'alert')
-          ? (Math.random() > 0.5 ? 1.2 : 0.7)
-          : currentSignature.apertureOpen;
-        const targetAperture = baseAperture + smoothTreble * 0.15 + (idleBlinkActive ? 0.15 : 0);
+        const baseAperture =
+          state === 'error' || state === 'alert'
+            ? computeAlertApertureTarget(
+                elapsedTime,
+                currentSignature.pulseRate,
+                currentSignature.apertureOpen,
+                prefersReducedMotion
+              )
+            : currentSignature.apertureOpen;
+        const rawAperture =
+          baseAperture + smoothTreble * 0.15 + (idleBlinkActive ? 0.15 : 0);
+        const targetAperture = mapApertureToMechanicalScale(rawAperture);
         if (!gfx || gfx.springPhysics !== false) {
+          const springDt = Math.min(Math.max(0.0, delta), 0.033);
           const force = (targetAperture - apertureSpringScale) * 140.0;
-          apertureSpringVel = (apertureSpringVel + force * delta) * Math.exp(-12.0 * delta);
-          apertureSpringScale += apertureSpringVel * delta;
-          apertureInnerRim.scale.setScalar(apertureSpringScale);
+          apertureSpringVel =
+            (apertureSpringVel + force * springDt) * Math.exp(-12.0 * springDt);
+          apertureSpringScale += apertureSpringVel * springDt;
+          if (apertureSpringScale < APERTURE_MECHANICAL_BOUNDS.minScale) {
+            apertureSpringScale = APERTURE_MECHANICAL_BOUNDS.minScale;
+            if (apertureSpringVel < 0) apertureSpringVel = 0;
+          } else if (apertureSpringScale > APERTURE_MECHANICAL_BOUNDS.maxScale) {
+            apertureSpringScale = APERTURE_MECHANICAL_BOUNDS.maxScale;
+            if (apertureSpringVel > 0) apertureSpringVel = 0;
+          }
+          apertureInnerRim.scale.set(apertureSpringScale, apertureSpringScale, 1.0);
         } else {
           apertureSpringScale = targetAperture;
           apertureSpringVel = 0;
-          apertureInnerRim.scale.setScalar(targetAperture);
+          apertureInnerRim.scale.set(targetAperture, targetAperture, 1.0);
         }
       }
 
